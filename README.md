@@ -1,4 +1,4 @@
-#HAUL3
+# HAUL3
 HotKey's Amphibious Universal Language
 
 This is a puzzle I have set up for myself: Can I write a program that translates itself into other languages? Nothing new, nothing special. Every programmer should have tried this at least once. Well, this is my approach at that.
@@ -15,7 +15,7 @@ Have fun with it and don't hurt your brain.
 //HotKey
 
 
-#Versions
+# Versions
 haul1 was the first attempt. It is written in PHP. I will not say more...
 
 haul2 was the second attempt written in Python. It works, but still requires "boot strapping"
