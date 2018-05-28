@@ -7,7 +7,7 @@ So I tried. And it worked. And it was fun.
 
 So I did it again. And it was even more fun.
 
-So I did it a third time. And now I really like it. :-)
+So now I am doing it for a third time...
 
 ![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
 
@@ -19,6 +19,7 @@ Have fun with it and don't hurt your brain.
 
 
 ## Version 3 (2013-01 - now)
+* This version is not yet capable of translating its own source, yet. But it already translates and compiles other stuff like crazy :-)
 * Finally, I am using a proper AST structure (modules, functions, expressions, instructions, ...)
 * Just doing it the way everyone else does it: Lex it, parse it, generate output. Boring, yet powerful. Now, translation to binary output is finally feasible.
 * This is the most OOP approach yet. Much easier to comprehend than the previous versions, which streamed the tokens on-the-fly.
@@ -33,10 +34,10 @@ Have fun with it and don't hurt your brain.
 * Use ide.py to play around with different languages
 * Use build.py to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
 
+![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
+
 ## Directory Structure
 * haul holds the main source code, including the parser(s) and builders
 * data holds language/platform specific data, e.g. native libraries or resources
 * examples holds some example code, ready to be translated to any other language
 * tools holds external tools that are needed for some builders, e.g. emulators, compilers and SDKs
-
-![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
