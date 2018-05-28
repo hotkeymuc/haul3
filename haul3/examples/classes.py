@@ -10,6 +10,13 @@ class MyClass:
 		#@var someLocal str
 		someLocal = (self.name)
 
+class SecondClass(MyClass):
+	#@var name2 str
+	
+	def otherMethod(self):
+		return 5
+		
+
 # Main:
 print('Begin...')
 

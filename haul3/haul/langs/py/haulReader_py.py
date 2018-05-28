@@ -36,6 +36,7 @@ PAT_INFIX = [
 
 
 
+
 # Control structures
 L_IF = 'if'
 L_ELIF = 'elif'
@@ -64,8 +65,9 @@ def put(t):
 	print('HAULReader_py:\t' + str(t))
 
 def put_debug(t):
-	pass
+	"Very verbose output"
 	#put(t)
+	pass
 
 class HAULReader_py(HAULReader):
 	
@@ -128,24 +130,34 @@ class HAULReader_py(HAULReader):
 			r.type = TOKEN_NUM
 			#r.data = self.getAll(PAT_NUM_N)
 			
-			if (not(c in PAT_NUM_N)):	# Skip it
-				self.get()
+			#if (not(c in PAT_NUM_N)):	# Skip it
+			#	self.get()
 			
 			# Identify int/float/hex/...
-			s = self.getAll(PAT_NUM_N)
-			if ('.' in s):
-				# Float
-				r.data = float(s)
-			elif ((len(s) > 2) and (s[1] == 'x')):
-				# hex int
-				#put('Line ' + str(self.lineNum) + ', guessing hex for string "%s"' % (s))
-				r.data = int(s, 16)
-			else:
-				# int
-				r.data = int(s)
+			s = self.get()
+			s = s + self.getAll(PAT_NUM_N)
 			
-			if (c == '-'):
-				r.data = -r.data
+			if (s == '-'):
+				put('Started as a num ("' + str(c) + '"), but isnt: "' + str(s) + '" in ' + str(r))
+				# Wrong
+				r.type = TOKEN_UNKNOWN
+				r.data = c
+			else:
+				if ('.' in s):
+					# Float
+					r.data = float(s)
+				elif ((len(s) > 2) and (s[0] == '0') and (s[1] == 'x')):
+					# hex int
+					#put('Line ' + str(self.lineNum) + ', guessing hex for string "%s"' % (s))
+					r.data = int(s, 16)
+				else:
+					# int
+					r.data = int(s)
+				
+				# Handle minus
+				if (c == '-'):
+					r.data = -r.data
+				
 			
 		elif c in PAT_IDENT_1:
 			r.type = TOKEN_IDENT
@@ -225,16 +237,24 @@ class HAULReader_py(HAULReader):
 		elif (t == 'float'): return T_FLOAT
 		elif (t == 'str'): return T_STRING
 		elif (t == 'bool'): return T_BOOLEAN
-		return T_UNKNOWN
+		elif (t == 'obj'): return T_OBJECT
+		elif (t == 'arr'): return T_ARRAY	#@TODO: of which type?
+		else:
+			put_debug('Assuming "' + str(t) + '" is a class name, interpreting as type')
+			return str(t)
+		#return T_UNKNOWN
 		
 	
-	def readArgs(self, namespace):
+	def readArgs(self, namespace, bracket=')'):
 		"Read argument list"
 		r = []
 		t = self.peekNextToken()
-		#while (not self.eof()) and (not t.data == ')'):
-		while (not self.eof()) and (not (t.data == ')' or t.data == ']')):
-			r.append(self.readExpression(namespace=namespace))
+		
+		while (not self.eof()) and (not (t.data == bracket)):
+			
+			#@TODO: When reading call arguments we need to look inside the functions namespace for the names of the args
+			#r.append(self.readExpression(namespace=namespace_target, namespaceLocal=namespace))
+			r.append(self.readExpression(namespace=namespace, allowUnknown=True))
 			
 			t = self.peekNextToken()
 			
@@ -311,7 +331,7 @@ class HAULReader_py(HAULReader):
 			e = self.readExpression(namespace=ns)	# Spawn...
 			put_debug('end of sub-expression(s)')
 			
-			self.getAssertData(')', 'Expected closing bracket')	# Check and skip trailing bracket
+			self.getAssertData(')', 'Expected closing bracket which started at ' + str(t))	# Check and skip trailing bracket
 			
 		elif (t.data == '['):
 			put_debug('array constructor')
@@ -322,7 +342,7 @@ class HAULReader_py(HAULReader):
 			
 			t2 = self.peekNextToken()
 			if (not t2.data == ']'):
-				e.call.args = self.readArgs(namespace=ns)
+				e.call.args = self.readArgs(namespace=ns, bracket=']')
 				#t2 = self.peekNextToken()
 			else:
 				#self.raiseParseError('Expected closing array bracket', t2)
@@ -408,11 +428,18 @@ class HAULReader_py(HAULReader):
 					self.raiseParseError('Unknown call to "' + str(t.data) + '"', t)
 				# If ns.find_id returns kind=K_FUNCTION it is a standard call, if it is K_TYPE it is an instantiation (call of constructor)!
 				
+				e.returnType = e.call.id.data_type
+				
 				if (e.call.id.kind == K_TYPE):	#@FIXME: K_CLASS!
 					put('Instantiation of class ' + e.call.id.name + ', calling the __init__ function')
+					# Use actual class name as type
+					#e.returnType = e.call.id.name
 				
-				e.call.args = self.readArgs(namespace=ns)
-				e.returnType = e.call.id.data_type
+				#@TODO: Shift namespace to the call so we can handle named arguments
+				#ns_target = e.call.id.namespace
+				
+				e.call.args = self.readArgs(namespace=ns, bracket=')')	#, namespace_target=ns_target)
+				
 				
 			elif (t2.data == '['):
 				# Array look-up
@@ -422,7 +449,7 @@ class HAULReader_py(HAULReader):
 				# Wrap current expression
 				#i = HAULId(t2.data)
 				e.call = implicitCall(I_ARRAY_LOOKUP)
-				#e.call.args = self.readArgs()
+				#e.call.args = self.readArgs(bracket=']')
 				
 				v = ns.find_id(t.data)
 				e1 = HAULExpression(var=v)
@@ -439,24 +466,29 @@ class HAULReader_py(HAULReader):
 				
 			elif (t2.data == '.'):
 				# Object look-up
-				put_debug('Object look-up... ' + str(t))
+				put_debug('Object look-up... ' + str(t) + ' in ' + str(namespace) + ' / ' + str(namespaceLocal))
 				self.getNextToken()	# Skip dot
 				e.call = implicitCall(I_OBJECT_LOOKUP)
 				e1 = HAULExpression()
 				#v = HAULVariable()
 				#v.id = ns.find_id(t.data)
 				
-				if (namespaceLocal == None):
+				v = None
+				
+				# Try local one first
+				if (namespaceLocal != None):
+					v = namespaceLocal.find_id(t.data, ignore_unknown=True)
+				
+				if (v == None):
 					v = ns.find_id(t.data)
-				else:
-					# Need to look in the namespace of this dot-chain
-					v = namespaceLocal.find_id(t.data)
+				
 				e1.var = v
 				e1.returnType = v.data_type
 				
 				# When doing a object look-up, the name space shifts to the looked-up value. Alternatively we could store it as "run-time look-up/late binding"
 				put_debug('Variable "' + str(v.name) + '" is a ' + str(v.kind)+ ' of type "' + str(v.data_type) + '". Shifting namespace for object look-up...')
 				ns_shifted = ns.find_namespace_of(v.data_type)
+				
 				
 				"""
 				if (v.kind == K_MODULE):
@@ -491,7 +523,7 @@ class HAULReader_py(HAULReader):
 					self.getNextToken()	# Skip bracket
 					
 					cNew = implicitCall(I_OBJECT_CALL)
-					cNew.args = [copy.copy(e)] + self.readArgs(namespace=ns)	# array merge
+					cNew.args = [copy.copy(e)] + self.readArgs(namespace=ns, bracket=')')	# array merge
 					#self.getNextToken()	# Skip bracket
 					e.call = cNew
 					
@@ -500,12 +532,16 @@ class HAULReader_py(HAULReader):
 				#put('var...')
 				# Find the variable (or at least try)
 				
+				v = None
 				if (namespaceLocal != None):
 					ns2 = namespaceLocal
-				else:
-					ns2 = ns
+					v = ns2.find_id(t.data, ignore_unknown=True)
 				
-				e.var = ns2.find_id(t.data, ignore_unknown=True)	#allowUnknown)
+				if (v == None):
+					ns2 = namespace
+					v = ns2.find_id(t.data, ignore_unknown=True)
+				
+				e.var = v
 				
 				if (e.var is None):
 					# Variable/id was not found
@@ -517,7 +553,7 @@ class HAULReader_py(HAULReader):
 						e.var = i
 						
 					else:
-						self.raiseParseError('Undefined id "' + str(t.data) + '" (and not inferring)!', t)
+						self.raiseParseError('Undefined id "' + str(t.data) + '" (and not inferring). Started searching at ' + str(ns2), t)
 						
 				e.returnType = e.var.data_type
 			
@@ -569,10 +605,10 @@ class HAULReader_py(HAULReader):
 					
 				elif (iId in ['>', '<', '==', '!=', '<=', '>=']):
 					# Comparisons return a boolean value
-					eNew.returnType = 'bool'
+					eNew.returnType = T_BOOLEAN
 				else:
 					# Maybe the call itself has a return type?
-					eNew.returnType = eNew.call.id.getType()
+					eNew.returnType = eNew.call.id.data_type
 				
 				t2 = self.peekNextToken()
 				#put('End of trailing infix argument and outer expression. Next: ' + str(t2))
@@ -823,7 +859,6 @@ class HAULReader_py(HAULReader):
 		
 		# Skip initial EOL
 		t = self.peekNextToken(skipBlank=False)
-		#put('readBlock() ' + str(t))
 		while (not self.eof()) and (t.type == TOKEN_EOL):
 			self.getNextToken(skipBlank=False)
 			t = self.peekNextToken(skipBlank=False)
@@ -863,7 +898,13 @@ class HAULReader_py(HAULReader):
 					comment = self.readLine()
 					put_debug('readBlock():	Comment: "' + str(comment) + '"')
 					b.addComment(comment)
-				
+			
+			elif (t.type == TOKEN_UNKNOWN) and (t.data[0] == '"'):
+				#@TODO: Handle it properly. Double/triple quotes
+				comment = self.readLine()
+				put_debug('readBlock():	Doc Comment: "' + str(comment) + '"')
+				b.addComment(comment)
+			
 			else:
 				# Read instruction
 				i = self.readInstr(namespace=ns, module=module)
@@ -1018,28 +1059,18 @@ class HAULReader_py(HAULReader):
 		ns.add_id(name=L_SELF, kind=K_VARIABLE, data_type=t.data, origin=self.loc())
 		ns.add_id(name=L_INIT, kind=K_FUNCTION, data_type=t.data, origin=self.loc())
 		
-		#@TODO: Inheritance
-		"""
-		c.extends.append(self.add_id(...))
 		
-		# open bracket
-		t = self.getAssertData('(', 'Expected "("')
 		
-		# Read arguments
 		t = self.peekNextToken()
-		while (not self.eof()) and (not t.data == ')'):
-			f.addArgs(self.readVarDef())
-			t = self.peekNextToken()
-			if (t.data == ','): t = self.getNextToken()
-			t = self.peekNextToken()
+		if (t.data == '('):
+			# Inheritance
+			put_debug('Inheritance...')
+			self.getNextToken()	# Skip bracket
+			
+			self.inherits = self.readArgs(namespace=namespace, bracket=')')
+			#@TODO: Implement
+			put('Inheritance is not yet handled correctly!')
 		
-		t = self.getAssertData(')', 'Expected ")"')
-		t = self.getAssertData(':', 'Expected ":"')
-		t = self.getAssertType(TOKEN_EOL, 'Expected EOL')
-		
-		f.block = self.readBlock()
-		return f
-		"""
 		
 		t = self.getAssertData(':', 'Expected ":" after class declaration')
 		t = self.getAssertType(TOKEN_EOL, 'Expected EOL after class head')
@@ -1088,6 +1119,9 @@ class HAULReader_py(HAULReader):
 					else:
 						comment = self.readLine()
 						put_debug('readClass():	Comment: "' + str(comment) + '"')
+						t = self.peekNextToken(skipBlank=False)
+						if (t.type == TOKEN_EOL):
+							self.getNextToken()	# Skip EOL
 					
 				else:
 					put_debug('readClass():	Skipping ' + str(t))
@@ -1119,6 +1153,7 @@ class HAULReader_py(HAULReader):
 		if (scanOnly):
 			#@TODO: registerGlobal=False so it gets de-allocated when done?
 			m.namespace = HAULNamespace(name=m.name, parent=namespace)
+			namespace.add_namespace(m.namespace)
 		else:
 			m.namespace = namespace.find_or_create_namespace(m.name)
 			
@@ -1227,7 +1262,7 @@ class HAULReader_py(HAULReader):
 				
 				self.getNextToken()
 				t = self.peekNextToken()
-				if (t.data[0] == L_ANNOTATION):
+				if (len(t.data) > 0) and (t.data[0] == L_ANNOTATION):
 					
 					#@FIXME: This annotation might be the first var in root main block! In that case the annotation belongs to the BLOCK, not the MODULE!
 					#if (lastAnnotOrigin == -1): lastAnnotOrigin = o
@@ -1237,6 +1272,9 @@ class HAULReader_py(HAULReader):
 				else:
 					comment = self.readLine()
 					put_debug('readModule():	Comment: "' + str(comment) + '"')
+					#t = self.peekNextToken()
+					#if (t.type == TOKEN_EOL):
+					#	self.getNextToken()
 				
 			else:
 				put('readModule():	Skipping unknown ' + str(t))
@@ -1264,6 +1302,9 @@ class HAULReader_py(HAULReader):
 			
 		elif (parts[0] == A_ARGUMENT):
 			# Arguments need to be declared in a forward manner, that's why a "temporary namespace" is used which is checked on function declaration
+			if (self.tempNs == None):
+				raiseParseError('Argument annotation without matching function annotation', t)
+			
 			#self.tempNs.add_id(name=parts[1], kind=K_ARGUMENT, data=parts[2], origin=self.loc())
 			self.tempNs.add_id(name=parts[1], kind=K_VARIABLE, data_type=self.getType(parts[2]), origin=self.loc())
 			
@@ -1272,8 +1313,9 @@ class HAULReader_py(HAULReader):
 			
 			
 		elif (parts[0] == K_VARIABLE):
-			#put('Variable annotation! ' + str(parts))
+			put_debug('Variable annotation: ' + str(parts))
 			ns.add_id(name=parts[1], kind=K_VARIABLE, data_type=self.getType(parts[2]), origin=self.loc())
+			
 		elif (parts[0] == K_CONST):
 			#put('Const annotation! ' + str(parts))
 			ns.add_id(name=parts[1], kind=K_CONST, data_type=self.getType(parts[2]), data_value=parts[3], origin=self.loc())

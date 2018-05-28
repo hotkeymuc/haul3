@@ -34,13 +34,13 @@ def put(t):
 
 ############################################################
 
-def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
+def translate(source_filename, WriterClass, output_path=None, dialect=None):
 	"Translates the input file using the given language's Writer"
 	
-	name = nameByFilename(inputFilename)
+	name = nameByFilename(source_filename)
 	
-	streamIn = StringReader(readFile(inputFilename))
-	reader = HAULReader_py(stream=streamIn, filename=inputFilename)
+	streamIn = StringReader(readFile(source_filename))
+	reader = HAULReader_py(stream=streamIn, filename=source_filename)
 	
 	streamOut = StringWriter()
 	if dialect is None:
@@ -48,18 +48,18 @@ def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
 	else:
 		writer = WriterClass(streamOut, dialect=dialect)
 	
-	if outputPath is None:
-		outputFilename = inputFilename + '.' + writer.defaultExtension
+	if output_path is None:
+		output_filename = source_filename + '.' + writer.defaultExtension
 	else:
-		if not os.path.exists(dest_path):
-			os.makedirs(dest_path)
-		outputFilename = outputPath + '/' + name + '.' + writer.defaultExtension
+		if not os.path.exists(output_path):
+			os.makedirs(output_path)
+		output_filename = output_path + '/' + name + '.' + writer.defaultExtension
 	
 	monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 	
 	reader.seek(0)
 	
-	put('Translating input file "' + inputFilename + '"...')
+	put('Translating input file "' + source_filename + '"...')
 	
 	try:
 		writer.stream(reader, monolithic=monolithic)	# That's where the magic happens!
@@ -67,19 +67,20 @@ def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
 		put('Parse error: ' + str(e.message))
 		#raise
 	
-	put('Writing output file "' + outputFilename + '"...')
-	writeFile(outputFilename, streamOut.r)
+	put('Writing output file "' + output_filename + '"...')
+	writeFile(output_filename, streamOut.r)
 	
 
-source_file = 'examples/hello.py'
+#source_file = 'examples/hello.py'
 #source_file = 'examples/small.py'
 #source_file = 'examples/infer.py'
 #source_file = 'examples/complex.py'
 #source_file = 'examples/classes.py'
 #source_file = 'examples/shellmini.py'
 #source_file = 'examples/vm.py'
+source_file = 'haul/haul.py'
 
-dest_path = 'build'
+output_path = 'build'
 
 #WriterClass = HAULWriter_asm
 #WriterClass = HAULWriter_bas
@@ -93,7 +94,7 @@ dest_path = 'build'
 WriterClass = HAULWriter_py
 #WriterClass = HAULWriter_vbs
 
-translate(source_file, WriterClass, dest_path)
+translate(source_file, WriterClass, output_path)
 
 
 put('translate.py ended.')

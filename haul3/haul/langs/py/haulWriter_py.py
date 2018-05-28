@@ -159,6 +159,9 @@ class HAULWriter_py(HAULWriter):
 			self.writeCall(i.call)
 			return False
 		
+		self.write('pass')
+		return False
+		
 	def writeControl(self, c, indent=0):
 		if (c.controlType == C_IF):
 			j = 0

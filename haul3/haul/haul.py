@@ -20,15 +20,41 @@ TODO:
 
 #AUTO_CREATE_UNKNOWN_IDS = True	# Required for type inference. Turn off for debugging the parser. Is stricter, breaks faster that way.
 
+#@fun put
+#@arg t str
 def put(t):
 	print('HAUL:\t' + str(t))
 
+#@fun put_debug
+#@arg t str
 def put_debug(t):
 	#put(t)
 	pass
 
 def repr_array(a):
-	return (', '.join([str(i) for i in a]))
+	#return (', '.join([str(i) for i in a]))
+	
+	r = ''
+	
+	#@var i obj
+	for i in a:
+		if (len(r) > 0):
+			r = r + ', '
+		r = r + str(i)
+	return r
+
+class Stream:
+	def eof(self):
+		return True
+	def seek(self, o):
+		pass
+	def peek(self):
+		return None
+	def get(self):
+		return None
+	def put(self, t):
+		pass
+	
 
 # Guess the type of a new variable by looking at the return type of the right side
 INFER_TYPE = True
@@ -70,6 +96,21 @@ T_MODULE = '#mod'
 
 class HAULId:
 	"Unique identifier (e.g. function name, variable name, ...)"
+	#@var name str
+	#@var namespace HAULNamespace
+	#@var kind str
+	#@var data_type str
+	#@var data_value HAULValue
+	#@var data_function HAULFunction
+	#@var data_class HAULClass
+	#@var data_module HAULModule
+	
+	#@var origin int
+	#@var user str
+	
+	#@fun __init__
+	#@arg name str
+	#@arg namespace obj
 	def __init__(self, name, namespace, kind, origin=None, data_type=None, data_value=None):
 		self.name = name
 		self.namespace = namespace
@@ -92,20 +133,25 @@ class HAULId:
 
 class HAULNamespace:
 	"Keeps track of all identifiers"
-	def __init__(self, name, parent, add_to_parent=True):
+	#@var ids arr HAULId
+	#@var name str
+	#@var parent HAULNamespace
+	#@var nss arr HAULNamespace
+	#@var origin int
+	
+	def __init__(self, name, parent):
 		put_debug('Creating new namespace "' + name + '" below "' + str(parent) + '"')
 		self.ids = []
 		self.name = name
 		
 		self.parent = parent
 		self.nss = []	# Array of child namespaces
-		if (add_to_parent) and (parent):
-			parent.add_namespace(self)
-			#parent.add_id(name=name, kind=K_NAMESPACE)
 		self.origin = None
 		
+	
 	def get_id(self, name, kind=None):
 		"Finds the given id in this local namespace"
+		#@var i HAULId
 		for i in self.ids:
 			if (i.name == name) and ((kind == None) or (i.kind == kind)): return i
 		
@@ -114,19 +160,21 @@ class HAULNamespace:
 	
 	def find_id(self, name, kind=None, ignore_unknown=False):
 		"Also searches upwards"
+		
+		#@var r HAULNamespace
 		r = self
-		while not r == None:
+		while not (r == None):
 			# Try finding it here
 			#put('finding "' + str(name) + '" in namespace "' + str(r) + '"...')
 			i = r.get_id(name=name, kind=kind)
-			if i == None:
+			if (i == None):
 				# If not, search one ns upwards
 				r = r.parent
 			else:
 				#put('found "' + str(name) + '" in namespace "' + str(r) + '"...')
 				return i
 		
-		if not ignore_unknown:
+		if (ignore_unknown == False):
 			raise Exception('HAULNamespace Error: Id "' + str(name) + '" (kind=' + str(kind) + ') is not defined in any namespace starting at "' + str(self) + '"!')
 		
 		return None
@@ -150,28 +198,35 @@ class HAULNamespace:
 	
 	def add_namespace(self, ns):
 		self.nss.append(ns)
-		
+	
 	def find_or_create_namespace(self, name):
+		#@var ns HAULNamespace
 		for ns in self.nss:
 			if ns.name == name: return ns
-			
-		return HAULNamespace(name=name, parent=self)
 		
+		# Create
+		ns = HAULNamespace(name=name, parent=self)
+		# Add to parent
+		self.add_namespace(ns)
+		return ns
+	
 	def find_namespace_of(self, name, kind=None):
 		"Which namespace contains name"
+		#@var r HAULNamespace
 		r = self
-		while not r == None:
+		while (r != None):
 			#put('finding namespace "' + str(idName) + '" in namespace "' + str(r) + '"...')
 			#if r.name == idName: return r
 			
 			# Search direct childs
+			#@var ns HAULNamespace
 			for ns in r.nss:
 				if (ns.name == name) and ((kind == None) or (ns.kind == kind)):
 					return ns
 				#else:	put('    != "' + str(ns) + '"')
 			r = r.parent
 		
-		raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!\n' + rootNamespace.dump())
+		raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!')	#\n' + rootNamespace.dump())
 		return None
 	
 	def clear(self):
@@ -179,35 +234,44 @@ class HAULNamespace:
 		self.nss = []
 	
 	def dump(self, level=1, skipEmpty=True):
+		#@var i int
+		
 		indent = ''
 		for i in xrange(level):
-			indent += '  '	#'\t'
-		
-		r = ''
-		r += str(self.name) + '("' + str(self) + '", ' + str(len(self.ids)) + ' ids, ' + str(len(self.nss)) + ' childs):\n'
-		for id in self.ids:
-			r += indent + '* ' + str(id.name) + ' [' + str(id.kind) + '] = "' + str(id.data_value) + '" [' + str(id.data_type) + ']' + '\n'
+			indent = indent + '  '	#'\t'
 			
+		
+		r = str(self.name) + '("' + str(self) + '", ' + str(len(self.ids)) + ' ids, ' + str(len(self.nss)) + ' childs):\n'
+		#@var id HAULId
+		for id in self.ids:
+			r = r + indent + '* ' + str(id.name) + ' [' + str(id.kind) + '] = ' + str(id.data_value) + ' [' + str(id.data_type) + ']' + '\n'
+			
+		
+		#@var ns HAULNamespace
 		for ns in self.nss:
 			if ((skipEmpty) and (len(ns.ids) == 0)): continue
-			r += indent + '. ' + ns.dump(level+1, skipEmpty)
+			r = r + indent + '. ' + ns.dump(level+1, skipEmpty)
 			
 		return r
 	
 	def __repr__(self):
 		r = ''
-		if (self.parent): r += str(self.parent) + '.'
-		r += str(self.name)
+		if (self.parent): r = r + str(self.parent) + '.'
+		r = r + str(self.name)
 		return r
 
 class HAULValue:
 	"Simple value (e.g. of a variable or constant expression)"
+	#@var type HAULType
+	#@var data obj
+	
 	def __init__(self):
 		self.type = None	#HAULType
 		self.data = None	# binary
+		
 	
 	def __repr__(self):
-		if (type(self.data) is str):
+		if (self.type == T_STRING):
 			return '"' + self.data + '"'
 		else:
 			return str(self.data)
@@ -216,15 +280,23 @@ class HAULValue:
 
 class HAULClass:
 	"One Class declaration"
+	#@var id HAULId
+	#@var funcs arr HAULFunction
+	#@var namespace HAULNamespace
+	#@var inherits arr HAULId
+	
+	#@var origin int
+	#@var destination int
+	
 	def __init__(self, id=None):
 		#@TODO: Static values?
-		#@TODO: Inheritance?
-		self.id = id	#HAULId(name)	#HAULId	name of module
-		#self.classes = []	#HAULClass[]	Member types	e.g. classes
-		self.funcs = []	#HAULFunction[]	Member functions
-		#self.vars = []	#HAULVariable[]	Member variables
-		#self.block = None	#HAULBlock (or HAULFunction, or self.funcs[0])
+		self.id = id
+		#self.classes = []
+		self.funcs = []
+		#self.vars = []
+		#self.block = None
 		self.namespace = None	#HAULNamespace()
+		self.inherits = []
 		
 		self.origin = None	#HAULOrigin?
 		self.destination = None	# Record offset in output stream
@@ -235,18 +307,25 @@ class HAULClass:
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Class"'
-		r += '"id": "' + str(self.id) + '"'
-		r += ', "vars": [' + (repr_array(self.vars)) + ']'
-		r += ', "funcs": [' + (repr_array(self.funcs)) + ']'
-		if (self.block): r += ', ' + str(self.block)
-		r += '}'
+		r = r + '"id": "' + str(self.id) + '"'
+		#r = r + ', "vars": [' + (repr_array(self.vars)) + ']'
+		r = r + ', "funcs": [' + (repr_array(self.funcs)) + ']'
+		#if (self.block): r = r + ', ' + str(self.block)
+		r = r + '}'
 		return r
 
 class HAULInstruction:
 	"One instruction"
+	#@var call HAULCall
+	#@var control HAULControl
+	#@var comment str
+	
+	#@var origin int
+	#@var destination int
+	
 	def __init__(self, call=None, control=None, comment=None):
-		self.call = call	#HAULCall Iff this instruction is a function call
-		self.control = control	#HAULControl	Iff this instruction is a Control Instruction
+		self.call = call
+		self.control = control
 		self.comment = comment
 		
 		self.origin = None
@@ -255,45 +334,60 @@ class HAULInstruction:
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Instruction"'
-		if (self.call != None): r += '"call": ' + str(self.call)
-		if (self.control != None): r += '"control": ' + str(self.control)
-		r += '}'
+		if (self.call != None): r = r + '"call": ' + str(self.call)
+		if (self.control != None): r = r + '"control": ' + str(self.control)
+		r = r + '}'
 		return r
 
 class HAULControl:
 	"Control Instruction (e.g. IF, SWITCH, WHILE, FOR, ...)"
+	#@var controlType str
+	#@var exprs arr HAULExpression
+	#@var blocks arr HAULBlock
+	
 	def __init__(self, controlType=None):
 		#self.id = id	#HAULId
 		self.controlType = controlType
-		self.exprs = []	#HAULExpression[]	e.g. the expression used in a FOR-loop
-		self.blocks = []	#HAULBlock[]	e.g. the code fragments between THEN, ELSE and ENDIF
+		self.exprs = []
+		self.blocks = []
 	
 	def addBlock(self, block):
 		self.blocks.append(block)
+	
 	def addExpr(self, expr):
 		self.exprs.append(expr)
 	
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Control"'
-		r += '"controlType": "' + str(self.controlType) + '">'
-		r += ', "exprs": [' + (repr_array(self.exprs)) + ']'
-		r += ', "blocks": [' + (repr_array(self.exprs)) + ']'
-		r += '}'
+		r = r + '"controlType": "' + str(self.controlType) + '">'
+		r = r + ', "exprs": [' + (repr_array(self.exprs)) + ']'
+		r = r + ', "blocks": [' + (repr_array(self.blocks)) + ']'
+		r = r + '}'
 		return r
 
 class HAULFunction:
 	"Function declaration"
+	#@var id HAULId
+	#@var returnType HAULType
+	#@var args arr HAULExpression
+	#@var block HAULBlock
+	#@var namespace HAULNamespace
+	
+	#@var origin int
+	#@var destination int
+	#@var user str
+	
 	def __init__(self):
 		#scope = None	# if variable is a class method/function
-		self.id = None	#HAULId	Function/Method name
-		self.returnType = None	#HAULType	Return type
-		self.args = []	#HAULVariable[]
-		self.block = None	#HAULBlock	The implementation of this function, including local variables
+		self.id = None
+		self.returnType = None
+		self.args = []
+		self.block = None	# The implementation of this function, including local variables
 		
-		self.namespace = None	#HAULNamespace	# Use the block origin!
-		self.origin = None	#HAULOrigin?
-		self.destination = None	# Record offset in output stream
+		self.namespace = None
+		self.origin = None
+		self.destination = None
 		
 		self.user = None	# User defined, e.g. for parsing
 	
@@ -303,21 +397,21 @@ class HAULFunction:
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Function"'
-		r += '"id": "' + str(self.id) + '"'
-		r += ', "returnType": ' + str(self.returnType)
-		r += ', "args": [' + (repr_array(self.args)) + ']'
-		r += ', "block": ' + str(self.block)
-		r += '}'
+		r = r + '"id": "' + str(self.id) + '"'
+		r = r + ', "returnType": ' + str(self.returnType)
+		r = r + ', "args": [' + (repr_array(self.args)) + ']'
+		r = r + ', "block": ' + str(self.block)
+		r = r + '}'
 		return r
 
 class HAULCall:
 	"Function call"
-	def __init__(self, id = None):	#, args):
-		self.id = id	#HAULId	If code-scope call - or only use this?
-		#builtIn = None	# If built-in function
-		self.args = []	#HAULExpression[]
-		#type = None	#HAULType	Return Type
-		#self.args = args
+	#@var id HAULId
+	#@var args arr HAULExpression
+	
+	def __init__(self, id=None):
+		self.id = id
+		self.args = []
 		
 	def getType(self):
 		return self.id.data_type
@@ -325,41 +419,53 @@ class HAULCall:
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Call"'
-		r += '"id": "' + str(self.id) + '"'
-		r += ', "args": [' + (','.join([str(v) for v in self.args])) + ']'
-		r += '}'
+		r = r + '"id": "' + str(self.id) + '"'
+		r = r + ', "args": [' + (repr_array(self.args)) + ']'
+		r = r + '}'
 		return r
 
 class HAULExpression:
 	"One expression of any kind."
+	#@var value HAULValue
+	#@var var HAULId
+	#@var call HAULCall
+	#@var returnType HAULType
+	
 	def __init__(self, value=None, var=None, call=None):
-		#@TODO: Add Array- and Class-Field accessors!!!!
-		#type = None	# can be derived from the field used!
-		self.value = value	#HAULValue	Iff constant expression
-		self.var = var	#HAULVariable	Iff "value-of-variable"	/	GetVar
-		self.call = call	#HAULCall	Iff expression is (returnValue of) a function call
-		
-		self.returnType = None	#HAULType?	Return type
+		self.value = value
+		self.var = var
+		self.call = call
+		self.returnType = None
 		
 	def getType(self):
 		# Guess the type of this expression
-		if not self.value == None: return self.value.getType()
-		if not self.var == None: return self.var.getType()
-		if not self.call == None: return self.call.getType()
+		if (self.value != None): return self.value.getType()
+		if (self.var != None): return self.var.getType()
+		if (self.call != None): return self.call.getType()
 		put('Could not get type of expression: ' + str(self))
 		return None
 	
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Expression"'
-		if not self.value == None: r += '"value": ' + str(self.value)
-		if not self.var == None: r += '"var": ' + str(self.var)
-		if not self.call == None: r += '"call": ' + str(self.call)
-		r += '}'
+		if (self.value != None): r = r + '"value": ' + str(self.value)
+		if (self.var != None): r = r + '"var": ' + str(self.var)
+		if (self.call != None): r = r + '"call": ' + str(self.call)
+		r = r + '}'
 		return r
 
 class HAULBlock:
 	"A Block of Instructions"
+	#@var instrs arr HAULInstruction
+	#@var name str
+	
+	#@var namespace HAULNamespace
+	
+	#@var scanOnly bool
+	#@var origin int
+	#@var destination int
+	#@var instrs_count int
+	
 	def __init__(self, scanOnly=False):
 		self.instrs = []
 		#self.vars = []	#HAULVariable[]	Local variables
@@ -377,9 +483,10 @@ class HAULBlock:
 		
 	def addInstr(self, instr):
 		if self.scanOnly:
-			self.instrs_count += 1
+			self.instrs_count = self.instrs_count + 1
 		else:
 			self.instrs.append(instr)
+	
 	def addComment(self, comment):
 		if self.scanOnly:
 			pass
@@ -390,55 +497,76 @@ class HAULBlock:
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Block"'
-		r += '"instrs": [' + (repr_array(self.instrs)) + ']'
-		r += '}'
+		r = r + '"instrs": [' + (repr_array(self.instrs)) + ']'
+		r = r + '}'
 		return r
 
 
 class HAULModule:
 	"One Module of Code"
+	#@var name str
+	#@var namespace HAULNamespace
+	#@var classes arr HAULClass
+	#@var funcs arr HAULFunction
+	#@var imports arr str
+	#@var block HAULBlock
+	
+	#@var origin int
+	#@var destination int
+	#@var scanOnly bool
+	#@var classes_origins arr int
+	#@var funcs_origins arr int
+	
 	def __init__(self, scanOnly=False):
 		self.name = '?'
+		self.namespace = None
 		
-		self.namespace = None	#HAULNamespace
-		
-		self.classes = []	#HAULClass[]	Global types	e.g. classes (and primitives?)
-		self.funcs = []	#HAULFunction[]	Global functions
+		self.classes = []
+		self.funcs = []
 		self.imports = []	#HAULModule[]? or just strings?
-		self.block = None	#HAULBlock (or HAULFunction, or self.funcs[0])
+		self.block = None
 		
-		self.origin = None	#HAULOrigin?
+		self.origin = None
 		self.destination = None	# Record offset in output stream
 		self.scanOnly = scanOnly
 		self.classes_origins = []
 		self.funcs_origins = []
 		
-		
+	
+	#@fun addClass
+	#@arg t HAULClass
 	def addClass(self, t):
 		if self.scanOnly:
 			self.classes_origins.append(t.origin)
 		else:
 			self.classes.append(t)
 		
+	
+	#@fun addFunc
+	#@arg func HAULFunction
 	def addFunc(self, func):
 		if self.scanOnly:
 			self.funcs_origins.append(func.origin)
 		else:
 			self.funcs.append(func)
 		
+	
+	#@fun addImport
+	#@arg imp str
 	def addImport(self, imp):
 		self.imports.append(imp)
 		
+	
 	def __repr__(self):
 		r = '{'
 		#r += '"_": "Module"'
-		r += '"name": "' + str(self.name) + '"'
-		r += ', "classes": [' + (repr_array(self.classes)) + ']'
-		r += ', "funcs": [' + (repr_array(self.funcs)) + ']'
-		if (self.block): r += ', "block": ' + str(self.block)
-		r += '}'
+		r = r + '"name": "' + str(self.name) + '"'
+		r = r + ', "classes": [' + (repr_array(self.classes)) + ']'
+		r = r + ', "funcs": [' + (repr_array(self.funcs)) + ']'
+		if (self.block): r = r + ', "block": ' + str(self.block)
+		r += r + '}'
 		return r
-
+	
 
 ############################################################
 ############################################################
@@ -462,7 +590,8 @@ def implicitControl(controlType):
 
 
 
-
+#@var rootNamespace HAULNamespace
+#@var ns HAULNamespace
 rootNamespace = HAULNamespace('root', parent=None)
 ns = rootNamespace
 
@@ -524,6 +653,15 @@ ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN)
 ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 
 
+# Internal array functions
+ns = HAULNamespace(T_ARRAY, parent=rootNamespace)
+rootNamespace.add_namespace(ns)
+ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
+
+# Internal string functions
+ns = HAULNamespace(T_STRING, parent=rootNamespace)
+rootNamespace.add_namespace(ns)
+ns.add_id('replace', kind=K_FUNCTION, data_type=T_STRING)
 
 
 
@@ -531,7 +669,7 @@ ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 LIB_NAMESPACES = {}
 
 # HIO
-ns = HAULNamespace('hio', parent=None, add_to_parent=False)
+ns = HAULNamespace('hio', parent=None)
 ns.add_id('put', kind=K_FUNCTION, data_type=T_NOTHING)
 ns.add_id('put_direct', kind=K_FUNCTION, data_type=T_NOTHING)
 ns.add_id('shout', kind=K_FUNCTION, data_type=T_NOTHING)
@@ -543,7 +681,7 @@ LIB_NAMESPACES['hio'] = ns
 
 
 # Implicit function calls. They are "so internal" that they don't need to be exposed to a global namespace, but are handled directly by the parser
-implicitNamespace = HAULNamespace('#implicit', parent=None, add_to_parent=False)
+implicitNamespace = HAULNamespace('#implicit', parent=None)
 ns = implicitNamespace
 
 I_VAR_SET = ns.add_id('#set', kind=K_FUNCTION, data_type=T_NOTHING)
@@ -553,6 +691,8 @@ I_OBJECT_LOOKUP = ns.add_id('#O_lookUp', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_OBJECT_CALL = ns.add_id('#O_call', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_DICT_CONSTRUCTOR = ns.add_id('#D_new', kind=K_FUNCTION, data_type=T_OBJECT)
 #I_UNKNOWN = HAULId('#?', ns, kind=K_CONST, data_type=T_UNKNOWN)
+
+
 
 def implicitCall(id):
 	return HAULCall(id)
@@ -565,11 +705,15 @@ TOKEN_EOL = 2
 TOKEN_NUM = 3
 TOKEN_IDENT = 4
 
-TOKEN_NAMES = [
-	'unknown', 'blank', 'EOL', 'number', 'identifier'
-]
+TOKEN_NAMES = ['unknown', 'blank', 'EOL', 'number', 'identifier']
 
 class HAULToken:
+	#@var type int
+	#@var data str
+	#@var originByte int
+	#@var originLine int
+	#@var originPos int
+	
 	def __init__(self, type=TOKEN_UNKNOWN, data=''):
 		self.type = type
 		self.data = data
@@ -580,11 +724,26 @@ class HAULToken:
 		return '<HAULToken ' + TOKEN_NAMES[self.type] + ' "' + str(self.data) + '" originLine="' + str(self.originLine) + '" originPos="' + str(self.originPos) + '" />'
 
 class HAULParseError(Exception):
+	#@var message str
+	#@var token HAULToken
+	
 	def __init__(self, message, token):
 		self.message = message
 		self.token = token
 
 class HAULReader:
+	#@var stream Stream
+	#@var filename str
+	#@var ofs int
+	#@var ofsGet int
+	#@var lineNum int
+	#@var linePos int
+	#@var peekNext HAULToken
+	#@var rootNamespace HAULNamespace
+	
+	#@var tempNs HAULNamespace
+	
+	
 	def __init__(self, stream, filename):
 		self.stream = stream
 		self.filename = filename	# For useful error messages
@@ -599,10 +758,10 @@ class HAULReader:
 		self.rootNamespace = rootNamespace
 		
 		#self.annot = None	# Current annotation
-		self.tempNs = None	# For storing function annotations before function actually created
+		self.tempNs = None	# For storing function annotations before function actually created (forward annotation)
 		
 	
-	### Expose/proxy stream methods
+	# Expose/proxy stream methods
 	def eof(self):
 		return self.stream.eof()
 	
@@ -629,14 +788,34 @@ class HAULReader:
 		# Update stats
 		self.ofs = self.stream.ofs
 		if (r == '\n'):
-			self.lineNum += 1
+			self.lineNum = self.lineNum + 1
 			self.linePos = 1
 		else:
-			self.linePos += 1
+			self.linePos = self.linePos + 1
 		return r
+	
+	#@fun readModule HAULModule
+	def readModule(self):
+		return None
+	#@fun readBlock HAULBlock
+	def readBlock(self):
+		return None
+	#@fun readClass HAULClass
+	def readClass(self):
+		return None
+	#@fun readFunc HAULFunction
+	def readFunc(self):
+		return None
+	#@fun readExpression HAULExpression
+	def readExpression(self):
+		return None
+	
 
 
 class HAULWriter:
+	#@var streamOut Stream
+	#@var defaultExtension str
+	
 	def __init__(self, streamOut):
 		self.streamOut = streamOut
 		self.defaultExtension = 'txt'
@@ -649,6 +828,20 @@ class HAULWriter:
 		"Add a comment to the file"
 		self.streamOut.put('// ' + t + '\n')
 	
+	def writeModule(self, m):
+		pass
+	def writeClass(self, c):
+		pass
+	def writeFunc(self, f):
+		pass
+	def writeBlock(self, b):
+		pass
+	def writePost(self):
+		"Post-process"
+		pass
+	
+	#@fun stream
+	#@arg reader HAULReader
 	def stream(self, reader, monolithic=False):
 		"Write to output stream what the reader provides. Returns the module object"
 		
@@ -658,6 +851,10 @@ class HAULWriter:
 			self.writeModule(m)
 		
 		else:
+			#@var i int
+			#@var ns HAULNamespace
+			#@var name str
+			
 			ns = rootNamespace
 			name = reader.filename.replace('.', '_')
 			
@@ -678,17 +875,17 @@ class HAULWriter:
 			
 			self.writeComment('Using HAULWriter smart translation. The order of items is static for ALL languages at the moment!')
 			
+			#@var origin int
+			
 			put('Writing classes...')
-			for i in xrange(len(m.classes_origins)):
-				origin = m.classes_origins[i]
+			for origin in (m.classes_origins):
 				put('Seeking to origin of class (' + str(origin) + ')...')
 				reader.seek(origin)
 				c = reader.readClass(namespace=ns)
 				self.writeClass(c)
 			
 			put('Writing functions...')
-			for i in xrange(len(m.funcs_origins)):
-				origin = m.funcs_origins[i]
+			for origin in m.funcs_origins:
 				put('Seeking to origin of function (' + str(origin) + ')...')
 				reader.seek(origin)
 				f = reader.readFunc(namespace=ns)
@@ -708,8 +905,5 @@ class HAULWriter:
 		return m
 		
 	
-	def writePost(self):
-		"Post-process"
-		pass
 	
 
