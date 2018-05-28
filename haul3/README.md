@@ -1,35 +1,30 @@
 # HAUL3
-(HotKey's Amphibious Universal Language)
+HotKey's Amphibious Universal Language
 
-This is a puzzle I have set up for myself: Can I write a program that translates itself into other languages? Nothing new, nothing special. Every programmer should have tried this at least once. Well, this is my approach at that.
-
-So I tried. And it worked. And it was fun.
-
-So I did it again. And it was even more fun.
-
-So now I am doing it for a third time...
+The goal of HAUL is to have a piece of code that can translate itself into any other language. On its journey it can -of course- translate other source code as well.
 
 ![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
 
-
 This is in no way intended for any productive use. It's food for thought. An elaborate toy. Art and fart.
+
 Have fun with it and don't hurt your brain.
 
 //HotKey
 
 
 ## Version 3 (2013-01 - now)
-* This version is not yet capable of translating its own source, yet. But it already translates and compiles other stuff like crazy :-)
+* This version can not yet translate its own source, but it's getting very close.
+* In the meantime it can translate whatever other source code you throw at it.
 * Finally, I am using a proper AST structure (modules, functions, expressions, instructions, ...)
 * Just doing it the way everyone else does it: Lex it, parse it, generate output. Boring, yet powerful. Now, translation to binary output is finally feasible.
 * This is the most OOP approach yet. Much easier to comprehend than the previous versions, which streamed the tokens on-the-fly.
 * The source language "HAL3" is now just valid python, eliminating the "chicken-egg-problem" of the previous versions.
 * No boot strapping is needed any more, since all parts of the source are runnable.
-* Pro: Pretty easy to add a new output language
+* Pro: Pretty easy to add a new output language.
 * Con: High memory consumption (keeps the whole AST structure in RAM), so it may get hard to create a C64 output module.
 
 ## Usage
-* Write your code in HAL3 (which is valid python). You may need to add variable types in some places. Use either Python3 colons or *#@var NAME TYPE* comments for that.
+* Write your code in HAL3 (which is valid python). You need to annotate some variable types where inference is not possible. Use either Python3 colons or *#@var NAME TYPE* comments for that.
 * Use *translate.py* to translate that file into the desired target language.
 * Use *ide.py* to play around with different languages.
 * Use *build.py* to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
