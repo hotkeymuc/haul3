@@ -1,5 +1,5 @@
 @ECHO OFF
-python test_ide.py
+python ide.py
 IF ERRORLEVEL 1 GOTO:ERROR
 GOTO:END
 

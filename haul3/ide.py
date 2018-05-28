@@ -42,11 +42,11 @@ LANGS = [
 
 
 def put(txt):
-	print('test_ide:\t' + str(txt))
+	print('ide:\t' + str(txt))
 
 
 
-STARTUP_FILE = 'test/small.py'
+STARTUP_FILE = 'examples/small.py'
 
 
 if wx.Platform == '__WXMSW__':
