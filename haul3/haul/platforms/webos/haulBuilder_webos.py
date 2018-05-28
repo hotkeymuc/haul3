@@ -15,7 +15,7 @@ def put(txt):
 
 
 PALM_SDK_DIR = 'Z:\\Apps\\_code\\HP_webOS'
-HAULBUILDER_WEBOS_DIR = os.path.dirname(__file__)
+#HAULBUILDER_WEBOS_DIR = os.path.dirname(__file__)
 #VM_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'vm')
 #QEMU_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'qemu')
 
@@ -23,24 +23,33 @@ class HAULBuilder_webos(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='js', platform='webos')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		put('Cleaning staging path...')
-		self.clean(stagingPath)
+		
+		startPath = os.getcwd()
 		
 		#@TODO: Use module.imports!
 		libs = ['hio']	#['sys', 'hio']
 		
-		name = nameByFilename(inputFilename)
+		tools_path = os.path.join(data_path, '..', 'tools')
+		libs_path = os.path.join(data_path, 'platforms', 'webos', 'libs')
+		res_path = os.path.join(data_path, 'platforms', 'webos', 'res')
+		#gbdk_path = os.path.join(tools_path, 'platforms', 'gameboy', 'gbdk')
+		#bgb_path = os.path.join(tools_path, 'platforms', 'gameboy', 'bgb')
+		
+		
+		#@TODO: Use module.imports!
+		libs = ['hio']	#['sys', 'hio']
+		
+		name = nameByFilename(source_filename)
 		jsFilename = name + '.js'
-		jsFilenameFull = os.path.join(stagingPath, jsFilename)
+		jsFilenameFull = os.path.join(staging_path, jsFilename)
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
 		
 		if not os.path.isfile(jsFilenameFull):
 			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))
@@ -63,18 +72,18 @@ class HAULBuilder_webos(HAULBuilder):
 		}
 		
 		appInfo_json = json.dumps(appInfo, indent=4)
-		writeFile(stagingPath + '/appinfo.json', appInfo_json)
+		writeFile(staging_path + '/appinfo.json', appInfo_json)
 		
-		self.copy(HAULBUILDER_WEBOS_DIR + '/res/icon_64x64.png', stagingPath + '/icon_64x64.png')
-		self.copy(HAULBUILDER_WEBOS_DIR + '/res/index.html', stagingPath + '/index.html')
-		self.copy(HAULBUILDER_WEBOS_DIR + '/res/style.css', stagingPath + '/style.css')
+		self.copy(os.path.join(res_path, 'icon_64x64.png'), os.path.join(staging_path, '/icon_64x64.png'))
+		self.copy(os.path.join(res_path, 'index.html'), os.path.join(staging_path, '/index.html'))
+		self.copy(os.path.join(res_path, 'style.css'), os.path.join(staging_path, '/style.css'))
 		
 		
 		put('Gathering sources...')
 		sources = []
 		for l in libs:
-			#self.copy('haul/langs/js/lib/' + l + '.js', stagingPath + '/' + l + '.js')
-			self.copy(HAULBUILDER_WEBOS_DIR + '/lib/' + l + '.js', stagingPath + '/' + l + '.js')
+			#self.copy('haul/langs/js/lib/' + l + '.js', staging_path + '/' + l + '.js')
+			self.copy(os.path.join(libs_path, l + '.js'), os.path.join(staging_path, l + '.js'))
 			sources.append({
 				'source': l + '.js'
 			})
@@ -82,7 +91,7 @@ class HAULBuilder_webos(HAULBuilder):
 		
 		assistants = ['stage-assistant', 'app-assistant']
 		for l in assistants:
-			self.copy(HAULBUILDER_WEBOS_DIR + '/res/' + l + '.js', stagingPath + '/' + l + '.js')
+			self.copy(os.path.join(res_path, l + '.js'), os.path.join(staging_path, l + '.js'))
 			sources.append({
 				'source': l + '.js'
 			})
@@ -95,15 +104,15 @@ class HAULBuilder_webos(HAULBuilder):
 		
 		#sources_json = str(sources)
 		sources_json = json.dumps(sources, indent=4)
-		writeFile(stagingPath + '/sources.json', sources_json)
+		writeFile(staging_path + '/sources.json', sources_json)
 		
 		
 		# Package
 		ipkFilename = appInfo['id'] + '_' + appInfo['version'] + '_all.ipk'
-		ipkFilenameFull = os.path.abspath(os.path.join(outputPath, ipkFilename))
+		ipkFilenameFull = os.path.abspath(os.path.join(output_path, ipkFilename))
 		
 		put('Packaging using "palm-package"...')
-		r = self.command('palm-package "%s" --outdir="%s"' % (stagingPath, outputPath))
+		r = self.command('palm-package "%s" --outdir="%s"' % (staging_path, output_path))
 		
 		if not os.path.isfile(ipkFilenameFull):
 			put(r)

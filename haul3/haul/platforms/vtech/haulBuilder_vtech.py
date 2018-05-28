@@ -14,11 +14,6 @@ def put(txt):
 	print('HAULBuilder_vtech:\t' + str(txt))
 
 
-HAULBUILDER_VTECH_DIR = os.path.dirname(__file__)
-Z88DK_DIR = os.path.abspath(os.path.join(HAULBUILDER_VTECH_DIR, 'z88dk'))
-VTECH_LIB_DIR = os.path.abspath(os.path.join(HAULBUILDER_VTECH_DIR, 'lib'))
-LIB_DIR = os.path.abspath(os.path.join(HAULBUILDER_VTECH_DIR, 'lib2'))
-
 MESS_DIR = 'Z:\\Apps\\_emu\\MESSUI-0.181'
 MESS_ROM_DIR = 'Z:\\Apps\\_emu\\_roms'
 #MESS_SYS = 'gl1000'
@@ -30,33 +25,36 @@ class HAULBuilder_vtech(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='c', platform='vtech')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		
-		put('Cleaning staging path...')
-		self.clean(stagingPath)
+		z88dk_lib_path = os.path.join(data_path, 'platforms', 'vtech', 'lib')
+		vm_path = os.path.join(data_path, 'platforms', 'vtech', 'vm')
+		tools_path = os.path.join(data_path, '..', 'tools')
+		#mess_path = os.path.join(tools_path, 'mess')
+		mess_path = MESS_DIR
+		z88dk_path = os.path.join(tools_path, 'platforms', 'z80', 'z88dk')
+		libs_path = os.path.join(data_path, 'platforms', 'vtech', 'libs')
 		
 		startPath = os.getcwd()
 		
 		#@TODO: Use module.imports!
 		libs = ['hio']	#['sys', 'hio']
 		
-		name = nameByFilename(inputFilename)
+		name = nameByFilename(source_filename)
 		cFilename = name + '.c'
-		cFilenameStaging = os.path.abspath(os.path.join(stagingPath, cFilename))
+		cFilenameStaging = os.path.abspath(os.path.join(staging_path, cFilename))
 		
 		binFilename = name + '_z80_vtech.bin'
-		binFilenameStaging = os.path.abspath(os.path.join(stagingPath, binFilename))
+		binFilenameStaging = os.path.abspath(os.path.join(staging_path, binFilename))
 		
 		
 		self.rm_if_exists(binFilenameStaging)
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=cFilenameStaging, DestWriterClass=HAULWriter_c, dialect=DIALECT_Z88DK)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=cFilenameStaging, DestWriterClass=HAULWriter_c, dialect=DIALECT_Z88DK)
 		
 		if not os.path.isfile(cFilenameStaging):
 			put('Main C file "%s" was not created! Aborting.' % (cFilenameStaging))
@@ -64,14 +62,14 @@ class HAULBuilder_vtech(HAULBuilder):
 		
 		
 		#appInfo_json = json.dumps(appInfo, indent=4)
-		#writeFile(stagingPath + '/appinfo.json', appInfo_json)
+		#writeFile(staging_path + '/appinfo.json', appInfo_json)
 		
 		"""
 		put('Gathering sources...')
 		sources = []
 		for l in libs:
-			#self.copy('haul/langs/js/lib/' + l + '.js', stagingPath + '/' + l + '.js')
-			self.copy(HAULBUILDER_WEBOS_DIR + '/lib/' + l + '.js', stagingPath + '/' + l + '.js')
+			#self.copy('haul/langs/js/lib/' + l + '.js', staging_path + '/' + l + '.js')
+			self.copy(HAULBUILDER_WEBOS_DIR + '/lib/' + l + '.js', staging_path + '/' + l + '.js')
 			sources.append({
 				'source': l + '.js'
 			})
@@ -83,31 +81,31 @@ class HAULBuilder_vtech(HAULBuilder):
 		# Set environment
 		
 		my_env = os.environ.copy()
-		my_env['PATH'] = os.environ['PATH'] + ';' + os.path.join(Z88DK_DIR, 'BIN')
+		my_env['PATH'] = os.environ['PATH'] + ';' + os.path.join(z88dk_path, 'BIN')
 		# Normally these files reside inside the z88dk, but we hijack them and use our minimal local version
-		#my_env['OZFILES'] = os.join(Z88DK_DIR, 'LIB')
-		#my_env['ZCCCFG'] = os.join(Z88DK_DIR, 'LIB', 'CONFIG')
-		my_env['OZFILES'] = VTECH_LIB_DIR
-		my_env['ZCCCFG'] = os.path.join(VTECH_LIB_DIR, 'config')
+		#my_env['OZFILES'] = os.join(z88dk_path, 'LIB')
+		#my_env['ZCCCFG'] = os.join(z88dk_path, 'LIB', 'CONFIG')
+		my_env['OZFILES'] = z88dk_lib_path
+		my_env['ZCCCFG'] = os.path.join(z88dk_lib_path, 'config')
 		
 		"""
-		cmd = os.path.join(Z88DK_DIR, 'bin', 'sccz80')	# Floating point (dstore/dload): https://www.z88dk.org/forum/viewtopic.php?pid=12763
+		cmd = os.path.join(z88dk_path, 'bin', 'sccz80')	# Floating point (dstore/dload): https://www.z88dk.org/forum/viewtopic.php?pid=12763
 		cmd += ' -//'
 		cmd += ' -v'
-		cmd += ' -zorg=' + os.path.join(Z88DK_DIR, 'bin')
-		cmd += ' -I' + LIB_DIR
-		cmd += ' -I' + os.path.join(Z88DK_DIR, 'include')
-		cmd += ' ' + os.path.join(stagingPath, cFilename)
+		cmd += ' -zorg=' + os.path.join(z88dk_path, 'bin')
+		cmd += ' -I' + libs_path
+		cmd += ' -I' + os.path.join(z88dk_path, 'include')
+		cmd += ' ' + os.path.join(staging_path, cFilename)
 		"""
 		
-		cmd = os.path.join(Z88DK_DIR, 'bin', 'zcc')
+		cmd = os.path.join(z88dk_path, 'bin', 'zcc')
 		cmd += ' +vtech'
 		#cmd += ' +z80'
 		cmd += ' -subtype=rom_autostart'
 		#cmd += ' -v'
 		#cmd += ' -vn'
-		cmd += ' -I' + LIB_DIR
-		cmd += ' -I' + os.path.join(Z88DK_DIR, 'include')
+		cmd += ' -I' + libs_path
+		cmd += ' -I' + os.path.join(z88dk_path, 'include')
 		
 		#cmd += ' -lm'
 		#cmd += ' -l' + 'gen_math'
@@ -120,7 +118,7 @@ class HAULBuilder_vtech(HAULBuilder):
 		cmd += ' ' + cFilenameStaging
 		
 		
-		self.chdir(stagingPath)	# Change to staging dir (some configs are created during build)
+		self.chdir(staging_path)	# Change to staging dir (some configs are created during build)
 		r = self.command(cmd, env=my_env)
 		self.chdir(startPath)	# Change back
 		
@@ -132,7 +130,7 @@ class HAULBuilder_vtech(HAULBuilder):
 		
 		
 		put('Copying bin file "%s" to output directory...' % (binFilename))
-		self.copy(binFilenameStaging, os.path.join(outputPath, binFilename))
+		self.copy(binFilenameStaging, os.path.join(output_path, binFilename))
 		
 		
 		# Test
@@ -142,12 +140,12 @@ class HAULBuilder_vtech(HAULBuilder):
 			cmd = '"%s"' % os.path.join(MESS_DIR, 'mess.exe')
 			cmd += ' -rompath "%s"' % (MESS_ROM_DIR)
 			cmd += ' %s' % (MESS_SYS)
-			cmd += ' -cart "%s"' % (os.path.abspath(os.path.join(stagingPath, binFilename)))
+			cmd += ' -cart "%s"' % (os.path.abspath(os.path.join(staging_path, binFilename)))
 			cmd += ' -window'
 			cmd += ' -sleep'
 			#cmd += ' -debug'	# Attach debug console and STEP
 			
-			self.chdir(stagingPath)	# Change to staging dir (MESS creates some messy files wherever it is called)
+			self.chdir(staging_path)	# Change to staging dir (MESS creates some messy files wherever it is called)
 			r = self.command(cmd)
 			self.chdir(startPath)	# Change back
 			

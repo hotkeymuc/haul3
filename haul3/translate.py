@@ -2,13 +2,13 @@
 # -*- coding: UTF-8 -*-
 
 """
-	HAUL
+	HAUL3
 	HotKey's Amphibious Unambiguous Language
-	HotKey's Average Universal Language
 	
-	XXX HAUL3 - HotKey's Averaging Language
-
+	This program translates a given HAUL3/Python file into a different language.
+	
 """
+
 import os
 
 from haul.utils import *
@@ -35,6 +35,8 @@ def put(t):
 ############################################################
 
 def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
+	"Translates the input file using the given language's Writer"
+	
 	name = nameByFilename(inputFilename)
 	
 	streamIn = StringReader(readFile(inputFilename))
@@ -46,14 +48,18 @@ def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
 	else:
 		writer = WriterClass(streamOut, dialect=dialect)
 	
-	if outputPath == None:
+	if outputPath is None:
 		outputFilename = inputFilename + '.' + writer.defaultExtension
 	else:
+		if not os.path.exists(dest_path):
+			os.makedirs(dest_path)
 		outputFilename = outputPath + '/' + name + '.' + writer.defaultExtension
 	
 	monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 	
 	reader.seek(0)
+	
+	put('Translating input file "' + inputFilename + '"...')
 	
 	try:
 		writer.stream(reader, monolithic=monolithic)	# That's where the magic happens!
@@ -61,16 +67,19 @@ def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
 		put('Parse error: ' + str(e.message))
 		#raise
 	
+	put('Writing output file "' + outputFilename + '"...')
 	writeFile(outputFilename, streamOut.r)
 	
-	"""
-	# Dump to pickle
-	import pickle
-	h = open(outputFilename + '.pickle', 'wb')
-	pickle.dump(reader.readModule(), h)
-	h.close()
-	"""
 
+source_file = 'examples/hello.py'
+#source_file = 'examples/small.py'
+#source_file = 'examples/infer.py'
+#source_file = 'examples/complex.py'
+#source_file = 'examples/classes.py'
+#source_file = 'examples/shellmini.py'
+#source_file = 'examples/vm.py'
+
+dest_path = 'build'
 
 #WriterClass = HAULWriter_asm
 #WriterClass = HAULWriter_bas
@@ -84,22 +93,7 @@ def translate(inputFilename, WriterClass, outputPath=None, dialect=None):
 WriterClass = HAULWriter_py
 #WriterClass = HAULWriter_vbs
 
-# Translate test file
-
-# Test limited OPL capabilities
-#translate('examples/hello.py', HAULWriter_opl, 'build')
-#translate('examples/small.py', HAULWriter_opl, 'build')
-#translate('examples/infer.py', HAULWriter_opl, 'build')
-
-# Test type inference
-#translate('examples/infer.py', WriterClass, 'build')
-#translate('examples/hio_test.py', WriterClass, 'build')
-translate('examples/small.py', WriterClass, 'build')
-#translate('examples/complex.py', WriterClass, 'build')
-#translate('examples/classes.py', WriterClass, 'build')
-#translate('Z:/Data/_code/_pythonWorkspace/oos/oos.py', WriterClass, 'build')
-#translate('examples/shellmini.py', WriterClass)	#, 'build')
-#translate('examples/vm.py', WriterClass)
+translate(source_file, WriterClass, dest_path)
 
 
-put('Translation ended.')
+put('translate.py ended.')

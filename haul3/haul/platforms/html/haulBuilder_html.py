@@ -21,30 +21,28 @@ class HAULBuilder_html(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='js', platform='html')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		
-		name = nameByFilename(inputFilename)
+		name = nameByFilename(source_filename)
 		
 		jsFilename = name + '.js'
-		jsFilenameFull = os.path.join(stagingPath, jsFilename)
+		jsFilenameFull = os.path.join(staging_path, jsFilename)
 		
 		htmlFilename = name + '.html'
-		htmlFilenameFull = os.path.abspath(os.path.join(outputPath, htmlFilename))
+		htmlFilenameFull = os.path.abspath(os.path.join(output_path, htmlFilename))
 		
 		
 		put('Cleaning staging paths...')
-		self.clean(stagingPath)
+		self.clean(staging_path)
 		
 		#@TODO: Use module.imports!
 		libs = ['hio']	#['sys', 'hio']
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
 		
 		if not os.path.isfile(jsFilenameFull):
 			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))

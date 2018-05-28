@@ -24,32 +24,30 @@ class HAULBuilder_java(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='java', platform='java')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
-		#self.clean(stagingPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		name = nameByFilename(inputFilename)
+		name = nameByFilename(source_filename)
 		appNamespace = 'wtf.haul'	#'de.bernhardslawik.haul'
 		appId = appNamespace + '.' + name
 		
+		libsPath = os.path.join(data_path, 'langs/java/libs')
 		
-		srcPath = os.path.join(stagingPath, 'src')
+		srcPath = os.path.join(staging_path, 'src')
 		javaFilename = name + '.java'
 		javaFilenameFull = os.path.join(srcPath, javaFilename)
 		
-		classPath = os.path.join(stagingPath, 'build')
+		classPath = os.path.join(staging_path, 'build')
 		classFilename = name + '.class'
 		classFilenameFull = os.path.join(classPath, 'wtf', 'haul', classFilename)
 		
 		jarFilename = name + '.jar'
-		jarFilenameFull = os.path.join(stagingPath, jarFilename)
-		jarFilenameFinal = os.path.join(outputPath, jarFilename)
+		jarFilenameFull = os.path.join(staging_path, jarFilename)
+		jarFilenameFinal = os.path.join(output_path, jarFilename)
 		
 		
 		put('Cleaning staging paths...')
-		self.clean(stagingPath)
 		self.clean(srcPath)
 		self.clean(classPath)
 		
@@ -57,14 +55,14 @@ class HAULBuilder_java(HAULBuilder):
 		if (resources != None):
 			#@TODO: Testing: Build a py file with resource data, then translate it to target language
 			put('Bundling resources...')
-			resPyFilenameFull = os.path.join(stagingPath, 'hresdata.py')
+			resPyFilenameFull = os.path.join(staging_path, 'hresdata.py')
 			resFilenameFull = os.path.join(srcPath, 'hresdata.java')
 			self.bundle(resources=resources, destFilename=resPyFilenameFull)
 			m = self.translate(name='hresdata', sourceFilename=resPyFilenameFull, SourceReaderClass=HAULReader_py, destFilename=resFilenameFull, DestWriterClass=HAULWriter_java)
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=javaFilenameFull, DestWriterClass=HAULWriter_java)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=javaFilenameFull, DestWriterClass=HAULWriter_java)
 		
 		if not os.path.isfile(javaFilenameFull):
 			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))
@@ -77,22 +75,23 @@ class HAULBuilder_java(HAULBuilder):
 		
 		srcFiles = []
 		for l in libs:
-			f = os.path.abspath(os.path.join(srcPath, l + '.java'))
-			self.copy('haul/langs/java/lib/' + l + '.java', f)
-			srcFiles.append(f)
+			f_in = os.path.abspath(os.path.join(libsPath, l + '.java'))
+			f_out = os.path.abspath(os.path.join(srcPath, l + '.java'))
+			self.copy(f_in, f_out)
+			srcFiles.append(f_out)
 		
 		srcFiles.append(javaFilenameFull)
 		
 		
 		put('Compiling Java classes...')
-		#cmd = JRE_DIR + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (stagingPath, stagingPath, outputPath, javaFilenameFull)
+		#cmd = JRE_DIR + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (staging_path, staging_path, output_path, javaFilenameFull)
 		cmd = JAVAC_CMD
 		cmd += ' -classpath "%s"' % (classPath)
 		cmd += ' -sourcepath "%s"' % (srcPath)
 		cmd += ' -d "%s"' % (classPath)
 		cmd += ' %s' % (' '.join(srcFiles))
 		#cmd += ' "%s"' % (javaFilenameFull)
-		#cmd += ' "%s"' % (os.path.join(stagingPath, '*.java'))
+		#cmd += ' "%s"' % (os.path.join(staging_path, '*.java'))
 		r = self.command(cmd)
 		
 		# Check if successfull

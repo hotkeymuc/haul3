@@ -27,6 +27,7 @@ class HAULBuilder:
 	def mkdir(self, path):
 		if not os.path.exists(path):
 			os.makedirs(path)
+	
 	def chdir(self, path):
 		os.chdir(path)
 	
@@ -108,12 +109,18 @@ class HAULBuilder:
 			i += 1
 		writeFile(destFilename, r)
 	
-	#def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
-	def build(self, inputFilename, outputPath):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path=None, resources=None, perform_test_run=False):
+		"Actually build a file."
 		
-		put('Creating output path "' + outputPath + '"...')
-		self.inputFilename = inputFilename
-		self.outputPath = outputPath
-		self.mkdir(outputPath)
-		#self.clean(outputPath)
+		put('Starting build...')
+		self.source_filename = source_filename
+		self.output_path = output_path
+		
+		put('Creating output path "' + output_path + '"...')
+		self.mkdir(output_path)
+		
+		put('Cleaning staging path "' + staging_path + '"...')
+		self.clean(staging_path)
+		
+		
 	

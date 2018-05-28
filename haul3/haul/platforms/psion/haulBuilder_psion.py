@@ -17,16 +17,21 @@ from haul.langs.opl.haulWriter_opl import *
 
 
 
-HAULBUILDER_PSION_DIR = os.path.dirname(__file__)
-VM_DIR = os.path.join(HAULBUILDER_PSION_DIR, 'vm')
-#QEMU_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'qemu')
-QEMU_DIR = os.path.join(HAULBUILDER_PSION_DIR, 'qemu')
 
 class HAULBuilder_psion(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='opl', platform='psion')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+		
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		
+		libs_path = os.path.join(data_path, 'platforms', 'psion', 'libs')
+		vm_path = os.path.join(data_path, 'platforms', 'psion', 'vm')
+		tools_path = os.path.join(data_path, '..', 'tools')
+		qemu_path = os.path.join(tools_path, 'qemu')
+		
+		
 		
 		#@FIXME: Bootable packs can be created using BLDPACK. But for some reason it then does not include all binaries!
 		#@FIXME: When disabling bootable, I use MAKEPACK which seems to handle multiple files easily, but can not handle BIN files needed for bootable.
@@ -34,38 +39,35 @@ class HAULBuilder_psion(HAULBuilder):
 		lcd_lines = 2	# 2 for CM/XP, 4 for LZ etc.
 		
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
-		
-		name = nameByFilename(inputFilename)
-		stagingPath = os.path.realpath(stagingPath)
+		name = nameByFilename(source_filename)
+		staging_path = os.path.realpath(staging_path)
 		
 		name8 = name[0:8].upper()
 		oplFilename = name8 + '.OPL'
 		#ob3Filename = name8 + '.ob3'
 		outputFilename = name8 + '.OPK'
-		oplFilenameFull = os.path.join(stagingPath, oplFilename)
+		oplFilenameFull = os.path.join(staging_path, oplFilename)
 		
-		put('Staging to "%s"...' % (stagingPath))
+		put('Staging to "%s"...' % (staging_path))
 		
 		
 		put('Cleaning staging path...')
-		self.clean(stagingPath)
+		self.clean(staging_path)
 		
 		
 		put('Copying libraries...')
-		#self.copy('haul/platforms/dos/lib/hio.pas', stagingPath + '/hio.pas')
+		#self.copy('haul/platforms/dos/lib/hio.pas', staging_path + '/hio.pas')
 		
 		libs = []
 		"""
 		#@TODO: Use module.imports!
 		libs = ['sys', 'hio']
 		for l in libs:
-			self.copy('haul/platforms/psion/lib/' + l + '.opl', stagingPath + '/' + l + '.opl')
+			self.copy('haul/platforms/psion/lib/' + l + '.opl', staging_path + '/' + l + '.opl')
 		"""
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
 		
 		
 		### Split module into separate files
@@ -78,7 +80,7 @@ class HAULBuilder_psion(HAULBuilder):
 			#@TODO: Ensure that this name is unique! Or just give random name (lame)
 			
 			funcFilename = funcName8 + '.OPL'
-			funcFilenameFull = os.path.join(stagingPath, funcFilename)
+			funcFilenameFull = os.path.join(staging_path, funcFilename)
 			
 			streamOut = StringWriter()
 			writer = HAULWriter_opl(streamOut, dialect=DIALECT_OPL3)
@@ -116,17 +118,17 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		put('Preparing VM automation...')
-		disk_sys = os.path.join(VM_DIR, 'sys_msdos622.disk')
-		disk_compiler = os.path.join(VM_DIR, 'app_devkit.disk')
-		disk_empty = os.path.join(VM_DIR, 'empty.disk')
-		disk_temp = os.path.join(stagingPath, 'tmp.disk')
+		disk_sys = os.path.join(vm_path, 'sys_msdos622.disk')
+		disk_compiler = os.path.join(vm_path, 'app_devkit.disk')
+		disk_empty = os.path.join(vm_path, 'empty.disk')
+		disk_temp = os.path.join(staging_path, 'tmp.disk')
 		
 		# Create/clear temp scratch disk
 		self.copy(disk_empty, disk_temp)
-		buildlogFile = os.path.join(stagingPath, 'build.log')
+		buildlogFile = os.path.join(staging_path, 'build.log')
 		#self.touch(buildlogFile, '# Build log')
 		self.rm_if_exists(buildlogFile)
-		self.rm_if_exists(os.path.join(stagingPath, outputFilename))
+		self.rm_if_exists(os.path.join(staging_path, outputFilename))
 		
 		
 		DOS_SYS_DIR = 'C:'
@@ -343,23 +345,23 @@ class HAULBuilder_psion(HAULBuilder):
 		autoexec += ':EOF' + CRLF
 		
 		
-		self.touch(os.path.join(stagingPath, 'AUTOEXEC.BAT'), autoexec)
+		self.touch(os.path.join(staging_path, 'AUTOEXEC.BAT'), autoexec)
 		
 		
 		put('Compiling using QEMU on MS-DOS 6.22 and PSION Developer Kit...')
 		
 		### Call QEMU...
 		#put('VM_DIR="%s"' % (VM_DIR))
-		cmd = os.path.join(QEMU_DIR, 'qemu-system-i386')
+		cmd = os.path.join(qemu_path, 'qemu-system-i386')
 		cmd += ' -m 64 -L . -k de'
 		cmd += ' -boot c'
 		cmd += ' -hda "' + disk_sys + '"'	# C:
 		cmd += ' -hdb "' + disk_compiler + '"'	# D:
 		cmd += ' -hdc "' + disk_temp + '"'	# E:
-		cmd += ' -hdd "fat:rw:/' + stagingPath + '"'	# F:
+		cmd += ' -hdd "fat:rw:/' + staging_path + '"'	# F:
 		cmd += ' -soundhw pcspk'
-		#cmd += ' ' + os.path.realpath(outputPath + '/' + cFilename)
-		#cmd += ' ' + os.path.realpath(stagingPath + '/' + cFilename)
+		#cmd += ' ' + os.path.realpath(output_path + '/' + cFilename)
+		#cmd += ' ' + os.path.realpath(staging_path + '/' + cFilename)
 		
 		
 		r = self.command(cmd)
@@ -373,10 +375,10 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		# Check if successfull
-		if (self.exists(stagingPath + '/' + outputFilename)):
+		if (self.exists(staging_path + '/' + outputFilename)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(stagingPath + '/' + outputFilename, outputPath + '/' + outputFilename)
+			self.copy(staging_path + '/' + outputFilename, output_path + '/' + outputFilename)
 		else:
-			put('Build seems to have failed, since there is no output file "' + (stagingPath + '/' + outputFilename) + '".')
+			put('Build seems to have failed, since there is no output file "' + (staging_path + '/' + outputFilename) + '".')
 		

@@ -10,22 +10,20 @@ from haul.langs.pas.haulWriter_pas import *
 
 
 
-#QEMU_DIR = 'Z:\\Apps\\_emu\\qemu'
-HAULBUILDER_DOS_DIR = os.path.dirname(__file__)
-VM_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'vm')
-QEMU_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'qemu')
-
 class HAULBuilder_dos(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='pas', platform='dos')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		name = nameByFilename(inputFilename)
-		stagingPath = os.path.realpath(stagingPath)
+		name = nameByFilename(source_filename)
+		stagingPath = os.path.realpath(staging_path)
+		
+		libsPath = os.path.join(data_path, 'platforms', 'dos', 'libs')
+		vm_path = os.path.join(data_path, 'platforms', 'dos', 'vm')
+		qemu_path = os.path.join(data_path, '../tools/qemu')	#@FIXME
 		
 		pasFilename = name[0:8] + '.pas'
 		outputFilename = name[0:8] + '.exe'
@@ -42,11 +40,11 @@ class HAULBuilder_dos(HAULBuilder):
 		#@TODO: Use module.imports!
 		libs = ['sys', 'hio']
 		for l in libs:
-			self.copy('haul/platforms/dos/lib/' + l + '.pas', stagingPath + '/' + l + '.pas')
+			self.copy(os.path.join(libsPath, l + '.pas'), os.path.join(stagingPath, l + '.pas'))
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_TURBO)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_TURBO)
 		
 		if not os.path.isfile(pasFilenameFull):
 			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))
@@ -55,9 +53,9 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		
 		put('Preparing VM automation...')
-		disk_sys = os.path.join(VM_DIR, 'sys_msdos622.disk')
-		disk_compiler = os.path.join(VM_DIR, 'app_tp70.disk')
-		disk_empty = os.path.join(VM_DIR, 'empty.disk')
+		disk_sys = os.path.join(vm_path, 'sys_msdos622.disk')
+		disk_compiler = os.path.join(vm_path, 'app_tp70.disk')
+		disk_empty = os.path.join(vm_path, 'empty.disk')
 		disk_temp = os.path.join(stagingPath, 'tmp.disk')
 		
 		# Create/clear temp scratch disk
@@ -177,8 +175,7 @@ class HAULBuilder_dos(HAULBuilder):
 		put('Compiling using QEMU on MS-DOS 6.22 and Turbo Pascal 7.0...')
 		
 		### Call QEMU...
-		#put('VM_DIR="%s"' % (VM_DIR))
-		cmd = os.path.join(QEMU_DIR, 'qemu-system-i386')
+		cmd = os.path.join(qemu_path, 'qemu-system-i386')
 		cmd += ' -m 64 -L . -k de'
 		cmd += ' -boot c'
 		cmd += ' -hda "' + disk_sys + '"'	# C:
@@ -200,7 +197,7 @@ class HAULBuilder_dos(HAULBuilder):
 		if (self.exists(stagingPath + '/' + outputFilename)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(stagingPath + '/' + outputFilename, outputPath + '/' + outputFilename)
+			self.copy(stagingPath + '/' + outputFilename, output_path + '/' + outputFilename)
 		else:
 			put('Build seems to have failed, since there is no output file "' + (stagingPath + '/' + outputFilename) + '".')
 		

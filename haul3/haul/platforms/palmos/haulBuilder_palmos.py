@@ -17,39 +17,34 @@ from pywinauto import Application
 import time
 
 
-HAULBUILDER_PALMOS_DIR = os.path.dirname(__file__)
-POSE_DIR = os.path.join(HAULBUILDER_PALMOS_DIR, 'vm')
-
 class HAULBuilder_palmos(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='pas', platform='palmos')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		#perform_test_run = True	# Call output file after compilation?
-		stagingPath = os.path.realpath(stagingPath)
-		put('Staging to "%s"...' % (stagingPath))
+		libs_path = os.path.join(data_path, 'platforms', 'palmos', 'libs')
+		tools_path = os.path.join(data_path, '..', 'tools')
+		pose_path = os.path.join(tools_path, 'platforms', 'palmos', 'pose')
 		
 		put('Copying libraries...')
-		#self.copy('haul/platforms/dos/lib/hio.pas', stagingPath + '/hio.pas')
 		
 		#@TODO: Use module.imports!
 		#libs = ['sys', 'hio']
 		libs = ['hio']
 		for l in libs:
-			self.copy('haul/platforms/palmos/lib/' + l + '.pas', stagingPath + '/' + l + '.pas')
+			self.copy(os.path.join(libs_path, l + '.pas'), os.path.join(staging_path, l + '.pas'))
 		
-		name = nameByFilename(inputFilename)
+		name = nameByFilename(source_filename)
 		pasFilename = name + '.pas'
 		exeFilename = name + '.exe'
 		
-		pasFilenameFull = os.path.join(stagingPath, pasFilename)
+		pasFilenameFull = os.path.join(staging_path, pasFilename)
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_PP)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_PP)
 		
 		if not os.path.isfile(pasFilenameFull):
 			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))
@@ -64,10 +59,10 @@ class HAULBuilder_palmos(HAULBuilder):
 		sources.append(name)
 		
 		for s in sources:
-			pasFilename = stagingPath + '/' + s + '.pas'
+			pasFilename = staging_path + '/' + s + '.pas'
 			
 			vfsFilename = s + '.pas'
-			pdbFilename = stagingPath + '/' + vfsFilename + '.pdb'
+			pdbFilename = staging_path + '/' + vfsFilename + '.pdb'
 			
 			put('Converting "%s" to "%s"...' % (pasFilename, pdbFilename))
 			data = readFile(pasFilename)
@@ -79,7 +74,7 @@ class HAULBuilder_palmos(HAULBuilder):
 		
 		# Compile it using PP on POSE Emulator
 		
-		emuFilename = os.path.join(POSE_DIR, 'Emulator_Bound.exe')
+		emuFilename = os.path.join(pose_path, 'Emulator_Bound.exe')
 		
 		put('Starting emulator "%s"...' % (emuFilename))
 		app = Application().start(emuFilename)
@@ -109,7 +104,7 @@ class HAULBuilder_palmos(HAULBuilder):
 			time.sleep(0.2)
 			pasFilename = s + '.pas'
 			pasPdbFilename = pasFilename + '.pdb'
-			pasPdbFilenameAbsolute = os.path.join(stagingPath, pasPdbFilename)
+			pasPdbFilenameAbsolute = os.path.join(staging_path, pasPdbFilename)
 			
 			put('Importing "%s" ("%s") into Emulator...' % (pasFilename, pasPdbFilenameAbsolute))
 			win.RightClickInput()
@@ -139,7 +134,7 @@ class HAULBuilder_palmos(HAULBuilder):
 		### Exfiltrate
 		put('Cleaning host...')
 		exePrcFilename = exeFilename + '.prc'
-		exePrcFilenameAbsolute = os.path.join(stagingPath, exePrcFilename)
+		exePrcFilenameAbsolute = os.path.join(staging_path, exePrcFilename)
 		if os.path.isfile(exePrcFilenameAbsolute):
 			os.remove(exePrcFilenameAbsolute)
 		
@@ -164,7 +159,7 @@ class HAULBuilder_palmos(HAULBuilder):
 		
 		time.sleep(1)
 		put('Copying "%s" to output directory...' % (exePrcFilename))
-		self.copy(exePrcFilenameAbsolute, outputPath + '/' + exePrcFilename)
+		self.copy(exePrcFilenameAbsolute, output_path + '/' + exePrcFilename)
 		
 		
 		if perform_test_run:

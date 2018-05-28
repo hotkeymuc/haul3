@@ -18,36 +18,29 @@ class HAULBuilder_arduino(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='c', platform='arduino')
 	
-	def build(self, inputFilename, sourcePath, stagingPath, outputPath, resources=None, perform_test_run=False):
+	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
 		
-		#CWD = os.getcwd()
-		#SKETCHES_DIR = 'Z:\\Data\\_code\\_arduinoWorkspace'
-		
-		
-		put('Starting build...')
-		HAULBuilder.build(self, inputFilename, outputPath)
+		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
 		
-		put('Cleaning staging path...')
-		self.clean(stagingPath)
-		
-		# stagingPath1 = Emulation of your "sketch" folder. Just blank source, no extras
-		stagingPath1 = os.path.realpath(os.path.join(stagingPath, '1'))
-		self.clean(stagingPath1)
-		#stagingPath2 = Temporary build folder with Arduino-altered source files and includes
-		stagingPath2 = os.path.realpath(os.path.join(stagingPath, '2'))
-		self.clean(stagingPath2)
+		# staging_path_1 = Emulation of your "sketch" folder. Just blank source, no extras
+		staging_path_1 = os.path.realpath(os.path.join(staging_path, '1'))
+		self.clean(staging_path_1)
+		#staging_path_2 = Temporary build folder with Arduino-altered source files and includes
+		staging_path_2 = os.path.realpath(os.path.join(staging_path, '2'))
+		self.clean(staging_path_2)
 		
 		put('Copying libraries...')
+		libsPath = os.path.join(data_path, 'platforms/arduino/libs')
 		
 		#@TODO: Use module.imports!
-		self.copy('haul/platforms/arduino/lib/hio.c', stagingPath1 + '/hio.c')
+		self.copy(os.path.join(libsPath, 'hio.c'), staging_path_1 + '/hio.c')
 		
-		#self.mkdir(outputPath + '/sketch')
-		#self.copy('haul/platforms/arduino/hio.c', outputPath + '/sketch/hio.c')
+		#self.mkdir(output_path + '/sketch')
+		#self.copy('haul/platforms/arduino/hio.c', output_path + '/sketch/hio.c')
 		
 		
-		name = nameByFilename(inputFilename)
+		name = nameByFilename(source_filename)
 		
 		cFilename = name + '.c'
 		hexFilename1 = cFilename + '.hex'
@@ -57,10 +50,10 @@ class HAULBuilder_arduino(HAULBuilder):
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(sourcePath, inputFilename), SourceReaderClass=HAULReader_py, destFilename=os.path.join(stagingPath1, cFilename), DestWriterClass=HAULWriter_c, dialect=DIALECT_ARDUINO)
+		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=os.path.join(staging_path_1, cFilename), DestWriterClass=HAULWriter_c, dialect=DIALECT_ARDUINO)
 		
-		if not os.path.isfile(os.path.join(stagingPath1, cFilename)):
-			put('Main C file "%s" was not created! Aborting.' % (os.path.join(stagingPath1, cFilename)))
+		if not os.path.isfile(os.path.join(staging_path_1, cFilename)):
+			put('Main C file "%s" was not created! Aborting.' % (os.path.join(staging_path_1, cFilename)))
 			return False
 		
 		
@@ -80,7 +73,7 @@ class HAULBuilder_arduino(HAULBuilder):
 		cmd += ' -built-in-libraries ' + os.path.realpath(ARDUINO_DIR + '/libraries')
 		#cmd += ' -libraries ' + os.path.realpath(ENV['WORKSPACE_PATH'] + '/libraries')
 		cmd += ' -ide-version=10613'
-		cmd += ' -build-path ' + os.path.realpath(stagingPath2)	#os.path.realpath(outputPath)	#ENV['BUILD_PATH']
+		cmd += ' -build-path ' + os.path.realpath(staging_path_2)	#os.path.realpath(output_path)	#ENV['BUILD_PATH']
 		cmd += ' -warnings=none'
 		cmd += ' -prefs=build.warn_data_percentage=75'
 		#cmd += ' -prefs=runtime.tools.avrdude.path=' + os.path.realpath(ENV['ARDUINO_PATH'] + '/hardware/tools/avr')
@@ -88,9 +81,9 @@ class HAULBuilder_arduino(HAULBuilder):
 		#cmd += ' -verbose'
 		
 		#cmd += ' ' + os.path.realpath(ENV['SRC_PATH'] + '/' + filename)
-		#cmd += ' ' + os.path.realpath(outputPath + '/' + cFilename)
+		#cmd += ' ' + os.path.realpath(output_path + '/' + cFilename)
 		#cmd += ' ' + os.path.realpath(stagingPath + '/' + cFilename)
-		cmd += ' ' + os.path.realpath(stagingPath1 + '/' + cFilename)
+		cmd += ' ' + os.path.realpath(staging_path_1 + '/' + cFilename)
 		
 		
 		r = self.command(cmd)
@@ -98,11 +91,11 @@ class HAULBuilder_arduino(HAULBuilder):
 		
 		
 		# Check if successfull
-		if (self.exists(stagingPath2 + '/' + hexFilename1)):
+		if (self.exists(staging_path_2 + '/' + hexFilename1)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(stagingPath2 + '/' + hexFilename1, outputPath + '/' + hexFilename_final1)
-			self.copy(stagingPath2 + '/' + hexFilename2, outputPath + '/' + hexFilename_final2)
+			self.copy(staging_path_2 + '/' + hexFilename1, output_path + '/' + hexFilename_final1)
+			self.copy(staging_path_2 + '/' + hexFilename2, output_path + '/' + hexFilename_final2)
 		else:
-			put('Build seems to have failed, since there is no output file "' + (stagingPath2 + '/' + hexFilename1) + '".')
+			put('Build seems to have failed, since there is no output file "' + (staging_path_2 + '/' + hexFilename1) + '".')
 
