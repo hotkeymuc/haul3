@@ -9,7 +9,6 @@ So I did it again. And it was even more fun.
 
 So I did it a third time. And now I really like it. :-)
 
-![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
 ![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
 
 
@@ -39,3 +38,5 @@ Have fun with it and don't hurt your brain.
 * data holds language/platform specific data, e.g. native libraries or resources
 * examples holds some example code, ready to be translated to any other language
 * tools holds external tools that are needed for some builders, e.g. emulators, compilers and SDKs
+
+![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
