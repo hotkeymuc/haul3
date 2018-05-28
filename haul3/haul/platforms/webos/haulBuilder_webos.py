@@ -51,10 +51,30 @@ class HAULBuilder_webos(HAULBuilder):
 		put('Translating source...')
 		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
 		
+		
 		if not os.path.isfile(jsFilenameFull):
 			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))
 			return False
 		
+		#@FIXME: We need to create a matching Assistant!
+		"""
+function MainAssistant(argFromPusher) {
+	this.args = argFromPusher;
+}
+
+MainAssistant.prototype = {
+	setup: function() {
+		//Ares.setupSceneAssistant(this);
+	},
+	cleanup: function() {
+		//Ares.cleanupSceneAssistant(this);
+	},
+	activate: function() {
+		//this.controller.get("photoView").mojo.centerUrlProvided(this.photo.photoUrl);
+		main();
+	}
+};
+		"""
 		
 		
 		put('Staging webOS app...')
@@ -74,9 +94,9 @@ class HAULBuilder_webos(HAULBuilder):
 		appInfo_json = json.dumps(appInfo, indent=4)
 		writeFile(staging_path + '/appinfo.json', appInfo_json)
 		
-		self.copy(os.path.join(res_path, 'icon_64x64.png'), os.path.join(staging_path, '/icon_64x64.png'))
-		self.copy(os.path.join(res_path, 'index.html'), os.path.join(staging_path, '/index.html'))
-		self.copy(os.path.join(res_path, 'style.css'), os.path.join(staging_path, '/style.css'))
+		self.copy(os.path.join(res_path, 'icon_64x64.png'), os.path.join(staging_path, 'icon_64x64.png'))
+		self.copy(os.path.join(res_path, 'index.html'), os.path.join(staging_path, 'index.html'))
+		self.copy(os.path.join(res_path, 'style.css'), os.path.join(staging_path, 'style.css'))
 		
 		
 		put('Gathering sources...')

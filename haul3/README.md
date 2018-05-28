@@ -9,7 +9,8 @@ So I did it again. And it was even more fun.
 
 So I did it a third time. And now I really like it. :-)
 
-![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/ide_screenshot000.png "HAUL IDE")
+![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
+![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
 
 
 This is in no way intended for any productive use. It's food for thought. An elaborate toy. Art and fart.

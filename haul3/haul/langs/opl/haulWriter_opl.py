@@ -119,6 +119,8 @@ class HAULWriter_opl(HAULWriter):
 	def writeModule(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
+		wait_before_exit = True	# Add a wait statement (so you can read the output)
+		
 		# Name must be pre-pended
 		self.write(m.name.upper() + ':')
 		# Add main parameters, e.g. (A$)
@@ -146,7 +148,7 @@ class HAULWriter_opl(HAULWriter):
 		if (m.block):
 			self.writeBlock(m.block, indent+1)
 			
-			#self.write('GET\n')	# Wait for key
+			if wait_before_exit: self.write('GET\n')	# Wait for key
 			#self.write('PAUSE 40\n')
 		
 		if self.dialect == DIALECT_OPL3:
