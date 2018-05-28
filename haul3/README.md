@@ -29,15 +29,15 @@ Have fun with it and don't hurt your brain.
 * Con: High memory consumption (keeps the whole AST structure in RAM), so it may get hard to create a C64 output module.
 
 ## Usage
-* Write your code in HAL3 (which is valid python). You may need to add variable types in some places. Use either Python3 colons or "#@var NAME TYPE" comments for that.
-* Use translate.py to translate that file into the desired target language.
-* Use ide.py to play around with different languages
-* Use build.py to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
+* Write your code in HAL3 (which is valid python). You may need to add variable types in some places. Use either Python3 colons or *#@var NAME TYPE* comments for that.
+* Use *translate.py* to translate that file into the desired target language.
+* Use *ide.py* to play around with different languages.
+* Use *build.py* to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
 
 ![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
 
 ## Directory Structure
-* haul holds the main source code, including the parser(s) and builders
-* data holds language/platform specific data, e.g. native libraries or resources
-* examples holds some example code, ready to be translated to any other language
-* tools holds external tools that are needed for some builders, e.g. emulators, compilers and SDKs
+* *haul* holds the main source code, including the parser(s) and builders
+* *data* holds language/platform specific data, e.g. native libraries or resources
+* *examples* holds some example code, ready to be translated to any other language
+* *tools* holds external tools that are needed for some builders, e.g. emulators, compilers and SDKs

@@ -7,7 +7,7 @@ So I tried. And it worked. And it was fun.
 
 So I did it again. And it was even more fun.
 
-So I did it a third time. And now I really like it. :-)
+So now I am doing it for a third time and things are getting *really* interesting...
 
 This is in no way intended for any productive use. It's food for thought. An elaborate toy. Art and fart.
 Have fun with it and don't hurt your brain.
@@ -21,3 +21,6 @@ Have fun with it and don't hurt your brain.
 [HAUL2](https://github.com/hotkeymuc/haul/tree/master/haul2) was the second attempt written in Python. It works, but still requires "boot strapping"
 
 [HAUL3](https://github.com/hotkeymuc/haul/tree/master/haul3) is the current version: It uses Python as the source language and supports external build chains for 8-bit machines, as well as smart phones and micro controllers.
+
+
+![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
