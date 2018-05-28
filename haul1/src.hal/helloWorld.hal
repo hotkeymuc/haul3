@@ -1,0 +1,11 @@
+put	"helloWorld.hal!"
+VAR	i
+FOR	$i	1	10
+	putR	"Mark1"
+/FOR
+VAR	j
+FOR	$j	1	10
+	putR	"Mark2"
+/FOR
+RETURN	1
+END

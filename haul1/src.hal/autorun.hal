@@ -1,0 +1,38 @@
+##	(C) 2011-07-17 Bernhard -HotKey- Slawik, http://www.bernhardslawik.de
+##	
+##	[Pre-translated code and resources get pre-pended here!]
+##	
+
+
+put	"autorun.hal: Hello world!"
+
+//	Output some info
+putR	"autorun.hal: I am generation "
+put	_generation
+
+putR	"autorun.hal: My history is: "
+put	_history
+
+putR	"autorun.hal: I am currently running on platform: "
+put	_currPlatform
+
+
+//	Deploy
+!MERGE	deploy.hal
+##	METHOD	doDeploy	$htk
+put	"autorun.hal: Now, I will deploy myself..."
+
+VAR	platform
+SET	$platform	"php"
+VAR	filename
+SET	$filename	"child_generation"
+str:append	(_generation+1)	$filename
+str:append	"."	$filename
+str:append	$platform	$filename
+CALL	deploy	_currPlatform, $htk, $platform, $filename
+##	/METHOD
+##	CALL	doDeploy	$htk
+
+
+put	"autorun.hal - Finished. Servus!"
+END

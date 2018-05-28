@@ -1,0 +1,171 @@
+##	(C) 2011-07-17 Bernhard -HotKey- Slawik, http://www.bernhardslawik.de
+##	
+##	[Pre-translated code and resources get pre-pended here!]
+##	
+
+put	"autorun.hal - Starting..."
+
+
+put	"autorun.hal: Hello world!"
+
+
+//	Output some info
+putR	"autorun.hal: I am generation "
+put	_generation
+
+putR	"autorun.hal: My history is: "
+put	_history
+
+putR	"autorun.hal: I am currently running on platform: "
+put	_currPlatform
+
+
+//	Code for dynamic loading
+FUNCTION	runHAL	$resName, $htk
+	putR	"autorun.hal: runHAL: "
+	put	$resName
+	
+	VAR	LF
+	str:char	10	$LF
+	VAR	TAB
+	str:char	9	$TAB
+
+	VAR	$data
+	res:getString	$resName	$data
+	
+	//	Each run needs a RETURN_EVAL
+	##	str:append	$LF	$data
+	##	str:append	"RETURN_EVAL"	$data
+	##	str:append	$TAB	$data
+	##	str:append	"0"	$data
+	##	str:append	$LF	$data
+	
+	
+	CLASS_CALL	$htk	deployStart
+	CLASS_CALL	$htk	translateStart
+	CALL	runHALint	$data, $htk
+	CLASS_CALL	$htk	translateEnd
+	##	CLASS_CALL	$htk	deployEnd
+	CLASS_CALL	$htk	run
+/FUNCTION
+
+FUNCTION	runHALint	$data, $htk
+	//	Explode into lines
+	VAR	TAB
+	str:char	9	$TAB
+	VAR	LF
+	str:char	10	$LF
+	
+	##	VAR	lines	[]
+	VAR	lines
+	str:explode	$LF	$data	$lines
+	
+	//	Iterate thru all lines
+	VAR	line
+	FOR_EACH	$line	$lines
+		VAR	l
+		str:len	$line	$l
+		IF	$l > 0
+			VAR	b
+			str:charCodeAt	$line	0	$b
+			//	Skip commented lines
+			IF	$b != 35
+				//	Strip and count leading TABs
+				VAR	indents
+				SET	$indents	0
+				
+				VAR	lineClean
+				SET	$lineClean	""
+				
+				VAR	done
+				SET	$done	0
+				
+				//	Strip CR/LF
+				str:charCodeAt	$line	$l-1	$b
+				IF	$b == 10
+					DEC	$l
+				/IF
+				str:charCodeAt	$line	$l-1	$b
+				IF	$b == 13
+					DEC	$l
+				/IF
+				
+				VAR	i
+				SET	$i	0
+				WHILE_NEQ	$i	$l
+					str:charCodeAt	$line	$i	$b
+					IF	$done == 0
+						IF	$b == 9
+							INC	$indents
+						ELSE
+							SET	$done	1
+						/IF
+					/IF
+					IF	$done > 0
+						str:appendByte	$b	$lineClean
+						INC	$done
+					/IF
+					INC	$i
+				/WHILE
+				DEC	$done
+				
+				##	VAR	items	[]
+				VAR	items
+				str:explode	$TAB	$lineClean	$items
+				IF	($items[0] != "")
+					IF	$items[0] == "!MERGE"
+						putR	"Merging HAL source: "
+						put	$items[1]
+						
+						VAR	dataMerge
+						res:getString	$items[1]	$dataMerge
+						CALL	runHALint	$dataMerge, $htk
+						
+					ELSE
+						CLASS_CALL	$htk	translateInstruction	$items, $lineClean, $indents
+					/IF
+				/IF
+			/IF
+		/IF
+	/FOR
+/FUNCTION
+
+
+//	Deploy
+METHOD	doDeploy	$htk
+	put	"autorun.hal: Now, I will deploy myself..."
+	
+	##	No, load dynamically:	!MERGE	deploy.hal
+	VAR	$halName
+	SET	$halName	"deploy.hal"
+	CALL	runHAL	$halName, $htk
+	
+	VAR	platform
+	SET	$platform	"vbs"
+	VAR	filename
+	SET	$filename	"child."
+	str:append	$platform	$filename
+	CALL	deploy	_currPlatform, $htk, $platform, $filename
+/METHOD
+CALL	doDeploy	$htk
+
+
+//	Start ShadowRunner
+put	"autorun.hal: Now for shadowRunner..."
+##	Dont merge, but load dnymically!	!MERGE	shadowRunner.hal
+VAR	$halName
+SET	$halName	"shadowRunner.hal"
+CALL	runHAL	$halName, $htk
+
+
+VAR	sr
+NEW	$sr	ShadowRunner
+##	CLASS_CALL	$sr	LoadByteCode	"test.shadow"
+CLASS_CALL	$sr	InitSR
+CLASS_CALL	$sr	LoadHelloWorld
+CLASS_CALL	$sr	Run
+CLASS_CALL	$sr	SaveByteCode	"test.shadow"
+CLASS_CALL	$sr	TerminateSR
+
+put	"autorun.hal - Finished. Servus!"
+END

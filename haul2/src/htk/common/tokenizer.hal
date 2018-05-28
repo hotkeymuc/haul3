@@ -1,0 +1,382 @@
+############################################################
+# This is tokenizer.hal
+#
+# This module reads and tokenizes HAL2 (HotKey's Average Language 2) source and "streams" it to a parser/translator.
+# Used to convert HAL into another language using a HTK ("HAL Translation Kernel" or "HAL Token Konverter" :) )
+############################################################
+
+var $TOKEN_IDLE				_byte 0;
+var $TOKEN_COMMENT			_byte 1;
+var $TOKEN_COMMENT_BLOCK	_byte 2;
+var $TOKEN_NEXT				_byte 3;
+var $TOKEN_NUMBER			_byte 4;
+var $TOKEN_IDENTIFIER		_byte 5;
+var $TOKEN_VARIABLE			_byte 6;
+var $TOKEN_TYPE				_byte 7;
+var $TOKEN_STRING			_byte 8;
+var $TOKEN_ESCAPE			_byte 9;
+
+var $TOKEN_INFIX			_byte 10;
+var $TOKEN_LOOKUP			_byte 11;
+var $TOKEN_EXPR_STOR		_byte 12;
+var $TOKEN_EXPR_LOAD		_byte 13;
+var $TOKEN_EXPR_END			_byte 14;
+
+var $TOKEN_BLOCK_STOR		_byte 15;
+var $TOKEN_BLOCK_LOAD		_byte 16;
+var $TOKEN_BLOCK_END		_byte 17;
+
+var $TOKEN_EOI				_byte 18;
+var $TOKEN_LIMIT			_byte 19;
+
+
+var $stateNames [_string] new [_string];
+arr_add $stateNames "IDLE";
+arr_add $stateNames "COMMENT";
+arr_add $stateNames "COMMENT_BLOCK";
+arr_add $stateNames "NEXT";
+arr_add $stateNames "NUMBER";
+arr_add $stateNames "IDENTIFIER";
+arr_add $stateNames "VAR";
+arr_add $stateNames "TYPE";
+arr_add $stateNames "STRING";
+arr_add $stateNames "ESCAPE";
+
+arr_add $stateNames "INFIX";
+arr_add $stateNames "LOOKUP";
+arr_add $stateNames "EXPR_STOR";
+arr_add $stateNames "EXPR_LOAD";
+arr_add $stateNames "EXPR_END";
+
+arr_add $stateNames "BLOCK_STOR";
+arr_add $stateNames "BLOCK_LOAD";
+arr_add $stateNames "BLOCK_END";
+
+arr_add $stateNames "EOI";
+arr_add $stateNames "LIMIT";
+
+
+class _Token {
+	var $state _byte;
+	var $data _string;
+	var $origin _int32;
+	var $originText _string;
+	var $tid _int32;
+	func create _Token $state _byte, $data _string, $origin _int32, $tid _int32, $originText _string {
+		set $this.$state $state;
+		set $this.$data	$data;
+		set $this.$origin $origin;
+		set $this.$originText $originText;
+		set $this.$tid $tid;
+	}
+}
+
+class _Tokenizer {
+	var $stream _stream_code_read;
+	var $tidMax _int32 0;
+	
+	# Parser state (formerly local variables of tokenizer method)
+	var $state _byte $TOKEN_IDLE;
+	var $level _int32 0;
+	var $tid _int32 0;
+	var $stateLastBeforeEscape _byte $TOKEN_NEXT;
+	var $data _string "";
+	var $tokenQueue [_Token];
+	var $tids [_int32];
+	
+	func create _Tokenizer $stream _stream_code_read {
+		set $this.$stream new stream_code_read($stream);  # We need a stream with "peekByte" and line numbering
+		#set $this.$parser $parser;
+		set $this.$tidMax 0;
+		
+		set $this.$state $TOKEN_IDLE;
+		set $this.$level 0;
+		set $this.$tid 0;
+		set $this.$stateLastBeforeEscape $TOKEN_NEXT;
+		set $this.$data "";
+		set $this.$tokenQueue new [_Token];
+		set $this.$tids new [_int32];
+		arr_add $this.$tids 0;
+	}
+
+	# Return current byte offset
+	func tellByte _int32 {
+		return $this.$stream.$ofs;
+	}
+	func seekToByte _void $byteOfs _int32, $tid _int32 {
+		$this.$stream.seek($byteOfs);
+		set $this.$state $TOKEN_IDLE;
+		set $this.$level 0;
+		set $this.$tid $tid;
+		set $this.$stateLastBeforeEscape $TOKEN_NEXT;
+		set $this.$data "";
+		set $this.$tokenQueue new [_Token];
+		set $this.$tids new [_int32];
+		arr_add $this.$tids $tid;
+	}
+	func eof _bool {
+		#if (not $this.$stream.eof()) { return false; }
+		#if (arr_len($this.$tokenQueue) > 0) { return false; }
+		#return true;
+		return (($this.$stream.eof()) and (arr_len($this.$tokenQueue) = 0));
+	}
+	
+	# Ring buffer: Sometimes one byte might produce more than one token, so we have to buffer that
+	func memToken _void $token _Token {
+		arr_add $this.$tokenQueue $token;
+	}
+	func getToken _Token {
+		var $r _Token;
+		if (arr_len($this.$tokenQueue)) = 0 {
+			if (not $this.queueNextTokens()) {
+				return null;
+			}
+		}
+		set $r $this.$tokenQueue[0];
+		arr_del $this.$tokenQueue 0;
+		return $r;
+	}
+	func peekToken _Token {
+		if (arr_len($this.$tokenQueue)) = 0 {
+			if (not $this.queueNextTokens()) {
+				return null;
+			}
+		}
+		return $this.$tokenQueue[0];
+	}
+	# Parse the stream until the next token is found
+	func queueNextTokens _void {
+		var $b _byte;
+		var $bn _byte;
+		var $origin _string "";
+		var $last _int 32;
+		while ((not $this.$stream.eof()) and (arr_len($this.$tokenQueue) = 0)) {
+			set $origin $this.$stream.$ofs;
+			set $originText ("l" + str($this.$stream.$lineNum) + "c" + str($this.$stream.$linePos));
+			set $b $this.$stream.getByte();
+			set $bn $this.$stream.peekByte();
+			#put("Origin: " + $origin)
+			
+			if ($this.$state = $TOKEN_COMMENT_BLOCK) {
+				if ( ($b = ord("*")) and ($bn = ord("/")) ) {
+					set $b $this.$stream.getByte();
+					$this.memToken(new _Token($TOKEN_COMMENT_BLOCK, $this.$data, $origin, $this.$tid, $originText));
+					set $this.$state $this.$stateLastBeforeEscape;
+					set $this.$data "";
+					continue;
+				}
+				set $this.$data ($this.$data + chr($b));
+				continue;
+			}
+			if (($b = ord("/")) and ($bn = ord("*")) ) {
+				set $b $this.$stream.getByte();
+				if (not $this.$data = "") {
+					$this.memToken(new _Token($this.$state, $this.$data, $origin, $this.$tid, $originText));
+				}
+				set $this.$stateLastBeforeEscape $this.$state;
+				set $this.$state $TOKEN_COMMENT_BLOCK;
+				set $this.$data "";
+				continue;
+			}
+			if ($this.$state = $TOKEN_COMMENT) {
+				if ($b = 10) {
+					$this.memToken(new _Token($TOKEN_COMMENT, $this.$data, $origin, $this.$tid, $originText));
+					set $this.$data "";
+					set $this.$state $TOKEN_NEXT;
+					#put('Next line: "' + self.stream.peekLine() + '"');
+				} else {
+					set $this.$data ($this.$data + chr($b));
+				}
+				continue;
+			}
+			if ($this.$state = $TOKEN_ESCAPE) {
+				if ($b = ord("t")) { set $b 9; }
+				elseif ($b = ord("n")) { set $b 10; }
+				elseif ($b = ord("r")) { set $b 13; }
+				elseif ($b = ord("0")) { set $b 0; }
+				# Everything else gets piped thru
+				set $this.$data ($this.$data + chr($b));
+				set $this.$state $this.$stateLastBeforeEscape;
+				continue;
+			}
+			if ($b = 92) {	#ord("\\")) {
+				set $this.$stateLastBeforeEscape $this.$state;
+				set $this.$state $TOKEN_ESCAPE;
+				continue;
+			}
+			if ($this.$state = $TOKEN_STRING) {
+				if ($b = 34) {  # ord ""
+					$this.memToken(new _Token($TOKEN_STRING, $this.$data, $origin, $this.$tid, $originText));
+					set $this.$data "";
+					set $this.$state $TOKEN_NEXT;
+					continue;
+				} else {
+					set $this.$data ($this.$data + chr($b));
+					continue;
+				}
+			}
+			if (($this.$state = $TOKEN_IDLE) or ($this.$state = $TOKEN_NEXT)) {
+				# Searching for something useful to start with...
+				
+				# Numbers...
+				if (($b >= ord("0")) and (b <= ord("9"))) {
+					set $this.$state $TOKEN_NUMBER;
+					set $this.$data chr($b);
+					continue;
+				}
+				# Identifiers...
+				if ( (($b >= ord("a")) and ($b <= ord("z"))) or (($b >= ord("A")) and ($b <= ord("Z"))) ) {
+					set $this.$state $TOKEN_IDENTIFIER;
+					set $this.$data chr($b);
+					continue;
+				}
+				if ( ($b = ord("#")) ) {
+					set $this.$state $TOKEN_COMMENT;
+					set $this.$data "";
+					continue;
+				}
+				if ( ($b = ord("$")) ) {
+					set $this.$state $TOKEN_VARIABLE;
+					set $this.$data "";
+					continue;
+				}
+				if ( ($b = ord("_")) ) {
+					set $this.$state $TOKEN_TYPE;
+					set $this.$data "";
+					continue;
+				}
+				if ( ($b = 34)) {     # ord ""
+					set $this.$state $TOKEN_STRING;
+					set $this.$data "";
+					continue;
+				}
+			}
+			
+			# Check for chars that close the current token. I'd prefer a nice regexp or something, but for now...
+			if (
+				($b = ord(",")) or ($b = ord(";")) or ($b = ord("(")) or ($b = ord(")"))
+				or ($b = ord("{")) or ($b = ord("}"))
+				or ($b = ord(".")) or ($b = ord("[")) or ($b = ord("]"))
+				
+				or ($b = 9) or ($b = 10) or ($b = 13) or ($b = 32)
+				
+				or ($b = ord("+")) or ($b = ord("-")) or ($b = ord("*")) or ($b = ord("/"))
+				or ($b = ord(">")) or ($b = ord("=")) or ($b = ord("<")) or ($b = ord("&")) or ($b = ord("|")) or ($b = ord("^")) or ($b = ord("%"))
+			) {
+				# Close (and store) previous token
+				if (not $this.$data = "") {
+					$this.memToken(new _Token($this.$state, $this.$data, $origin, $this.$tid, $originText));
+					set $this.$data "";
+				}
+				set $this.$state $TOKEN_NEXT;
+				
+				if ($b = ord("[")) {
+					$this.memToken(new _Token($TOKEN_LOOKUP, chr($b), $origin, $this.$tid, $originText));
+					#continue;
+				}
+				
+				# Expression
+				if ($b = ord("(")) {
+					#put("Start-of-expression at " + str($origin));
+					set $this.$tidMax ($this.$tidMax + 1);
+					set $t $this.$tidMax;
+					$this.memToken(new _Token($TOKEN_EXPR_STOR, $t, $origin, $t, $originText));
+					
+					# Enter next level
+					set $this.$level ($this.$level + 1);
+					arr_add $this.$tids $this.$tid;
+					set $this.$tid $t;
+					continue;
+				}
+				if ($b = ord(")")) {
+					#put("End-of-expression at " + str($origin));
+					$this.memToken(new _Token($TOKEN_EXPR_END, $this.$tid, $origin, $this.$tid, $originText));
+					
+					# Return...
+					set $t $this.$tid;
+					set $this.$level ($this.$level - 1);
+					set $last (arr_len($this.$tids)-1);
+					set $this.$tid $this.$tids[$last];
+					arr_del $this.$tids $last;
+					
+					$this.memToken(new _Token($TOKEN_EXPR_LOAD, $t, $origin, $this.$tid, $originText));
+					continue;
+				}
+				
+				# Block (is actually the exact same as for expressions... So: optimize at will!
+				if ($b = ord("{")) {
+					#put("Start-of-code block at " + str($origin));
+					set $this.$tidMax ($this.$tidMax + 1);
+					set $t $this.$tidMax;
+					$this.memToken(new _Token($TOKEN_BLOCK_STOR, $t, $origin, $t, $originText));
+					#put("BLOCK_STOR: " + str($t));
+					# Enter next level
+					set $this.$level ($this.$level + 1);
+					arr_add $this.$tids $this.$tid;
+					set $this.$tid $t;
+					continue;
+				}
+				if ($b = ord("}")) {
+					#put("End-of-code block at " + str($origin));
+					$this.memToken(new _Token($TOKEN_BLOCK_END, $this.$tid, $origin, $this.$tid, $originText));
+					# Return...
+					set $t $this.$tid;
+					set $this.$level ($this.$level - 1);
+					set $last (arr_len($this.$tids)-1);
+					set $this.$tid $this.$tids[$last];
+					arr_del $this.$tids $last;
+					
+					#if ($t = 0) {
+					#	put("ABOUT TO ADD 0 TO BLOCKLOAD - THIS WILL CAUSE A COMPILER INFINITY LOOP!!");
+					#}
+					$this.memToken(new _Token($TOKEN_BLOCK_LOAD, $t, $origin, $this.$tid, $originText));
+					continue;
+				}
+				# Delimiters
+				if ($b = ord(".")) {
+					$this.memToken(new _Token($TOKEN_LOOKUP, chr($b), $origin, $this.$tid, $originText));
+					continue;
+				}
+				if ($b = ord(",")) {
+					$this.memToken(new _Token($TOKEN_LIMIT, chr($b), $origin, $this.$tid, $originText));
+					continue;
+				}
+				if (b = ord(";")) {
+					#put(indent + 'End-of-instruction.')
+					$this.memToken(new _Token($TOKEN_EOI, chr($b), $origin, $this.$tid, $originText));
+					#stateLastInstructionStart = len(stateTokens)
+					continue;
+				}
+				if ($b = 10) { #|| ($c = 13)) {
+					#put('Next line: "' + $this.stream.peekLine() + '"')
+					continue;
+				}
+				# Infix
+				if (($b = ord("+")) or ($b = ord("-")) or ($b = ord("*")) or ($b = ord("/"))
+				or ($b = ord(">")) or ($b = ord("=")) or ($b = ord("<")) or ($b = ord("&")) or ($b = ord("|")) or ($b = ord("^")) or ($b = ord("%"))) {
+					#put($indent.'Infix: '.chr($b));
+					if ($bn = ord("=")) {
+						# Handle greater-or-equal
+						$this.$stream.getByte();
+						$this.memToken(new _Token($TOKEN_INFIX, (chr($b) + chr($bn)), $origin, $this.$tid, $originText));
+					} else {
+						$this.memToken(new _Token($TOKEN_INFIX, chr($b), $origin, $this.$tid, $originText));
+					}
+					continue;
+				}
+				continue;
+			}
+			set $this.$data ($this.$data + chr($b));
+		}
+		
+		# End-of-stream but a token still there?
+		if (($this.$stream.eof()) and (not $this.$data = "")) {
+			$this.memToken(new _Token($this.$state, $this.$data, $origin, $this.$tid, $originText));
+			set $this.$data "";
+			#put("Unexpected end of file. Wow, finally _I_ get to write this string somewhere :-)")
+		}
+		return (arr_len($this.$tokenQueue) > 0);
+	}
+}
+
+put("Hello. This is the tokenizer.");

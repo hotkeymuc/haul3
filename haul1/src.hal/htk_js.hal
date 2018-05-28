@@ -1,0 +1,661 @@
+//	htk_js.hal - (C) 2011 Bernhard -HotKey- Slawik, http://www.bernhardslawik.de
+//	  This is a HAL Translation Kernel that translates HAL to JavaScript source. Written in HAL (HotKeys Average Language).
+
+
+//	Needed for PHP deployment: addSlashes for single quotes
+FUNCTION	encodeJS	$t
+	VAR	DBLQUO
+	str:char	34	$DBLQUO
+	VAR	BACKSLASH
+	str:char	92	$BACKSLASH
+	
+	VAR	ss
+	VAR	sr
+	
+	VAR	c
+	str:charCodeAt	$t	0	$c
+	//	Remove surrounding quotes
+	IF	$c == 34
+		VAR	l
+		str:len	$t	$l
+		str:copy	$t	1	$l-2	$t
+	/IF
+	
+	str:replace	"\"	"\\"	$t
+	
+	##	Encode \n
+	str:char	10	$ss
+	SET	$sr	$BACKSLASH
+	str:append	"n"	$sr
+	str:append	$BACKSLASH	$sr
+	str:append	$ss	$sr
+	str:replace	$ss	$sr	$t
+	
+	##	Encode \r
+	str:char	13	$ss
+	SET	$sr	$BACKSLASH
+	str:append	$ss	$sr
+	str:replace	$ss	$sr	$t
+	
+	##	Encode double quotes
+	str:char	34	$ss
+	SET	$sr	$BACKSLASH
+	str:append	$ss	$sr
+	str:replace	$ss	$sr	$t
+	
+	
+	str:append	$DBLQUO	$t
+	str:prepend	$DBLQUO	$t
+	RETURN	$t
+/FUNCTION
+
+CLASS	HTKjs	HTK
+	PROP	data
+	PROP	inClass
+	
+	METHOD	write	$txt
+		str:append	$txt	.data
+	/METHOD
+	
+	METHOD	writeLn	$txt
+		str:append	$txt	.data
+		str:appendByte	10	.data
+	/METHOD
+	
+	
+	FUNCTION	deployStart
+		SET	.data	""
+		CALL	.writeLn	""
+		CALL	.writeLn	"// ### Translated from HAL meta language by HTKjs, (C)opyright 2011 HotKey/Bernhard Slawik Digital"
+		CALL	.writeLn	""
+	/FUNCTION
+	
+	FUNCTION	resourceStart
+		CALL	.writeLn	"// ### Resouces"
+		CALL	.writeLn	"var _RES = [];"
+	/FUNCTION
+	
+	FUNCTION	resourceAdd	$resName, $resData
+		RESULT	$resData	encodeJS	$resData
+		VAR	DBLQUO
+		str:char	34	$DBLQUO
+		CALL	.write	"_RES["
+		CALL	.write	$DBLQUO
+		CALL	.write	$resName
+		CALL	.write	$DBLQUO
+		CALL	.write	"] = "
+		CALL	.write	$resData
+		CALL	.writeLn	";"
+	/FUNCTION
+	FUNCTION	resourceEnd
+	/FUNCTION
+	
+	FUNCTION	translateLibs
+		CALL	.writeLn	"// ### Native implementations of library functions"
+		
+		##	Merge native library code
+		VAR	libSrc
+		res:getString	"htk_js.inc.js"	$libSrc
+		CALL	.write	$libSrc
+	/FUNCTION
+	
+	FUNCTION	translateStart
+		VAR	pose
+		SET	$pose	"Hi there, this is htk_js.hal! I am running on "
+		str:append	_currPlatform	$pose
+		str:append	" and about to translate HAL to JS source!"	$pose
+		put	$pose
+		
+		CALL	.writeLn	"// ### Main"
+		SET	.inClass	""
+	/FUNCTION
+	
+	
+	FUNCTION	translateExp	$t
+		##	@FIXME: This is just a heuristic!
+		//	Do not replace inside strings!
+		
+		IF	$t == ""
+			RETURN	""
+		/IF
+		
+		VAR	b
+		str:charCodeAt	$t	0	$b
+		
+		IF	$b == 34
+			##	str:addSlashes	$t	$t
+			RESULT	$t	encodeJS	$t
+			RETURN	$t
+		/IF
+		
+		IF	$b == 39
+			##	str:addSlashes	$t	$t
+			RESULT	$t	encodeJS	$t
+			RETURN	$t
+		/IF
+		
+		SET	$r	$t
+		str:replace	"."	"this."	$r
+		str:replace	"$"	""	$r
+		str:replace	"_"	""	$r
+		RETURN	$r
+	/FUNCTION
+	
+	FUNCTION	translateInstruction	$items, $line, $indents
+		VAR	indent
+		SET	$indent	""
+		VAR	TAB
+		str:char	9	$TAB
+		VAR	SINGLEQUO
+		str:char	39	$SINGLEQUO
+
+		FOR	$i	0	$indents-1
+			str:append	$TAB	$indent
+		/FOR
+		VAR	l
+		array:len	$items	$l
+		VAR	p1
+		IF	$l > 1
+			RESULT	$p1	.translateExp	$items[1]
+		ELSE
+			SET	$p1	""
+		/IF
+		
+		VAR	p2
+		IF	$l > 2
+			RESULT	$p2	.translateExp	$items[2]
+		ELSE
+			SET	$p2	""
+		/IF
+		
+		VAR	p3
+		IF	$l > 3
+			RESULT	$p3	.translateExp	$items[3]
+		ELSE
+			SET	$p3	""
+		/IF
+		
+		VAR	p4
+		IF	$l > 4
+			RESULT	$p4	.translateExp	$items[4]
+		ELSE
+			SET	$p4	""
+		/IF
+		
+		CALL	.write	$indent
+		
+		SELECT	$items[0]
+			//	Meta comment
+			CASE	"##"
+				//	Just ignore
+				/CASE
+				
+			//	Comment
+			CASE	"//"
+				CALL	.writeLn	$line
+				/CASE
+				
+			//	Insert Macro
+			CASE	"MACRO"
+				/CASE
+				
+			//	Define variable
+			CASE	"VAR"
+				CALL	.write	"var "
+				CALL	.write	$p1
+				IF	$p2 != ""
+					CALL	.write	" = new Array()"
+				/IF
+				CALL	.writeLn	";"
+				/CASE
+				
+			//	Define class variable
+			CASE	"PROP"
+				##	CALL	.write	"var "
+				CALL	.write	"this."
+				CALL	.write	$p1
+				IF	$p2 != ""
+					SET	$p2	" = new Array()"
+				/IF
+				##	CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+				
+			//	Define constant
+			CASE	"CONST"
+				CALL	.write	"var "
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+				
+			//	Class
+			CASE	"CLASS"
+				CALL	.write	"function "
+				CALL	.write	$p1
+				CALL	.write	"() {"
+				CALL	.write	$TAB
+				CALL	.write	"// Class "
+				CALL	.write	$p1
+				CALL	.writeLn	"..."
+				SET	.inClass	$p1
+				/CASE
+			CASE	"/CLASS"
+				CALL	.writeLn	"} // End of Class"
+				SET	.inClass	""
+				/CASE
+				
+			//	Method
+			CASE	"METHOD"
+				##	switch($p1) {
+				##		CASE	"__init": $p1 = "__construct"; break;
+				##		CASE	"__terminate": $p1 = "__destroy"; break;
+				##	}
+				IF	.inClass != ""
+					CALL	.write	"this."
+					##	CALL	.write	.inClass
+					##	CALL	.write	".prototype."
+					CALL	.write	$p1
+					CALL	.write	" = function"
+				ELSE
+					CALL	.write	"function "
+					CALL	.write	$p1
+				/IF
+				CALL	.write	"("
+				CALL	.write	$p2
+				CALL	.writeLn	") {"
+				/CASE
+			CASE	"/METHOD"
+				CALL	.writeLn	"}"
+				/CASE
+				
+			//	Function
+			CASE	"FUNCTION"
+				IF	.inClass != ""
+					CALL	.write	"this."
+					##	CALL	.write	.inClass
+					##	CALL	.write	".prototype."
+					CALL	.write	$p1
+					CALL	.write	" = function"
+				ELSE
+					CALL	.write	"function "
+					CALL	.write	$p1
+				/IF
+				CALL	.write	"("
+				CALL	.write	$p2
+				CALL	.writeLn	") {"
+				/CASE
+			CASE	"/FUNCTION"
+				CALL	.writeLn	"}"
+				/CASE
+			CASE	"RETURN"
+				CALL	.write	"return "
+				CALL	.write	$p1
+				CALL	.writeLn	";"
+				/CASE
+			CASE	"RETURN_REF"
+				CALL	.write	"return "
+				CALL	.write	$p1
+				CALL	.writeLn	";"
+				/CASE
+				
+			//	Set variable
+			CASE	"SET"
+				CALL	.write	$p1
+				CALL	.write	"="
+				CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+			CASE	"SET_REF"
+				CALL	.write	$p1
+				CALL	.write	"="
+				CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+
+			//	Increment
+			CASE	"INC"
+				CALL	.write	$p1
+				IF	$p2 != ""
+					CALL	.write	" += "
+					CALL	.write	$p2
+				ELSE
+					CALL	.write	"++"
+				/IF
+				CALL	.writeLn	";"
+				/CASE
+			//	Decrement
+			CASE	"DEC"
+				CALL	.write	$p1
+				IF	$p2 != ""
+					CALL	.write	" -= "
+					CALL	.write	$p2
+				ELSE
+					CALL	.write	"--"
+				/IF
+				CALL	.writeLn	";"
+				/CASE
+			//	Multiply self by
+			CASE	"MUL"
+				CALL	.write	$p1
+				CALL	.write	" *= "
+				CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+			//	Divide self by
+			CASE	"DIV"
+				CALL	.write	$p1
+				CALL	.write	" /= "
+				CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+				
+			CASE	"IF"
+				CALL	.write	"if ("
+				CALL	.write	$p1
+				CALL	.writeLn	") {"
+				/CASE
+			CASE	"ELSE"
+				CALL	.writeLn	"} else {"
+				/CASE
+			CASE	"/IF"
+				CALL	.writeLn	"}"
+				/CASE
+			CASE	"SELECT"
+				CALL	.write	"switch ("
+				CALL	.write	$p1
+				CALL	.writeLn	") {"
+				/CASE
+			CASE	"/SELECT"
+				CALL	.writeLn	"}"
+				/CASE
+			CASE	"CASE"
+				CALL	.write	"case "
+				CALL	.write	$p1
+				CALL	.writeLn	":"
+				/CASE
+			CASE	"/CASE"
+				CALL	.writeLn	"break;"
+				/CASE
+			CASE	"CASE_ELSE"
+				CALL	.writeLn	"default:"
+				/CASE
+				
+			CASE	"WHILE_EQ"
+				CALL	.write	"while ("
+				CALL	.write	$p1
+				CALL	.write	" == "
+				CALL	.write	$p2
+				CALL	.writeLn	") {"
+				/CASE
+			CASE	"WHILE_NEQ"
+				CALL	.write	"while ("
+				CALL	.write	$p1
+				CALL	.write	" != "
+				CALL	.write	$p2
+				CALL	.writeLn	") {"
+				/CASE
+			CASE	"/WHILE"
+				CALL	.writeLn	"}"
+				/CASE
+				
+			CASE	"FOR"
+				CALL	.write	"for ("
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"; "
+				CALL	.write	$p1
+				CALL	.write	" <= "
+				CALL	.write	$p3
+				CALL	.write	"; "
+				CALL	.write	$p1
+				CALL	.writeLn	"++) {"
+				/CASE
+			CASE	"FOR_EACH"
+				##	@TODO: Check if this works in JS!
+				CALL	.write	"for ("
+				CALL	.write	"var i_"
+				CALL	.write	$p1
+				CALL	.write	" in "
+				CALL	.write	$p2
+				##	CALL	.write	" => "
+				##	CALL	.write	$p3
+				CALL	.writeLn	") {"
+				CALL	.write	$indent
+				CALL	.write	$TAB
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"[i_"
+				CALL	.write	$p1
+				CALL	.writeLn	"];"
+				/CASE
+			CASE	"/FOR"
+				CALL	.writeLn	"}"
+				/CASE
+				
+			//	Call a method
+			CASE	"CALL"
+				CALL	.write	$p1
+				CALL	.write	"("
+				CALL	.write	$p2
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"CLASS_CALL"
+				CALL	.write	$p1
+				CALL	.write	"."
+				CALL	.write	$p2
+				CALL	.write	"("
+				CALL	.write	$p3
+				CALL	.writeLn	");"
+				/CASE
+				
+			//	Call a function, set variable to result
+			CASE	"RESULT"
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"("
+				CALL	.write	$p3
+				CALL	.writeLn	");"
+				/CASE
+			//	Call a class method/function
+			CASE	"CLASS_RESULT"
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"."
+				CALL	.write	$p3
+				CALL	.write	"("
+				CALL	.write	$p4
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"CLASS_RESULT_REF"
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"."
+				CALL	.write	$p3
+				CALL	.write	"("
+				CALL	.write	$p4
+				CALL	.writeLn	");"
+				/CASE
+
+			CASE	"NEW"
+				CALL	.write	$p1
+				CALL	.write	" = new "
+				CALL	.write	$p2
+				CALL	.write	"("
+				CALL	.write	$p3
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"END"
+				/CASE
+			
+			CASE	"put"
+				CALL	.write	"put("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"putR"
+				CALL	.write	"putR("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+			
+			CASE	"array:len"
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.writeLn	".length;"
+				/CASE
+			CASE	"array:redim"
+				CALL	.write	"while ("
+				CALL	.write	$p1
+				CALL	.write	".length < "
+				CALL	.write	$p2
+				CALL	.write	") "
+				CALL	.write	$p1
+				CALL	.writeLn	".push(0);"
+				/CASE
+				
+			CASE	"str:prepend"
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	"+"
+				CALL	.write	$p2
+				CALL	.writeLn	";"
+				/CASE
+			CASE	"str:append"
+				CALL	.write	$p2
+				CALL	.write	" += "
+				CALL	.write	$p1
+				CALL	.writeLn	";"
+				/CASE
+			CASE	"str:appendByte"
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	" + String.fromCharCode("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"str:replace"
+				CALL	.write	$p3
+				CALL	.write	" = "
+				CALL	.write	"replaceAll("
+				CALL	.write	$p3
+				CALL	.write	", "
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"str:char"
+				CALL	.write	$p2
+				CALL	.write	" = String.fromCharCode("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"str:len"
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.writeLn	".length;"
+				/CASE
+			CASE	"str:charCodeAt"
+				CALL	.write	$p3
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	".charCodeAt("
+				CALL	.write	$p2
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"str:explode"
+				CALL	.write	$p3
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	".split("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"str:copy"
+				CALL	.write	$p4
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	".substr("
+				CALL	.write	$p2
+				CALL	.write	", "
+				CALL	.write	$p3
+				CALL	.writeLn	");"
+				/CASE
+				
+			CASE	"file:putString"
+				CALL	.write	"file_putString("
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"file:getString"
+				CALL	.write	$p2
+				CALL	.write	" = file_getString("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+				
+			CASE	"res:getString"
+				CALL	.write	$p2
+				CALL	.write	" = res_getString("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+				
+			CASE	"eval"
+				CALL	.write	$p2
+				CALL	.write	" = eval("
+				CALL	.write	$p1
+				CALL	.writeLn	");"
+				/CASE
+			CASE	"RETURN_EVAL"
+				##	CALL	.write	"return "
+				CALL	.write	$p1
+				##	CALL	.writeLn	";"
+				/CASE
+				
+			CASE	"hyber:allowSleep"
+				CALL	.write	"hyber_allowSleep("
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.writeLn	");"
+				/CASE
+				
+			CASE_ELSE
+				putR	"Unknown command ["
+				putR	$items[0]
+				put	"]"
+				##	=\"".$items[0]."\", line=\"".$line."\"");
+				/CASE
+		/SELECT
+	/FUNCTION
+	FUNCTION	translateEnd
+		##	Nothin to do here.
+	/FUNCTION
+	
+	FUNCTION	deployEnd
+		RETURN	.data
+	/FUNCTION
+	
+	FUNCTION	run
+		VAR	r
+		eval	.data	$r
+		RETURN	$r
+	/FUNCTION
+/CLASS
+
+put	"htk_js.hal - Loaded."
+END

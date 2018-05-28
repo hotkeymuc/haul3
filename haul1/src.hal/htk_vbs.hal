@@ -1,0 +1,788 @@
+//	htk_vbs.hal - (C) 2011 Bernhard -HotKey- Slawik, http://www.bernhardslawik.de
+//	  This is a HAL Translation Kernel that translates HAL to VBScript source. Written in HAL (HotKeys Average Language).
+
+
+//	Needed for VBS deployment: Encode a binary string
+##	92=BackSlash	34=DoubleQuote
+FUNCTION	encodeBasic	$txt
+	VAR	l
+	str:len	$txt	$l
+	VAR	out
+	SET	$out	""
+	VAR	i
+	VAR	b
+	VAR	inQuote
+	SET	$inQuote	1
+	FOR	$i	0	$l-1
+		str:charCodeAt	$txt	$i	$b
+		SELECT	$b
+			CASE	34
+				IF	$inQuote == 1
+					str:appendByte	34	$out
+					SET	$inQuote	0
+				/IF
+				str:append	" & DBQUO"	$out
+				/CASE
+			CASE	9
+				IF	$inQuote == 1
+					str:appendByte	34	$out
+					SET	$inQuote	0
+				/IF
+				str:append	" & TAB"	$out
+				/CASE
+			CASE	10
+				IF	$inQuote == 1
+					str:appendByte	34	$out
+					SET	$inQuote	0
+				/IF
+				str:append	" & LF _"	$out
+				str:appendByte	10	$out
+				/CASE
+			CASE	13
+				IF	$inQuote == 1
+					str:appendByte	34	$out
+					SET	$inQuote	0
+				/IF
+				str:append	" & CR _"	$out
+				str:appendByte	10	$out
+				/CASE
+			CASE_ELSE
+				IF	$inQuote == 0
+					str:append	" & "	$out
+					str:appendByte	34	$out
+					SET	$inQuote	1
+				/IF
+				str:appendByte	$b	$out
+				/CASE
+		/SELECT
+	/FOR
+	IF	$inQuote == 0
+		str:append	" & "	$out
+		str:appendByte	34	$out
+		SET	$inQuote	1
+	/IF
+	RETURN	$out
+/FUNCTION
+
+CLASS	HTKvbs	HTK
+	##	SET	.name	"vbs"
+	##	SET	.ext	".vbs"
+	PROP	data
+	PROP	id
+	PROP	RESidx
+	PROP	funcName
+	
+	METHOD	write	$txt
+		str:append	$txt	.data
+	/METHOD
+	
+	METHOD	writeLn	$txt
+		VAR	LF
+		str:char	10	$LF
+		CALL	.write	$txt
+		CALL	.write	$LF
+	/METHOD
+	
+	
+	FUNCTION	deployStart
+		SET	.data	""
+		VAR	SINGLEQUO
+		str:char	39	$SINGLEQUO
+		
+		##	Turn on explicit variable definitions
+		##	CALL	.writeLn	"Option Explicit"
+		
+		CALL	.write	$SINGLEQUO
+		CALL	.writeLn	" ### Translated from HAL meta language by HTKvbs, (C)opyright 2011 HotKey/Bernhard Slawik Digital"
+	/FUNCTION
+	
+	FUNCTION	resourceStart
+		VAR	SINGLEQUO
+		str:char	39	$SINGLEQUO
+
+		CALL	.write	$SINGLEQUO
+		CALL	.writeLn	" ### Resouces"
+		CALL	.writeLn	"Dim LF: LF = Chr(10)"
+		CALL	.writeLn	"Dim CR: CR = Chr(13)"
+		CALL	.writeLn	"Dim TAB: TAB = Chr(9)"
+		CALL	.writeLn	"Dim DBQUO: DBQUO = Chr(34)"
+		CALL	.writeLn	"Public RESidx(64)"
+		CALL	.writeLn	"Public RES(64)"
+		SET	.RESidx	0
+	/FUNCTION
+	
+	FUNCTION	resourceAdd	$resName, $resData
+		VAR	DBLQUO
+		str:char	34	$DBLQUO
+		CALL	.write	"RESidx("
+		CALL	.write	.RESidx
+		CALL	.write	") = "
+		CALL	.write	$DBLQUO
+		CALL	.write	$resName
+		CALL	.writeLn	$DBLQUO
+		
+		CALL	.write	"RES("
+		CALL	.write	.RESidx
+		CALL	.write	") = "
+		CALL	.write	$DBLQUO
+		RESULT	$resData	encodeBasic	$resData
+		CALL	.write	$resData
+		CALL	.writeLn	$DBLQUO
+		INC	.RESidx
+	/FUNCTION
+	FUNCTION	resourceEnd
+	/FUNCTION
+	
+	FUNCTION	translateLibs
+		VAR	SINGLEQUO
+		str:char	39	$SINGLEQUO
+		
+		CALL	.write	$SINGLEQUO
+		CALL	.writeLn	"### Native implementations of library functions"
+		
+		##	Merge native library code
+		VAR	libSrc
+		res:getString	"htk_vbs.inc.vbs"	$libSrc
+		CALL	.write	$libSrc
+	/FUNCTION
+	
+	FUNCTION	translateStart
+		VAR	SINGLEQUO
+		str:char	39	$SINGLEQUO
+		
+		VAR	pose
+		SET	$pose	"Hi there, this is htk_vbs.hal! I am running on "
+		str:append	_currPlatform	$pose
+		str:append	" and about to translate HAL to VBS source!"	$pose
+		put	$pose
+		
+		CALL	.write	$SINGLEQUO
+		CALL	.writeLn	" ### Main"
+		SET	.id	0
+	/FUNCTION
+	
+	
+	FUNCTION	translateExp	$t
+		##	@FIXME: This is just a heuristic!
+		//	Do not replace inside strings!
+		IF	$t == ""
+			RETURN	""
+		/IF
+		VAR	r
+		
+		VAR	b
+		str:charCodeAt	$t	0	$b
+		IF	$b == 34
+			VAR	l
+			str:len	$t	$l
+			str:copy	$t	1	$l-2	$t
+			RESULT	$t	encodeBasic	$t
+			VAR	DBLQUO
+			str:char	34	$DBLQUO
+			str:prepend	$DBLQUO	$t
+			str:append	$DBLQUO	$t
+			RETURN	$t
+		/IF
+		
+		SET	$r	$t
+		str:replace	"."	""	$r
+		str:replace	"$"	""	$r
+		str:replace	"_"	""	$r
+		str:replace	"["	"("	$r
+		str:replace	"]"	")"	$r
+		str:replace	"!="	"<>"	$r
+		str:replace	"=="	"="	$r
+		RETURN	$r
+	/FUNCTION
+	
+	FUNCTION	translateInstruction	$items, $line, $indents
+		VAR	TAB
+		str:char	9	$TAB
+		VAR	DBLQUO
+		str:char	34	$DBLQUO
+		VAR	SINGLEQUO
+		str:char	39	$SINGLEQUO
+		
+		VAR	indent
+		SET	$indent	""
+		VAR	i
+		FOR	$i	0	$indents-1
+			str:append	$TAB	$indent
+		/FOR
+		VAR	l
+		array:len	$items	$l
+		VAR	p1
+		WHILE_EQ	$items[$l-1]	""
+			DEC	$l
+		/WHILE
+		IF	$l == 0
+			RETURN	""
+		/IF
+		
+		IF	$l > 1
+			RESULT	$p1	.translateExp	$items[1]
+		ELSE
+			SET	$p1	""
+		/IF
+		
+		VAR	p2
+		IF	$l > 2
+			RESULT	$p2	.translateExp	$items[2]
+		ELSE
+			SET	$p2	""
+		/IF
+		
+		VAR	p3
+		IF	$l > 3
+			RESULT	$p3	.translateExp	$items[3]
+		ELSE
+			SET	$p3	""
+		/IF
+		
+		VAR	p4
+		IF	$l > 4
+			RESULT	$p4	.translateExp	$items[4]
+		ELSE
+			SET	$p4	""
+		/IF
+		
+		
+		SELECT	$items[0]
+			//	Meta comment
+			CASE	"##"
+				//	Just ignore
+				/CASE
+				
+			//	Comment
+			CASE	"//"
+				CALL	.write	$indent
+				CALL	.write	$SINGLEQUO
+				CALL	.write	" "
+				CALL	.writeLn	$line
+				/CASE
+				
+			//	Insert Macro
+			CASE	"MACRO"
+				/CASE
+				
+			//	Define variable
+			CASE	"VAR"
+				CALL	.write	$indent
+				CALL	.write	"Dim "
+				CALL	.write	$p1
+				CALL	.writeLn	$p2
+				/CASE
+				
+			//	Define class variable
+			CASE	"PROP"
+				CALL	.write	$indent
+				CALL	.write	"Dim "
+				CALL	.write	$p1
+				CALL	.writeLn	$p2
+				/CASE
+				
+			//	Define constant
+			CASE	"CONST"
+				CALL	.write	$indent
+				CALL	.write	"Const "
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.writeLn	$p2
+				/CASE
+				
+			//	Class
+			CASE	"CLASS"
+				CALL	.write	$indent
+				CALL	.write	"Class "
+				CALL	.write	$p1
+				/CASE
+			CASE	"/CLASS"
+				CALL	.write	$indent
+				CALL	.writeLn	"End Class"
+				/CASE
+				
+			//	Method
+			CASE	"METHOD"
+				CALL	.write	$indent
+				##	switch($p1) {
+				##		CASE	"__init": $p1 = "__construct"; break;
+				##		CASE	"__terminate": $p1 = "__destroy"; break;
+				##	}
+				CALL	.write	"Sub "
+				CALL	.write	$p1
+				IF	$p2 != ""
+					CALL	.write	"("
+					CALL	.write	$p2
+					CALL	.write	")"
+				/IF
+				CALL	.writeLn	""
+				/CASE
+			CASE	"/METHOD"
+				CALL	.write	$indent
+				CALL	.writeLn	"End Sub"
+				/CASE
+				
+			//	Function
+			CASE	"FUNCTION"
+				CALL	.write	$indent
+				CALL	.write	"Function "
+				CALL	.write	$p1
+				IF	$p2 != ""
+					CALL	.write	"("
+					CALL	.write	$p2
+					CALL	.write	")"
+				/IF
+				CALL	.writeLn	""
+				SET	.funcName	$p1
+				/CASE
+			CASE	"/FUNCTION"
+				CALL	.write	$indent
+				CALL	.writeLn	"End Function"
+				/CASE
+			CASE	"RETURN"
+				CALL	.write	$indent
+				CALL	.write	.funcName
+				CALL	.write	" = "
+				CALL	.writeLn	$p1
+				CALL	.write	$indent
+				CALL	.writeLn	"Exit Function"
+				/CASE
+			CASE	"RETURN_REF"
+				CALL	.write	$indent
+				CALL	.write	"Set "
+				CALL	.write	.funcName
+				CALL	.write	" = "
+				CALL	.writeLn	$p1
+				CALL	.write	$indent
+				CALL	.writeLn	"Exit Function"
+				/CASE
+
+			//	Set variable
+			CASE	"SET"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.writeLn	$p2
+				/CASE
+			CASE	"SET_REF"
+				CALL	.write	$indent
+				CALL	.write	"Set "
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.writeLn	$p2
+				/CASE
+			//	Increment
+			CASE	"INC"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	" + "
+				IF	$p2 != ""
+					CALL	.writeLn	$p2
+				ELSE
+					CALL	.writeLn	"1"
+				/IF
+				/CASE
+			//	Decrement
+			CASE	"DEC"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	" - "
+				IF	$p2 != ""
+					CALL	.writeLn	$p2
+				ELSE
+					CALL	.writeLn	"1"
+				/IF
+				/CASE
+			//	Multiply self by
+			CASE	"MUL"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	" * "
+				CALL	.writeLn	$p2
+				/CASE
+			//	Divide self by
+			CASE	"DIV"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	" / "
+				CALL	.writeLn	$p2
+				/CASE
+				
+			CASE	"IF"
+				CALL	.write	$indent
+				CALL	.write	"If "
+				CALL	.write	$p1
+				CALL	.writeLn	" Then"
+				/CASE
+			CASE	"ELSE"
+				CALL	.write	$indent
+				CALL	.writeLn	"Else"
+				/CASE
+			CASE	"/IF"
+				CALL	.write	$indent
+				CALL	.writeLn	"End If"
+				/CASE
+			CASE	"SELECT"
+				CALL	.write	$indent
+				CALL	.write	"Select Case "
+				CALL	.writeLn	$p1
+				/CASE
+			CASE	"/SELECT"
+				CALL	.write	$indent
+				CALL	.writeLn	"End Select"
+				/CASE
+			CASE	"CASE"
+				CALL	.write	$indent
+				CALL	.write	"Case "
+				CALL	.writeLn	$p1
+				/CASE
+			CASE	"/CASE"
+				##	CALL	.writeLn	""
+				/CASE
+			CASE	"CASE_ELSE"
+				CALL	.write	$indent
+				CALL	.writeLn	"Case Else"
+				/CASE
+				
+			CASE	"WHILE_EQ"
+				CALL	.write	$indent
+				CALL	.write	"while "
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.writeLn	$p2
+				/CASE
+			CASE	"WHILE_NEQ"
+				CALL	.write	$indent
+				CALL	.write	"while "
+				CALL	.write	$p1
+				CALL	.write	" <> "
+				CALL	.writeLn	$p2
+				/CASE
+			CASE	"/WHILE"
+				CALL	.write	$indent
+				CALL	.writeLn	"Wend"
+				/CASE
+				
+			CASE	"FOR"
+				CALL	.write	$indent
+				CALL	.write	"For "
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	" To "
+				CALL	.writeLn	$p3
+				/CASE
+			CASE	"FOR_EACH"
+				INC	.id
+				
+				CALL	.write	$indent
+				CALL	.write	"Dim i"
+				CALL	.writeLn	.id
+				##	CALL	.writeLn	$p1
+				
+				CALL	.write	$indent
+				CALL	.write	"For i"
+				CALL	.write	.id
+				##	CALL	.write	$p1
+				CALL	.write	" = 0 To UBound("
+				CALL	.write	$p2
+				##	CALL	.writeLn	")-1"
+				CALL	.writeLn	")"
+				
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"(i"
+				CALL	.write	.id
+				##	CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"/FOR"
+				CALL	.write	$indent
+				CALL	.writeLn	"Next"
+				/CASE
+				
+			//	Call a method
+			CASE	"CALL"
+				CALL	.write	$indent
+				CALL	.write	"Call "
+				CALL	.write	$p1
+				CALL	.write	"("
+				CALL	.write	$p2
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"CLASS_CALL"
+				CALL	.write	$indent
+				CALL	.write	"Call "
+				CALL	.write	$p1
+				CALL	.write	"."
+				CALL	.write	$p2
+				CALL	.write	"("
+				CALL	.write	$p3
+				CALL	.writeLn	")"
+				/CASE
+				
+			//	Call a function, set variable to result
+			CASE	"RESULT"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				IF	$p3 != ""
+					CALL	.write	"("
+					CALL	.write	$p3
+					CALL	.write	")"
+				/IF
+				CALL	.writeLn	""
+				/CASE
+			//	Call a class method/function
+			CASE	"CLASS_RESULT"
+				CALL	.write	$indent
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"."
+				CALL	.write	$p3
+				CALL	.write	"("
+				CALL	.write	$p4
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"CLASS_RESULT_REF"
+				CALL	.write	$indent
+				CALL	.write	"Set "
+				CALL	.write	$p1
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	"."
+				CALL	.write	$p3
+				CALL	.write	"("
+				CALL	.write	$p4
+				CALL	.writeLn	")"
+				/CASE
+				
+			CASE	"NEW"
+				CALL	.write	$indent
+				CALL	.write	"Set "
+				CALL	.write	$p1
+				CALL	.write	" = New "
+				CALL	.write	$p2
+				IF	$p3 != ""
+					CALL	.write	"("
+					CALL	.write	$p3
+					CALL	.write	")"
+				/IF
+				CALL	.writeLn	""
+				/CASE
+			CASE	"END"
+				##	CALL	.writeLn	"End"
+				/CASE
+				
+			CASE	"put"
+				CALL	.write	$indent
+				CALL	.write	"put("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"putR"
+				CALL	.write	$indent
+				CALL	.write	"putR("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			
+			CASE	"array:len"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = UBound("
+				CALL	.write	$p1
+				CALL	.writeLn	") + 1"
+				/CASE
+			CASE	"array:redim"
+				CALL	.write	$indent
+				##	Does not work in VBScript - "Array Locked" :-(
+				##	CALL	.write	"Redim Preserve "
+				##	CALL	.write	$p1
+				##	CALL	.write	"("
+				##	CALL	.write	$p2
+				##	CALL	.writeLn	")"
+				
+##				CALL	.write	"while (count("
+##				CALL	.write	$p1
+##				CALL	.write	") < "
+##				CALL	.write	$p2
+##				CALL	.write	") "
+##				CALL	.write	$p1
+##				CALL	.writeLn	"[] = 0;"
+				/CASE
+				
+			CASE	"str:prepend"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p1
+				CALL	.write	" & "
+				CALL	.writeLn	$p2
+				/CASE
+			CASE	"str:append"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	" & "
+				CALL	.writeLn	$p1
+				/CASE
+			CASE	"str:appendByte"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = "
+				CALL	.write	$p2
+				CALL	.write	" & Chr("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"str:replace"
+				CALL	.write	$indent
+				CALL	.write	$p3
+				CALL	.write	" = Replace("
+				CALL	.write	$p3
+				CALL	.write	", "
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"str:char"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = Chr("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"str:len"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = Len("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"str:charCodeAt"
+				CALL	.write	$indent
+				CALL	.write	$p3
+				CALL	.write	" = Asc(Mid("
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.write	"+1"
+				CALL	.writeLn	", 1))"
+				/CASE
+			CASE	"str:explode"
+				CALL	.write	$indent
+				CALL	.write	$p3
+				CALL	.write	" = explode("
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+##				CALL	.write	" = Split("
+##				CALL	.write	$p2
+##				CALL	.write	", "
+##				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"str:copy"
+				CALL	.write	$indent
+				CALL	.write	$p4
+				CALL	.write	" = Mid("
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.write	"+1, "
+				CALL	.write	$p3
+				CALL	.writeLn	")"
+				/CASE
+				
+			CASE	"file:putString"
+				CALL	.write	$indent
+				CALL	.write	"Call file_putString("
+				CALL	.write	$p1
+				CALL	.write	", "
+				CALL	.write	$p2
+				CALL	.writeLn	")"
+				/CASE
+			CASE	"file:getString"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = file_getString("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+				
+			CASE	"res:getString"
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.write	" = res_getString("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				/CASE
+				
+			CASE	"eval"
+				CALL	.write	$indent
+				CALL	.write	"ExecuteGlobal("
+				CALL	.write	$p1
+				CALL	.writeLn	")"
+				
+				CALL	.write	$indent
+				CALL	.write	$p2
+				CALL	.writeLn	" = EVALRESULT"
+				/CASE
+				
+				
+			CASE	"RETURN_EVAL"
+				CALL	.write	$indent
+				CALL	.writeLn	"Public EVALRESULT"
+				
+				CALL	.write	$indent
+				CALL	.write	"Set EVALRESULT = "
+				CALL	.writeLn	$p1
+				/CASE
+				
+			CASE_ELSE
+				put	"Unknown command"
+				put	$items[0]
+				##	=\"".$items[0]."\", line=\"".$line."\"");
+				/CASE
+		/SELECT
+	/FUNCTION
+	FUNCTION	translateEnd
+		##	Nothin to do here.
+	/FUNCTION
+	
+	FUNCTION	deployEnd
+##		VAR	LF
+##		str:char	10	$LF
+		
+##		##	Turn on explicit variable definitions
+##		str:prepend	$LF	.data
+##		str:prepend	"Option Explicit"	.data
+		
+		RETURN	.data
+	/FUNCTION
+	
+	FUNCTION	run
+		VAR	r
+		eval	.data	$r
+		RETURN_REF	$r
+	/FUNCTION
+/CLASS
+
+
+put	"htk_vbs.hal - Loaded."
+END

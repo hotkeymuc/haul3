@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+	"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<title>HAUL for webOS Application</title>
+	
+	<!-- for webOS on-device usage
+	 -->
+	<script src="/usr/palm/frameworks/mojo/mojo.js" type="text/javascript" x-mojo-version="1"></script>
+	
+	
+	<!-- NOTE! For local testing only! -->
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<!--
+	<link href="/usr/palm/frameworks/mojo/submissions/383/stylesheets/global.css" media="screen" rel="stylesheet" type="text/css" />
+	-->
+	<script src="hio.js" type="text/javascript"></script>
+	<script src="small.js" type="text/javascript"></script>
+	
+	<!-- application stylesheet should come in after the one loaded by the framework -->
+	<link href="style.css" media="screen" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<!--
+	<h2>This text verifies your application is running.</h2>
+	<p>
+		To create a fully functional Palm application create a scene and remove this text from index.html.  
+		See the documentation on Palm Applications for more information on creating applications and scenes.
+	</p>
+	
+	<div class="palm-button-wrapper">
+		<button class="palm-button">Some button</button>
+		<button class="palm-button primary">Some primary button</button>
+		<button class="palm-button affirmative">Some affirmative button</button>
+		<button class="palm-button negative">Some negative button</button>
+		<button class="palm-button secondary">Some secondary button</button>
+		<button class="palm-button dismiss">Some dismiss button</button>
+		<button class="palm-button flat">Some flat button</button>
+		<button class="palm-button small-button">Some small-button</button>
+	</div>
+-->
+
+<div class="main">
+	
+	<div class="scene-fade-top" x-mojo-scroll-fade="top"></div>
+
+	<div class="palm-page-header multi-line">
+		<div id="searchContainer" style="display: none;" class="filter-field-wrapper">
+			<div class="icon"></div>
+			<div class="palm-row-wrapper textfield-group">
+				<div class="title main">
+					<div id="searchWidget" x-mojo-element="TextField"></div>
+				</div>
+			</div>
+			<div class="title sub" id="subSearch">Press Enter To Search</div>
+			<div class="title sub" id="subInstall">Press Enter To Install</div>
+		</div>
+		<div id="headerContainer" class="palm-page-header-wrapper">
+			
+			<div class="icon" id="icon"></div>
+			
+			<div class="title main">
+				<span id="main-title">HAUL for webOS</span>
+				<span class="version" id="version">v0.0.0</span>
+			</div>
+			<!--
+			<div class="title sub" id="subTitle">haul/platforms/webos/res/index.html</div>
+			<div class="searchButton" id="searchButton"></div>
+			-->
+		</div>
+	</div>
+	
+	<div class="palm-list" id="list">
+		<div id="mainList" x-mojo-element="List">
+			
+			<div id="hio_out"></div>
+			
+			<div class="palm-button-wrapper">
+				<button class="palm-button affirmative">Button</button>
+			</div>
+			
+		</div>
+	</div>
+	
+	<div class="scene-fade-bottom" x-mojo-scroll-fade="bottom"></div>
+	
+</div>
+
+</body>
+</html>

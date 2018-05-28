@@ -1,0 +1,610 @@
+put	"ShadowRunner v0.1, code name Skynet - (C) 2011-07-17 Bernhard -HotKey- Slawik Digital, http://www.bernhardslawik.de"
+put	"  This is a simple virtual machine for running Shadow ByteCode. Written in HAL (HotKeys Average Language)."
+
+
+//	Op Codes
+CONST	OpNop	0
+//	 Set Accumulator to ...
+CONST	OpSet	1
+//	 Get value of variable no. ...
+CONST	OpGetV	2
+//	 Set variable no. ... to value ...
+CONST	OpSetVTo	3
+//	 Set variable no. ... to accumulator
+CONST	OpSetVToA	4
+
+//	 Push current accumulator onto stack
+CONST	OpPushA	5
+//	 Push ... onto stack
+CONST	OpPush	6
+//	 Push current Code Pointer to stack
+CONST	OpPushCp	7
+//	 Pop last value and set accumulator to its value
+CONST	OpPop	8
+//	 Set accumulator to last stack value without popping
+CONST	OpPeek	9
+
+//	 If accumulator	...
+CONST	OpIfA	10
+//	 If accumulator != ...
+CONST	OpIfANot	11
+CONST	OpIfAGT	12
+CONST	OpIfAGE	13
+CONST	OpIfALT	14
+CONST	OpIfALE	15
+
+//	 Jump to instruction no. ...
+CONST	OpJumpTo	20
+//	 Jump to the instruction postition stored in accumulator
+CONST	OpJumpA	21
+//	 Jump to last stack value without popping it
+CONST	OpJumpPeek	22
+//	 Skip ... instructions
+CONST	OpSkip	24
+//	 Jump to instruction no. ... and push next offset onto stack (for easy returning). Use it for sub-procedure calls
+CONST	OpJumpToAndLink	25
+//	 Jump to instruction postition stored in accumulator and push next offset onto stack (for easy returning)
+CONST	OpJumpAAndLink	26
+//	 Pop last stack value, jump there. Use it to end a sub-procedure call
+CONST	OpRet	27
+
+CONST	OpAdd	30
+CONST	OpSub	31
+CONST	OpInc	32
+CONST	OpDec	33
+CONST	OpMul	34
+CONST	OpDiv	35
+
+CONST	OpOut	100
+//	 Output registers & stuff
+CONST	OpDebug	101
+//	 CALL	external function (@TODO: How to pass arguments and return value?)
+CONST	OpInvoke	102
+//	 Set mode to Stopped
+CONST	OpEnd	255
+
+//	 VM mode
+CONST	ModeStopped	0
+CONST	ModeRunning	1
+CONST	ModeError	2
+
+//	 Error Codes (accumulator in ModeError)
+//	 CP exceeds maximum length of code segment (just to prevent it from going nuts)
+CONST	ErrOutOfCode	1
+//	 Out of stack capacity
+CONST	ErrOutOfStack	2
+//	 Stack under-run
+CONST	ErrOutOfStackNegative	3
+
+//	 Offset of "registers" inside the memory (if included in memory)
+//	 @TODO: The idea is: Why not put the registers into the VM memory - so it can be easily read/written! But: registers are accessed quite frequently, so the resulting array look-ups may decrease the VM performance quite dramatically...
+//	 When trying to access this pos you actually get the CP register
+CONST	PosA	0
+//	 When trying to access this pos you actually get the CP register
+CONST	PosCp	1
+//	 When trying to access this pos you actually get the SP register
+CONST	PosSp	2
+//	 Where the ACTUAL vars start inside the data segment
+CONST	PosVar	3
+
+//	 Max Sizes
+//	 Maximum cp value (to avoid overflow)
+CONST	CMax	4096
+//	 Maximum sp value (to avoid overflow)
+CONST	SMax	256
+//	 Maximum size for variables
+CONST	VMax	1024
+//	 Minimum cp value. 0 sound good, but it should be "-1", because stack always increases before sttoring a value! so "-1" means "empty"
+CONST	SMin	0
+//	 Number of ops to add to dynamic arrays
+CONST	SizeStep	16
+
+
+//	 TODO: Put variables, stack (and code?) into ONE memory segment!
+//	 TODO: Also locate the "registers" (a, cp, sp) into memory segment
+
+CLASS	ShadowRunner
+	PROP	mode
+	
+	//	Accumulator
+	PROP	a
+	
+	//	Variables [_Vmax]
+	PROP	v	[1024]
+	
+	//	PROP	ss	' Current Stack Segment Size (@TODO: or static?)
+	//	Stack Pointer
+	PROP	sp
+	//	Stack [_SMax]
+	PROP	s	[512]
+	
+	//	Current Code Segment Size
+	PROP	cs
+	//	Code Pointer (Instruction Pointer)
+	PROP	cp
+	//	Code [_CMax]
+	PROP	c	[4096]
+	
+	
+	METHOD	InitSR
+		put	"shadowRunner.InitSR"
+		CALL	.ResetState
+		SET	.cs	0
+	/METHOD
+	
+	METHOD	TerminateSR
+		//	put	"I'm outa here!"
+	/METHOD
+	
+	
+	METHOD	ResetState
+		SET	.cp	0
+		##	SET	.cs	0
+		SET	.sp	_SMin
+		SET	.a	_OpNop
+		SET	.mode	_ModeStopped
+	/METHOD
+	
+	METHOD	PushS	$op
+		INC	.sp
+		SET	.s[.sp]	$op
+	/METHOD
+	
+	FUNCTION	PopS
+		VAR	r
+		SET	$r	.s[.sp]
+		
+		DEC	.sp
+		IF	.sp < _SMin
+			SET	.mode	_ModeError
+			SET	.a	_ErrOutOfStackNegative
+		/IF
+		IF	.sp > _SMax
+			SET	.mode	_ModeError
+			SET	.a	_ErrOutOfStack
+		/IF
+		RETURN	$r
+	/FUNCTION
+	
+	
+	FUNCTION	GetC
+		VAR	r
+		SET	$r	.c[.cp]
+		INC	.cp
+		IF	(.cp > _CMax)
+			SET	.mode	_ModeError
+			SET	.a	_ErrOutOfCode
+		/IF
+		RETURN	$r
+	/FUNCTION
+	
+	FUNCTION	GetString
+		VAR	r
+		SET	$r	""
+
+		VAR	l
+		RESULT	$l	.GetC
+		
+		VAR	i
+		VAR	b
+		FOR	$i	0	$l - 1
+			RESULT	$b	.GetC
+			str:appendByte	$b	$r
+		/FOR
+		RETURN	$r
+	/FUNCTION
+	
+	METHOD	SkipC	$num
+		INC	.cp	$num
+	/METHOD
+	
+	FUNCTION	GetV	$num
+		SELECT	$num
+			CASE	_PosCp
+				RETURN	.cp
+			CASE	_PosSp
+				RETURN	.sp
+			CASE	_PosA
+				RETURN	.a
+			CASE_ELSE
+				RETURN	.v[$num]
+		/SELECT
+	/FUNCTION
+	
+	METHOD	SetV	$num, $val
+		SELECT	$num
+			CASE	_PosCp
+				SET	.cp	$val
+				/CASE
+			CASE	_PosSp
+				SET	.sp	$val
+				/CASE
+			CASE	_PosA
+				SET	.a	$val
+				/CASE
+			CASE_ELSE
+				SET	.v[$num]	$val
+		/SELECT
+	/METHOD
+	
+	FUNCTION	Run
+		put	"shadowRunner.Run"
+		
+		SET	.mode	_ModeRunning
+		
+		//	Operate until mode changes from Running
+		VAR	op
+		WHILE_EQ	.mode	ModeRunning
+			RESULT	$op	.GetC
+			
+			##	putR	.cp
+			##	putR	": "
+			##	put	$op
+			
+			CALL	.Operate	$op
+		/WHILE
+		
+		putR	"shadowRunner.Run: Finished with result="
+		put	.a
+		
+		RETURN	.a
+	/FUNCTION
+	
+	//	The actual VM: Execute the next OpCode
+	FUNCTION	Operate	$op
+		VAR	b1
+		VAR	b2
+		
+		SELECT	$op
+			
+			CASE	OpNop
+				##	Do nothing
+				/CASE
+			CASE	OpSet
+				RESULT	$b1	.GetC
+				SET	.a	$b1
+				/CASE
+			CASE	OpGetV
+				//	Load a given thing into the Acc
+				RESULT	$b1	.GetC
+				RESULT	.a	.GetV	$b1
+				/CASE
+			CASE	OpSetVTo
+				RESULT	$b1	.GetC
+				RESULT	$b2	.GetC
+				CALL	.SetV	$b1, $b2
+				/CASE
+			CASE	OpSetVToA
+				//	Store Acc into given thing
+				RESULT	$b1	.GetC
+				CALL	.SetV	$b1, .a
+				/CASE
+			
+			CASE	OpPushA
+				CALL	.PushS	.a
+				/CASE
+			CASE	OpPush
+				RESULT	$b1	.GetC
+				CALL	.PushS	$b1
+				/CASE
+			CASE	OpPushCp
+				CALL	.PushS	.cp
+				/CASE
+			CASE	OpPop
+				RESULT	$b1	.PopS
+				SET	.a	$b1
+				/CASE
+			CASE	OpPeek
+				SET	.a	.s[.sp]
+				/CASE
+			
+			CASE	OpIfA
+				RESULT	$b1	.GetC
+				IF	.a == $b1
+					CALL	.SkipC	1
+				ELSE
+					RESULT	$b1	.GetC
+					CALL	.SkipC	$b1
+				/IF
+				/CASE
+			CASE	OpIfANot
+				RESULT	$b1	.GetC
+				IF	.a != $b1
+					CALL	.SkipC	1
+				ELSE
+					RESULT	$b1	.GetC
+					CALL	.SkipC	$b1
+				/IF
+				/CASE
+			CASE	OpIfAGT
+				RESULT	$b1	.GetC
+				IF	.a > $b1
+					CALL	.SkipC	1
+				ELSE
+					RESULT	$b1	.GetC
+					CALL	.SkipC	$b1
+				/IF
+				/CASE
+			CASE	OpIfAGE
+				RESULT	$b1	.GetC
+				IF	.a >= $b1
+					CALL	.SkipC	1
+				ELSE
+					RESULT	$b1	.GetC
+					CALL	.SkipC	$b1
+				/IF
+				/CASE
+			CASE	OpIfALT
+				RESULT	$b1	.GetC
+				IF	.a < $b1
+					CALL	.SkipC	1
+				ELSE
+					RESULT	$b1	.GetC
+					CALL	.SkipC	$b1
+				/IF
+				/CASE
+			CASE	OpIfALE
+				RESULT	$b1	.GetC
+				IF	.a <= $b1
+					CALL	.SkipC	1
+				ELSE
+					RESULT	$b1	.GetC
+					CALL	.SkipC	$b1
+				/IF
+				/CASE
+			
+			CASE	OpJumpTo
+				RESULT	$b1	.GetC
+				SET	.cp	$b1
+				/CASE
+			CASE	OpJumpA
+				SET	.cp	.a
+				/CASE
+			CASE	OpJumpPeek
+				SET	.cp	.s[.sp]
+				/CASE
+			CASE	OpSkip
+				RESULT	$b1	.GetC
+				INC	.cp	$b1
+			CASE	OpJumpToAndLink
+				CALL	.PushS	(.cp + 1)
+				RESULT	$b1	.GetC
+				SET	.cp	$b1
+				/CASE
+			CASE	OpJumpAAndLink
+				CALL	.PushS	.cp
+				SET	.cp	.a
+				/CASE
+			CASE	OpRet
+				RESULT	.cp	.PopS
+				/CASE
+			
+			CASE	OpAdd
+				RESULT	$b1	.GetC
+				INC	.a	$b1
+				/CASE
+			CASE	OpSub
+				RESULT	$b1	.GetC
+				DEC	.a	$b1
+				/CASE
+			CASE	OpInc
+				INC	.a
+				/CASE
+			CASE	OpDec
+				DEC	.a
+				/CASE
+			CASE	OpMul
+				RESULT	$b1	.GetC
+				MUL	.a	$b1
+				/CASE
+			CASE	OpDiv
+				RESULT	$b1	.GetC
+				DIV	.a	$b1
+				/CASE
+			
+			CASE	OpOut
+				VAR	bs
+				RESULT	$bs	.GetString
+				putR	"shadowRunner.OpPut: "
+				put	$bs
+				/CASE
+			CASE	OpDebug
+				putR	"shadowRunner.OpDebug: "
+				put	.a
+				##	put("a = " & a & vbCRLF & "cp = " & cp & vbCRLF & "sp = " & sp & vbCRLF )
+				/CASE
+			CASE	OpInvoke
+				CALL	.DoOpInvoke
+				/CASE
+				
+			CASE	OpEnd
+				SET	.mode	_ModeStopped
+				/CASE
+				
+			CASE_ELSE
+				##	CALL	put	"Unknown OpCode: " & op & " at " & cp)
+				putR	"Unknown OpCode: "
+				putR	$op
+				putR	" at cp="
+				put	.cp
+		/SELECT
+	/FUNCTION
+	
+	FUNCTION	PushC	$op
+		IF	.cp >= .cs
+			INC	.cs	_SizeStep
+			array:redim	.c	.cs
+		/IF
+		
+		SET	.c[.cp]	$op
+		VAR	r
+		SET	$r	.cp
+		
+		INC	.cp
+		IF	.cp > _CMax
+			SET	.mode	_ModeError
+			SET	.a	_ErrOutOfCode
+		/IF
+		RETURN	$r
+	/FUNCTION
+	
+	FUNCTION	PushString	$r
+		VAR	l
+		str:len	$r	$l
+		CALL	.PushC	$l
+		
+		VAR	i
+		VAR	b
+		FOR	$i	0	$l-1
+			str:charCodeAt	$r	$i	$b
+			CALL	.PushC	$b
+		/FOR
+	/FUNCTION
+	
+	FUNCTION	LoadByteCode	$filename
+		put	"shadowRunner.LoadByteCode"
+		VAR	r
+		file:getString	$filename	$r
+		VAR	l
+		str:len	$r	$l
+		SET	.cs	$l
+		VAR	b
+		FOR	$i	0	$l-1
+			str:charCodeAt	$r	$i	$b
+			SET	.c[$i]	$b
+		/FOR
+		CALL	.ResetState
+	/FUNCTION
+	
+	//	------------ Some HelloWorld ByteCode for testing ----------
+	FUNCTION	LoadHelloWorld
+		//	Hello World Code
+		VAR	i
+		
+		CALL	.PushC	_OpOut
+		CALL	.PushString	"Hello World!"
+		
+		##	PushC	OpDebug
+		//	----------- Loop via Accumulator and compile-time variable(s) ---------
+		VAR	cpLoopStart
+		VAR	cpLoopJump
+		//	FOR	[Accumulator] = 2 downto 0
+		CALL	.PushC	_OpSet
+		//	FOR	Start value
+		CALL	.PushC	2
+		
+		RESULT	$cpLoopStart	.PushC	_OpIfALT
+		//	FOR	End value
+		CALL	.PushC	0
+			//	No. of instructions in "THEN" block
+			CALL	.PushC	2
+				CALL	.PushC	_OpJumpTo
+				//	Store this byte offset for later modification
+				RESULT	$cpLoopJump	.PushC	0
+			
+			//	Inner Code
+			CALL	.PushC	_OpOut
+			CALL	.PushString	"Hello World from Accumulator"
+			##	CALL	.PushC	_OpDebug
+		
+		//	FOR: Decrement
+		CALL	.PushC	_OpSub
+		CALL	.PushC	1
+		//	Next
+		CALL	.PushC	_OpJumpTo
+		CALL	.PushC	$cpLoopStart
+		
+		//	Update head of loop to jump HERE once finished
+		SET	.c[$cpLoopJump]	.cp
+		
+		
+		//	------------- Loop via variable and stack ---------
+		//	FOR	[PosVar] = 0 to 1
+		CALL	.PushC	_OpSetVTo
+		CALL	.PushC	_PosVar
+		//	FOR: Start value
+		CALL	.PushC	0
+		CALL	.PushC	_OpPushCp
+			
+			//	Inner code
+			CALL	.PushC	_OpGetV
+			CALL	.PushC	_PosVar
+			
+			CALL	.PushC	_OpOut
+			CALL	.PushString	"Hello World (var/stack)"
+			
+			//	NEXT [PostVar]
+			CALL	.PushC	_OpGetV
+			CALL	.PushC	_PosVar
+			
+			//	FOR	Increment
+			CALL	.PushC	_OpInc
+			
+			CALL	.PushC	_OpIfALE
+			//	FOR	End value
+			CALL	.PushC	1
+				//	No. of instructions in "THEN" block
+				CALL	.PushC	3
+					CALL	.PushC	_OpSetVToA
+					CALL	.PushC	_PosVar
+					CALL	.PushC	_OpJumpPeek
+		CALL	.PushC	_OpPop
+		
+		CALL	.PushC	_OpInvoke
+		
+		##	CALL	.PushC	_OpOut
+		##	CALL	.PushString	"Good bye from Shdow code!"
+		
+		CALL	.PushC	OpSet
+		CALL	.PushC	0
+		CALL	.PushC	_OpEnd
+		
+		//	Reset VM
+		CALL	.ResetState
+	/FUNCTION
+	
+	FUNCTION	SaveByteCode	$filename
+		//	Convert binary data to string and write it to file
+		put	"shadowRunner.SaveByteCode"
+		VAR	r
+		SET	$r	""
+		VAR	i
+		FOR	$i	0	.cs-1
+			//	8 Bit
+			str:appendByte	.c[$i]	$r
+			
+#			//	16 Bit
+#			str:appendByte	.c[$i] >> 8	$r
+#			str:appendByte	.c[$i] % 256	$r
+#			
+#			//	32 Bit
+#			'VAR	hi:	hi = c(i) \ &H10000
+#			'VAR	lo:	lo = c(i) mod &H10000
+#			'r = r & chr(hi \ &H100) & chr(hi mod &H100) & chr(lo \ &H100) & chr(lo mod &H100)
+		/FOR
+#		put	$r
+		file:putString	$filename	$r
+	/FUNCTION
+	
+	FUNCTION	DoOpInvoke
+		put	"DoOpInvoke!"
+	/FUNCTION
+/CLASS	
+
+put	"shadowRunner.hal - Loaded."
+
+##	VAR	sr
+##	NEW	$sr	ShadowRunner
+##	CLASS_CALL	$sr	LoadByteCode	"test.shadow"
+##	CLASS_CALL	$sr	InitSR
+##	CLASS_CALL	$sr	LoadHelloWorld
+##	CLASS_CALL	$sr	Run
+##	put("End of shadow." & vbCRLF & "Result=" & sr.Run & vbCRLF & "sp=" & sr.sp)
+##	CLASS_CALL	$sr	SaveByteCode	"test.shadow"
+##	CLASS_CALL	$sr	TerminateSR
+
+##	VAR	r
+##	res:getString	"runtime.hal"	$r
+##	file:putString	"_from_runtime_hal.runtime.hal"	$r
+
+END

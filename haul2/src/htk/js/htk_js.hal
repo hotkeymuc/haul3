@@ -1,0 +1,369 @@
+# This is htk_js.hal, it converts (parsed) HAL source to Python
+#needs htk.hal
+
+# Write meta info all over the code
+var $DEBUG_ORIGIN _bool false;
+
+# Translates a list of tokens into a specific language.
+class _Translator_js _Translator {
+	
+	var $vars [_string];
+	
+	func create _Translator_js {
+		put("_Translator_js.create()");
+	}
+	
+	func translate _void $tokenStream _Tokenizer, $streamOut _Stream {
+		set $this.$tokenStream $tokenStream;
+		set $this.$vars new [_string];
+		
+		#@todo: Put all lib function in an array (inside lib iteself. - yo dog!)
+		#self.registerVar("res_getAll", "func", 0)
+		$this.translateBlock($streamOut, 0, 0);
+	}
+	
+	func registerVar _void $varName _str, $varType _str, $tid _int32 {
+		arr_add $this.$vars $varName;	#([varName, varType])
+	}
+	
+	func getVar _bool $varName _str {
+		var $i _int32;
+		var $v _str;
+		var $l _int32 arr_len($this.$vars);
+		for $i 0 $l {
+			if ($this.$vars[$i] = $varName) { return $v; }
+		}
+		return null;
+	}
+	
+	func translateType _string $t _Token, $level _int8 {
+		var $r _string "";
+		if ($t.$state = $TOKEN_LOOKUP) {
+			set $r ($r + "[]");
+			# Skip the recursive stuff
+			$this.translateType($this.getToken(), ($level+1));
+		} else {                           # This might be an expression within a lookup *sigh*
+			set $r ($r + $t.$data);
+		}
+		return $r;
+	}
+	
+	func translateVariable _string $t _Token, $level _int32, $tid _int32 {
+		var $r _str "";
+		if ($t.$state = $TOKEN_VARIABLE) {
+			#if (level == 0): r = '$'    # PHP uses $instance->key1->key2, so only add a dollar in the first variable
+			set $r ($r + $t.$data);
+		} else {                           # This might be an expression within a lookup *sigh*
+			set $r ($r + $this.translateToken($t, $tid));
+			#set $r ($r + $this.translateExpression($t, $tid));
+		}
+		set $t $this.peekToken();            # Just a simple variable or do we need to dive in deeper?
+		if ($t.$state = $TOKEN_LOOKUP) {
+			set $t $this.getToken();
+			if ($t.$data = ".") {           # I dont want to introduce a new "state" to distinguish array from object lookups, so I use the raw input byte. Ouch.
+				set $r (r + "." + $this.translateVariable($this.getToken(), ($level+1), $tid));
+			}
+			elseif ($t.$data = "[") {
+				set $r ($r + "[" + $this.translateToken($this.getToken(), $tid) + "]");
+			}
+		}
+		return $r;
+	}
+	
+	func translateToken _string $t _Token, $tid _int32 {
+		var $i _int32;
+		var $l _string;
+		if ($t.$state = $TOKEN_INFIX) {
+			if ($t.$data = "=") { return " == "; }
+			else { return (" " + $t.$data + " "); }
+		}
+		elseif ($t.$state = $TOKEN_COMMENT) {       return ("// " + $t.$data + ""); }
+		elseif ($t.$state = $TOKEN_COMMENT_BLOCK) { return ("/" + "* " + $CR + $t.$data + $CR + " *" + "/"); }
+		elseif ($t.$state = $TOKEN_VARIABLE) {      return $this.translateVariable($t, 0, $tid); }
+		elseif ($t.$state = $TOKEN_NUMBER) {        return $t.$data; }
+		elseif ($t.$state = $TOKEN_STRING) {        return (chr(34) + $t.$data + chr(34)); }
+		elseif ($t.$state = $TOKEN_TYPE) {          return ""; } # "\'\'\' Type{ " + $t.$data + " \'\'\'");
+		elseif ($t.$state = $TOKEN_LIMIT) {         return ", "; }
+		elseif ($t.$state = $TOKEN_EXPR_STOR) {
+			## Cache this new expression for later use (since it may be defined in a place other than the EXPR_LOAD)
+			#$this.registerBlockOfs($t.$data, $t.$origin);
+			#$this.skipBlock(0);
+			#return "";
+			return ("(" + $this.translateExpression($t.$data) + ")");
+		}
+		elseif ($t.$state = $TOKEN_EXPR_LOAD) {
+			## Jump to registered offset, translate on-demand
+			#set $i $t.$origin;
+			#$this.seekBlockOfs(($this.getBlockOfs($t.$data)+1), $t.$data);
+			#set $l $this.translateExpression($t.$data);
+			#$this.seekBlockOfs(($i+1), $tid);
+			#return ("(" + $l + ")");
+			return "";
+		}
+		elseif ($t.$state = $TOKEN_IDENTIFIER) {
+			# Translate identifiers in expressions, like "not"
+			if ($t.$data = "=") { return " == "; }
+			elseif ($t.$data = "and") { return " && "; }
+			elseif ($t.$data = "or") { return " || "; }
+			elseif ($t.$data = "xor") { return " ^ "; }
+			elseif ($t.$data = "not") { return " ! "; }
+			elseif ($t.$data = "true") { return "true"; }
+			elseif ($t.$data = "false") { return "false"; }
+			elseif ($t.$data = "null") { return "null"; }
+			
+			elseif ($t.$data = "arr_len") { return "length"; }
+			elseif ($t.$data = "str_len") { return "length"; }
+			elseif ($t.$data = "ord") { return "ord"; }
+			elseif ($t.$data = "chr") { return "String.fromCharCode"; }
+			elseif ($t.$data = "str") { return ""; }
+			
+			elseif ($t.$data = "new") {
+				set t $this.getToken();
+				return $this.translateType($t, 0);
+			}
+			else {
+				put ("Passing identifier " + str($t.$data) + " at byte " + str($t.$origin) + " (" + ($t.$originText) + ")");
+				return $t.$data;
+			}
+		} else {
+			put ("Unexpected token " + str($stateNames[$t.$state]) + " " + str($t.$data) + " at byte " + str($t.$origin) + " (" + ($t.$originText) + ")");
+			return ("/* unexpected token " + str($stateNames[$t.$state]) + " " + chr(34) + str($t.$data) + chr(34) + " at byte " + str($t.$origin) + " (" + ($t.$originText) + ")" + " */");
+		}
+	}
+	
+	func translateExpression _str $tid _int32 {
+		var $r _str "";
+		while ((not $this.eof())) {
+			set $t $this.getToken();
+			if ($t.$state = $TOKEN_EXPR_END) {
+				return $r;
+			}
+			elseif ($t.$state = $TOKEN_LOOKUP) {
+				return $this.translateType($t, 0);
+			}
+			else {
+				set $r ($r + $this.translateToken($t, $tid));
+			}
+		}
+		return $r;
+	}
+	
+	func translateBlock _void $stream _Stream, $level _int8, $tid _int32 {
+		var $line _str "";
+		var $tType _int8;	# Temp storage for current state
+		var $tData _str;
+		var $varName _str;
+		var $varType _str;
+		var $i _int8;
+		var $indent _str "";
+		for $i 0 $level {
+			set $indent ($indent + "\t");
+		}
+		set $r new [_str];
+		while (not $this.eof()) {
+			set $t $this.getToken();
+			if ($t = null) { return; }
+			
+			put_debug("Translating " + str($t.$origin) + ": " + $stateNames[$t.$state] + ", " + str($t.$data));
+			
+			set $tType $t.$state;
+			set $tData $t.$data;
+			if ($tType = $TOKEN_COMMENT) {
+				$stream.putString($indent + $line + "#" + $tData + $CR);
+				set $line "";
+			}
+			elseif ($tType = $TOKEN_IDENTIFIER) {
+				if (tData = "var") {
+					# Introduce variable
+					set $t $this.getToken();
+					set $varName $t.$data;
+					
+					set $t $this.getToken();
+					set $varType $this.translateType($t, 0);
+					$this.registerVar($varName, $varType, $tid);
+					
+					set $t $this.peekToken();
+					#if ((not $t.$state = TOKEN_EOI)) {
+						str_append $line "var ";
+						#line = line + "" + varName
+						#if ((isArray) and (t.state == TOKEN_EOI)):
+						#    line = line + varName + " = []"                  # Arrays need to be initialized.
+						#elseif
+						if (not $t.$state = $TOKEN_EOI) {
+							str_append $line (varName + " = ");
+						} else {
+							str_append $line (varName + " = null");
+						}
+					#} else {
+					#	str_append $line "# var " + varType + " " + varName + "");
+					#}
+				}
+				elseif ($tData = "set") {
+					set $t $this.getToken();
+					str_append $line ($this.translateVariable($t, 0, $tid) + " = ");
+				}
+				elseif ($tData = "if") {
+					str_append $line "if ";
+				}
+				elseif ($tData = "else") {
+					str_append $line "else ";
+				}
+				elseif ($tData = "elseif") {
+					str_append $line "else if ";
+				}
+				elseif ($tData = "for") {
+					set $varName $this.translateVariable($this.getToken(), 0, tid);
+					var $forStart _string;
+					set $forStart $this.translateToken($this.getToken(), tid);
+					var $forLen _string;
+					set $forLen $this.translateToken($this.getToken(), tid);
+					str_append $line ("for (" + $varName + " = " + $forStart + "; " + $varName + " < " + $forLen + "; " + $varName + "++)");
+				}
+				elseif ($tData = "func") {
+					set $t $this.getToken();
+					set $varName $t.$data;
+					#if ($level > 0) {
+					#	if ($varName = "create") {
+					#		set $varName "__init__";
+					#	}
+					#}
+					str_append $line ("function " + $varName);
+					
+					set $t $this.getToken();
+					set $varType $this.translateType($t, 0);
+					# Is ignored in python
+					
+					set $i 0;
+					set $t $this.peekToken();
+					str_append $line "(";
+					#if ($level > 0) {
+					#	# If it"s a class: Auto pre-pend "self" as first parameter
+					#	str_append $line "this");
+					#	set $i ($i + 1);
+					#}
+					while (not $t.$state = $TOKEN_BLOCK_STOR) {
+						#print(line);
+						if ($i > 0) {
+							str_append $line ", ";
+						}
+						set $t $this.getToken();
+						str_append $line ($t.$data);
+						
+						set $t $this.getToken();
+						$this.translateType($t, 0);
+						# argument type gets ignores
+						
+						set $t $this.peekToken();
+						if ($t.$state = $TOKEN_LIMIT) {
+							# Skip comma
+							$this.getToken();
+							set $t $this.peekToken();
+						}
+						
+						set $i ($i + 1);
+					}
+					str_append $line ")";
+					# Continue translating the method body
+					#line = line + $this.translateBlock(level+1, $t.$data)
+				}
+				elseif ($tData = "return") {
+					str_append $line "return ";
+				}
+				elseif ($tData = "continue") {
+					str_append $line "continue";
+				}
+				elseif ($tData = "class") {
+					# Here we go...
+					set $t $this.getToken();
+					set $varName $t.$data;
+					
+					$this.registerVar($varName, "class", $tid);
+					str_append $line ("class " + $varName);
+					
+					set $t $this.peekToken();
+					if ($t.$state = $TOKEN_TYPE) {
+						str_append $line ("(" + $t.$data + ")");
+					}
+				}
+				elseif ($tData = "arr_add") {
+					set $t $this.getToken();
+					set $varName $this.translateVariable($t, 0, $tid);
+					set $t $this.getToken();
+					str_append $line ($varName + ".push(" + $this.translateToken($t, $tid) + ")");
+				}
+				elseif ($tData = "arr_del") {
+					set $t $this.getToken();
+					set $varName $this.translateVariable($t, 0, $tid);
+					set $t $this.getToken();
+					str_append $line ($varName + ".pop(" + $this.translateToken($t, $tid) + ")");
+				}
+				elseif ($tData = "str_append") {
+					set $t $this.getToken();
+					set $varName $this.translateVariable($t, 0, $tid);
+					set $t $this.getToken();
+					str_append $line ($varName + " = " + $varName + " + " + $this.translateToken($t, $tid));
+				}
+				elseif ($tData = "print") {
+					#$t = $this.getToken()
+					str_append $line "alert";
+				}
+				else
+				{
+					set $v $this.getVar($t.$data);
+					if ($v = null) {
+						#put("Unknown identifier " + str($t.$data) + " in source at " + str($t.$origin));
+						#str_append $line ("/"+"* Unknown identifier "" + $t.$data + "" *"+"/")
+						#str_append $line "??" + $t.$data	 + "??";
+						str_append $line ($this.translateToken($t, $tid));
+					} else {
+						str_append $line ($t.$data);
+					}
+				}
+			}
+			elseif ($tType = $TOKEN_EOI) {
+				if ($DEBUG_ORIGIN) {
+					$stream.putString($indent + "// DEBUG_ORIGIN(" + str($t.$origin) + ")" + $CR);
+				}
+				if (str_len($line) > 0) {
+					$stream.putString($indent + $line + ";" + $CR);
+				}
+				set $line "";
+			}
+			elseif ($tType = $TOKEN_BLOCK_STOR) {
+				## Remember the position, skip the block, come back to it later (BLOCK_LOAD)
+				#$this.registerBlockOfs($tData, $t.$origin);
+				#$this.skipBlock(0);
+				
+				$stream.putString($indent + $line + " {" + $CR);
+				$this.translateBlock($stream, ($level+1), $tData); # Translate
+				set $line "";
+				continue;
+			}
+			elseif ($tType = $TOKEN_BLOCK_LOAD) {
+				#$stream.putString($indent + $line + ":" + $CR);
+				#set $i $t.$origin;    # Store current pos
+				#$this.seekBlockOfs(($this.getBlockOfs($tData)+1), $tData);  # Seek to block pos
+				#$this.translateBlock($stream, ($level+1), $tData); # Translate
+				#$this.seekBlockOfs(($i+1), $tid);
+				#set $line "";
+				$stream.putString($indent + $line + "}" + $CR);
+				set $line "";
+				continue;
+			}
+			elseif ($tType = $TOKEN_BLOCK_END) {
+				if (str_len($line) > 0) {
+					$stream.putString($line + $CR);
+				}
+				return;
+			} else {
+				str_append $line ($this.translateToken($t, $tid));
+			}
+			#
+		}
+		
+		if (str_len($line) > 0) {
+			$stream.putString($line + ";" + $CR);
+		}
+		return;
+	}
+}

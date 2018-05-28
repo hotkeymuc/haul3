@@ -1,0 +1,74 @@
+############################################################
+# This is auto.hal, it gets translated and executed automatically
+############################################################
+#
+# Sanity Check...
+var $a _int 0;
+#
+# A Class Definition...
+class _Person {
+	var $name _string "Horst";
+	var $age _int32 25;
+	var $bro _Person;
+	var $myArr [_int32];
+	
+	func setAge _int $age _int {
+		set $this.$age $age;
+		return $age;
+	}
+	func getAge _int {
+		return $this.$age;
+	}
+}
+class _Superman(_Person) {
+	var $power _int 999;
+}
+
+#
+# Testing Class Stuff...
+var $joe _Person new _Person();
+set $joe.$bro new _Person();
+set $joe.$bro.$name "Hagbart";
+set $joe.$age 23;
+print($joe.$age);
+print($joe.getAge());
+#
+# Testing Arrays...
+var $myArr [_int] arr_set_int(10);
+set $myArr[2] 2;
+set $myArr[$a] 2;
+set $myArr[(pow(1,2) + 4)] 2;
+print($myArr);
+#
+# File I/O...
+var $fileName _string "res/test.txt";
+var $file _Stream new stream_file_read($fileName);
+var $data _string $file.getAll();
+$file.close();
+print("Contents of \"" + $fileName + "\":");
+print($data);
+#
+# Block Comment...
+set $a 3;
+var $b _int;
+set $b 4;
+var $c _int 3;
+set $c ($a + $b);
+set $d ($a*($b+$c));
+set $e ((($a*$a) + ($b*$b)) + 1);
+set $f 999;
+set $g (1+pow(2,$f));
+func test _int $arg1 _string, $arg2 _string {
+    set $localVar1 0;
+    if ($arg1 < $arg2) {
+        set $localVar1 2;
+    } else {
+        set $localVar1 4;
+    }
+    set $localVar2 222;
+    print($localVar1+$localVar2);
+    return 1;
+}
+set $f 999;
+test(1, 2);
+# EOF.

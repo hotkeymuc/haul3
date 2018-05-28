@@ -1,0 +1,14 @@
+.button-area {
+    height:230px;
+    width:100%;
+    display:block;
+    border:0px red solid;
+    padding:3px;
+    margin: auto;
+    min-height: 100%;
+    heigth: 100%;
+}
+
+#log-output {
+    font-size:11px;
+}

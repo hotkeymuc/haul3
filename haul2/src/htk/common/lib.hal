@@ -1,0 +1,47 @@
+############################################################
+# This is lib.hal, it gets translated and merged in front of every output file for platform independent helper stuff.
+############################################################
+
+set $CR chr(10);
+set $LF chr(13);
+
+# Base class of a stream (hal)
+class _Stream {
+	func close _void {
+		return;
+	}
+	func eof _bool {
+		return true;
+	}
+	func seek _void $ofs _int32 {
+		return;
+	}
+	func getByte _int {
+		return -1;
+	}
+	func peekByte _int {
+		return -1;
+	}
+	func getAsString _string {
+		var $r _string "";
+		while(not $this.eof()) {
+			set $r ($r + chr($this.getByte()));
+		}
+		return $r;
+	}
+	func putByte _void $b _byte {
+		return;
+	}
+	func putString _void $s _string {
+		var $l _int32;
+		set $l str_len($s);
+		for $i 0 $l {
+			$this.putByte(str_charAt($s, $i));
+		}
+	}
+	func putAll _void stream _Stream {
+		while (not $stream.eof()) {
+			$this.putByte($stream.getByte());
+		}
+	}
+}

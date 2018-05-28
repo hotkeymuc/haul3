@@ -1,0 +1,62 @@
+# This is htk.hal, it is the prototype of a class that translates HAL source into an other language
+
+# Translates a list of tokens into a specific language.
+class _Translator {
+	
+	var $tokenStream _Tokenizer;
+	
+	func create _Translator_py {
+		put("_Translator.create()");
+	}
+	
+	func translate _void $tokenStream _Tokenizer, $streamOut _Stream {
+		set $this.$tokenStream $tokenStream;
+	}
+	
+	func eof _bool {
+		return $this.$tokenStream.eof();
+	}
+	
+	func peekToken _Token {
+		return $this.$tokenStream.peekToken();
+	}
+	func getToken _Token {
+		var $t _Token;
+		set $t $this.$tokenStream.getToken();
+		if ($t = null) {
+			# End of token stream
+			return null;
+		}
+		return $t;
+	}
+	
+	#func tellBlockOfs _void {
+	#	$this.$tokenStream.tellByte();
+	#}
+	#func seekBlockOfs _void $ofs _int32, $tid _int32 {
+	#	$this.$tokenStream.seekToByte($ofs, $tid);
+	#}
+	#func registerBlockOfs _void $tid _int32, $ofs _int32 {
+	#	while (arr_len($this.$blockOfs) <= $tid) {
+	#		arr_add $this.$blockOfs 0;
+	#	}
+	#	set $this.$blockOfs[$tid] $ofs;
+	#}
+	#
+	#func getBlockOfs _int32 $tid _int32 {
+	#	#@TODO: Call the tokenizer to specifically fetch this block
+	#	return $this.$blockOfs[$tid];
+	#}
+	
+	func skipBlock _void $l _int32{
+		var $t _Token;
+		while (not $this.eof()) {
+			set $t $this.getToken();
+			if ($t.$state = $TOKEN_BLOCK_END) { return; }                 # Skip until end of block
+			elif ($t.$state = $TOKEN_EXPR_END) { return; }                 # Skip until end of block
+			elif ($t.$state = $TOKEN_BLOCK_STOR) { $this.skipBlock( ($l+1) ); }    # Also skip all nested blocks
+			elif ($t.$state = $TOKEN_EXPR_STOR) { $this.skipBlock( ($l+1) ); }    # Also skip all nested blocks
+		}
+	}
+}
+

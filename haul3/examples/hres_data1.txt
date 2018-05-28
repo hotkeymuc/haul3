@@ -1,0 +1,2 @@
+This is some resource called hres_data1.txt.
+With new lines.
