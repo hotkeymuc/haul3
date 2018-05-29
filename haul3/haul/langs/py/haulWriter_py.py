@@ -50,9 +50,13 @@ class HAULWriter_py(HAULWriter):
 				self.writeIndent(indent)
 				self.write('#@' + str(id.kind) + '\t' + str(id.name))
 				if (id.data_type != None):
-					self.write('\t' + str(id.data_type))
+					#self.write('\t' + str(id.data_type))
+					self.write('\t')
+					self.writeType(id.data_type)
 					if (id.data_value != None):
-						self.write('\t' + str(id.data_value))
+						#self.write('\t' + str(id.data_value))
+						self.write('\t')
+						self.writeValue(id.data_value)
 				self.write('\n')
 		
 	def writeFunc(self, f, indent=0):
@@ -349,7 +353,11 @@ class HAULWriter_py(HAULWriter):
 		elif (t == T_INTEGER): self.write('int')
 		elif (t == T_FLOAT): self.write('float')
 		elif (t == T_STRING): self.write('str')
-		self.write(str(t) + '?')
+		elif (t == T_OBJECT): self.write('obj')
+		elif (t == T_NOTHING): self.write('void')
+		elif (t == T_UNKNOWN): self.write('?')
+		else:
+			self.write(str(t))
 	
 	def writeVar(self, v):
 		self.write(v.name)
