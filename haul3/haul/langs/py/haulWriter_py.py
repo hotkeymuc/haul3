@@ -72,6 +72,12 @@ class HAULWriter_py(HAULWriter):
 				# Add type
 				self.write(':')
 				self.writeType(f.args[i].data_type)
+			
+			# Default arguments
+			if (f.args[i].data_value != None):
+				self.write('=')
+				self.writeValue(f.args[i].data_value)
+			
 		self.write(')')
 		
 		if (f.id.data_type != None) and (self.dialect == DIALECT_3):
@@ -138,9 +144,18 @@ class HAULWriter_py(HAULWriter):
 				#self.write('### Block namespace...\n')
 				self.writeNamespace(b.namespace, indent)
 		
+		i = 0
 		for instr in b.instrs:
+			if (instr.control) or (instr.call):
+				i += 1
+			
+			if (instr.control) or (instr.call) or (instr.comment):
+				self.writeIndent(indent)
+				if not self.writeInstr(instr, indent): self.write('\n')
+		
+		if (i == 0):
 			self.writeIndent(indent)
-			if not self.writeInstr(instr, indent): self.write('\n')
+			self.write('pass\n')
 		
 		#self.write('# End-of-Block "' + b.name + '"\n')
 		
@@ -159,7 +174,7 @@ class HAULWriter_py(HAULWriter):
 			self.writeCall(i.call)
 			return False
 		
-		self.write('pass')
+		#self.write('pass')
 		return False
 		
 	def writeControl(self, c, indent=0):
@@ -275,7 +290,26 @@ class HAULWriter_py(HAULWriter):
 			# Write a standard call
 			self.write(i)
 			self.write('(')
-			self.writeExpressionList(c.args, 0, level)
+			
+			#self.writeExpressionList(c.args, 0, level)	# Works if not using named arguments
+			
+			# Check for named arguments
+			for i in xrange(len(c.args)):
+				if (i > 0): self.write(', ')
+				#@var e HAULExpression
+				e = c.args[i]
+				
+				if ((e.call) and (e.call.id.name == '=')):
+					# named argument!
+					put_debug('Named argument in call')
+					self.write(e.call.args[0].var.name)
+					self.write('=')
+					self.writeExpression(e.call.args[1])
+					
+				else:
+					# Normal argument
+					self.writeExpression(e, level=level)
+			
 			self.write(')')
 			
 	def writeExpressionList(self, es, start, level):
@@ -298,8 +332,14 @@ class HAULWriter_py(HAULWriter):
 		
 		
 	def writeValue(self, v):
-		if (type(v.data) == str):	#@TODO: Use v.type to determine it!
-			self.write("'" + v.data + "'")	#@TODO: Escaping!
+		#if (type(v.data) == str):	#@TODO: Use v.type to determine it!
+		if (v.type == T_STRING):
+			s = str(v.data)
+			s = s.replace('\\', '\\\\')
+			s = s.replace('\'', '\\\'')
+			s = s.replace('\r', '\\r')
+			s = s.replace('\n', '\\n')
+			self.write("'" + s + "'")
 		else:
 			self.write(str(v))	#.data
 		

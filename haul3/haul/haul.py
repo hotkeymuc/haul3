@@ -42,6 +42,7 @@ def repr_array(a):
 			r = r + ', '
 		r = r + str(i)
 	return r
+	
 
 class Stream:
 	def eof(self):
@@ -265,7 +266,7 @@ class HAULValue:
 	#@var type HAULType
 	#@var data obj
 	
-	def __init__(self):
+	def __init__(self, type=None, data=None):
 		self.type = None	#HAULType
 		self.data = None	# binary
 		
@@ -306,7 +307,7 @@ class HAULClass:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Class"'
+		#r = r + '"_": "Class"'
 		r = r + '"id": "' + str(self.id) + '"'
 		#r = r + ', "vars": [' + (repr_array(self.vars)) + ']'
 		r = r + ', "funcs": [' + (repr_array(self.funcs)) + ']'
@@ -333,7 +334,7 @@ class HAULInstruction:
 		
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Instruction"'
+		#r = r + '"_": "Instruction"'
 		if (self.call != None): r = r + '"call": ' + str(self.call)
 		if (self.control != None): r = r + '"control": ' + str(self.control)
 		r = r + '}'
@@ -359,7 +360,7 @@ class HAULControl:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Control"'
+		#r = r + '"_": "Control"'
 		r = r + '"controlType": "' + str(self.controlType) + '">'
 		r = r + ', "exprs": [' + (repr_array(self.exprs)) + ']'
 		r = r + ', "blocks": [' + (repr_array(self.blocks)) + ']'
@@ -396,7 +397,7 @@ class HAULFunction:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Function"'
+		#r = r + '"_": "Function"'
 		r = r + '"id": "' + str(self.id) + '"'
 		r = r + ', "returnType": ' + str(self.returnType)
 		r = r + ', "args": [' + (repr_array(self.args)) + ']'
@@ -418,7 +419,7 @@ class HAULCall:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Call"'
+		#r = r + '"_": "Call"'
 		r = r + '"id": "' + str(self.id) + '"'
 		r = r + ', "args": [' + (repr_array(self.args)) + ']'
 		r = r + '}'
@@ -447,7 +448,7 @@ class HAULExpression:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Expression"'
+		#r = r + '"_": "Expression"'
 		if (self.value != None): r = r + '"value": ' + str(self.value)
 		if (self.var != None): r = r + '"var": ' + str(self.var)
 		if (self.call != None): r = r + '"call": ' + str(self.call)
@@ -496,7 +497,7 @@ class HAULBlock:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Block"'
+		#r = r + '"_": "Block"'
 		r = r + '"instrs": [' + (repr_array(self.instrs)) + ']'
 		r = r + '}'
 		return r
@@ -559,12 +560,13 @@ class HAULModule:
 	
 	def __repr__(self):
 		r = '{'
-		#r += '"_": "Module"'
+		#r = r + '"_": "Module"'
 		r = r + '"name": "' + str(self.name) + '"'
 		r = r + ', "classes": [' + (repr_array(self.classes)) + ']'
 		r = r + ', "funcs": [' + (repr_array(self.funcs)) + ']'
-		if (self.block): r = r + ', "block": ' + str(self.block)
-		r += r + '}'
+		if (self.block):
+			r = r + ', "block": ' + str(self.block)
+		r = r + '}'
 		return r
 	
 
@@ -647,9 +649,9 @@ ns.add_id('Dict', kind=K_TYPE, data_type=T_OBJECT)
 ns.add_id('xrange', kind=K_FUNCTION, data_type=T_INTEGER)
 
 #T_NONE = '#none'
-ns.add_id('None', kind=K_CONST, data_type=T_NOTHING)
-ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN)
-ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN)
+ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=None)
+ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=True)
+ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN, data_value=False)
 ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 
 
@@ -904,6 +906,5 @@ class HAULWriter:
 		#put('Final namespace:\n' + rootNamespace.dump())
 		return m
 		
-	
 	
 

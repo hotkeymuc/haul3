@@ -908,7 +908,8 @@ class HAULReader_py(HAULReader):
 			else:
 				# Read instruction
 				i = self.readInstr(namespace=ns, module=module)
-				if (i != None): b.addInstr(i)
+				if (i != None):
+					b.addInstr(i)
 				else:
 					# May be last mega-indented statement of block
 					# Do not break! It may also be an elif block that was able to add its contents to a previous instruction!
@@ -990,7 +991,7 @@ class HAULReader_py(HAULReader):
 		
 		
 		# open bracket
-		self.getAssertData('(', 'Expected "("')
+		self.getAssertData('(', 'Expected argument list brackets')
 		
 		# Read argument definitions
 		t = self.peekNextToken()
@@ -1010,8 +1011,16 @@ class HAULReader_py(HAULReader):
 					put('Inferring type "' + str(t.returnType) + '" for argument "' + str(vd) + '"')
 					vd.data_type = t.returnType
 				
+				put_debug('Default value!')
+				#put('Expression: ' + str(t))
+				#put('Expression.value: ' + str(t.value))
+				#put('Expression.var: ' + str(t.var))
+				#put('VarDef: ' + str(vd))
 				# Store default value in namespace
-				vd.value = t.value
+				if (t.value != None):
+					vd.data_value = t.value
+				if (t.var != None):
+					vd.data_value = HAULValue(type=t.var.data_type, data=t.var.data_value)
 				
 				t = self.peekNextToken()
 			
