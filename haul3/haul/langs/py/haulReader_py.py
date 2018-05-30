@@ -26,12 +26,12 @@ PAT_IDENT_N = [
 
 PAT_INFIX = [
 	'+', '-', '/', '*', '%',
-	'&', 'and', 'or', '|', '^'
+	'&', 'and', 'or', '|', '^',
 	'>', '<', '==', '>=', '<=', '!=',
 	'<<', '>>',
-	'in',	# confusion with for ... in
-	#'+=', '-='
+	'in',
 ]
+#'+=', '-='
 
 
 
@@ -69,6 +69,8 @@ def put_debug(t):
 	pass
 
 class HAULReader_py(HAULReader):
+	#@var lastIfBlock arr HAULBlock
+	#@var lastFunction HAULFunction
 	
 	def __init__(self, stream, filename):
 		HAULReader.__init__(self, stream, filename)
@@ -249,6 +251,10 @@ class HAULReader_py(HAULReader):
 		r = []
 		t = self.peekNextToken()
 		
+		while ((not self.eof()) and (t.type == TOKEN_EOL)):
+			self.getNextToken()
+			t = self.peekNextToken()
+		
 		while (not self.eof()) and (not (t.data == bracket)):
 			
 			#@TODO: When reading call arguments we need to look inside the functions namespace for the names of the args
@@ -274,8 +280,14 @@ class HAULReader_py(HAULReader):
 				self.getNextToken()
 				t = self.peekNextToken()
 			
+			while ((not self.eof()) and (t.type == TOKEN_EOL)):
+				self.getNextToken()
+				t = self.peekNextToken()
+			
+			
 			# Until brackets closed
-		self.getNextToken()	# Skip trailing bracket
+		#self.getNextToken()	# Skip trailing bracket
+		self.getAssertData(bracket, 'Expected ending bracket "' + bracket + '"')
 		#put('args=' + str(r))
 		return r
 		#return copy.copy(r)
@@ -511,7 +523,19 @@ class HAULReader_py(HAULReader):
 				
 				# When doing a object look-up, the name space shifts to the looked-up value. Alternatively we could store it as "run-time look-up/late binding"
 				put_debug('Variable "' + str(v.name) + '" is a ' + str(v.kind)+ ' of type "' + str(v.data_type) + '". Shifting namespace for object look-up...')
-				ns_shifted = ns.find_namespace_of(v.data_type)
+				
+				if (v.data_type == T_CLASS):
+					put_debug('Calling method of a class type - static access!')
+					ns_shifted = v.namespace
+					"""
+					ns_shifted = ns.find_namespace_of(v.name)
+					if (ns_shifted == None):
+						self.raiseParseError('Static access on "' + str(v.name) + '" failed, because its namespace is unknown', t)
+					"""
+				else:
+					ns_shifted = ns.find_namespace_of(v.data_type)
+					if (ns_shifted == None):
+						self.raiseParseError('Object lookup for "' + str(v.name) + '" failed, because namespace for type "' + str(v.data_type) + '" is unknown', t)
 				
 				
 				"""
@@ -589,7 +613,7 @@ class HAULReader_py(HAULReader):
 						e.var = i
 						
 					else:
-						self.raiseParseError('Undefined id "' + str(t.data) + '" (and not inferring). Started searching at ' + str(ns2), t)
+						self.raiseParseError('Undefined id "' + str(t.data) + '". Started searching at ' + str(ns2), t)
 						
 				e.returnType = e.var.data_type
 			
@@ -1116,8 +1140,33 @@ class HAULReader_py(HAULReader):
 			self.getNextToken()	# Skip bracket
 			
 			self.inherits = self.readArgs(namespace=namespace, bracket=')')
-			#@TODO: Implement
-			put('Inheritance is not yet handled correctly!')
+			
+			#@TODO: Implemen: Find the parent class, add reference to its namespace
+			put('Inheritance is not yet correctly implemented!')
+			
+			for e_inh in self.inherits:
+				if (e_inh.var == None):
+					self.raiseParseError('Could not inherit from ' + str(e_inh) + ', because it needs to be a class', t)
+				
+				put('Inheriting from class "' + e_inh.var.name + '"...')
+				#ns_inh = e_inh.var.namespace
+				ns_inh = namespace.find_namespace(e_inh.var.name)
+				if (ns_inh == None):
+					put(namespace.dump())
+					self.raiseParseError('Could not inherit from "' + str(e_inh.var.name) + '", because its namespace is unknown, starting from ' + str(namespace), t)
+				
+				# Merge its ids
+				for id in ns_inh.ids:
+					if (id.kind == K_VARIABLE) or (id.kind == K_FUNCTION):
+						put('Inheriting "' + str(id.name) + '" from "' + ns_inh.name + '" into class')
+						# Clone to current namespace
+						i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
+						i.data_function = id.data_function
+						i.data_class = id.data_class
+						i.data_module = id.data_module
+					
+				
+			
 		
 		
 		t = self.getAssertData(':', 'Expected ":" after class declaration')
@@ -1251,7 +1300,7 @@ class HAULReader_py(HAULReader):
 					if (imp_ns == None):
 						self.raiseParseError('Unknown import "' + imp_name + '" not in namespace.', t)
 					
-					put('Importing library namespace for "' + imp_name + '"...')
+					put('Importing library namespace of "' + imp_name + '"...')
 					ns.add_id(name=imp_name, kind=K_MODULE, data_type=T_MODULE, origin=self.loc())
 					#ns.add_namespace(imp_name)
 					
@@ -1296,7 +1345,7 @@ class HAULReader_py(HAULReader):
 					
 					for id in imp_ns.ids:
 						if (imp_all) or (id.name in imp_list):
-							put_debug('Importing "' + str(id.name) + '" into local namespace')
+							put('Importing "' + str(id.name) + '" from "' + imp_name + '" into local namespace')
 							# Clone to current namespace
 							i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
 							i.data_function = id.data_function

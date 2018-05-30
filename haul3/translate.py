@@ -34,7 +34,7 @@ def put(t):
 
 ############################################################
 
-def translate(source_filename, WriterClass, output_path=None, dialect=None):
+def translate(source_filename, WriterClass, output_path=None, dialect=None, libs=None):
 	"Translates the input file using the given language's Writer"
 	
 	name = nameByFilename(source_filename)
@@ -47,16 +47,14 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None):
 	
 	# Pre-scan libraries, so they are known
 	libs_ns = rootNamespace
-	
-	lib_filenames = ['haul/haul.py', 'haul/utils.py']
-	
-	for lib_filename in lib_filenames:
-		lib_name = lib_filename[:-3].replace('/', '.')
-		lib_stream_in = StringReader(readFile(lib_filename))
-		lib_reader = HAULReader_py(stream=lib_stream_in, filename=lib_filename)
-		put('Scanning lib "' + lib_filename + '"...')
-		lib_m = lib_reader.readModule(name=lib_name, namespace=libs_ns, scanOnly=True)
-		put('Lib namespace:\n' + libs_ns.dump())
+	if (libs != None):
+		for lib_filename in libs:
+			lib_name = lib_filename[:-3].replace('/', '.')
+			lib_stream_in = StringReader(readFile(lib_filename))
+			lib_reader = HAULReader_py(stream=lib_stream_in, filename=lib_filename)
+			put('Scanning lib "' + lib_filename + '"...')
+			lib_m = lib_reader.readModule(name=lib_name, namespace=libs_ns, scanOnly=True)
+			put('Lib namespace:\n' + libs_ns.dump())
 	
 	
 	# Prepare output
@@ -93,6 +91,7 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None):
 #source_file = 'examples/classes.py'
 #source_file = 'examples/shellmini.py'
 #source_file = 'examples/vm.py'
+#source_file = 'examples/arrays.py'
 #source_file = 'haul/haul.py'
 source_file = 'haul/langs/py/haulReader_py.py'
 
@@ -114,8 +113,11 @@ WRITER_CLASSES = [
 
 WriterClass = HAULWriter_py
 
+libs = ['haul/haul.py', 'haul/utils.py']
+#libs = None
+
 try:
-	translate(source_file, WriterClass, output_path)
+	translate(source_file, WriterClass, output_path, libs=libs)
 except HAULParseError as e:
 	put('Parse error: ' + str(e.message))
 

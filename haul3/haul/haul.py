@@ -209,6 +209,22 @@ class HAULNamespace:
 		
 		return None
 	
+	def find_namespace(self, name):
+		#@var r HAULNamespace
+		#@var ns HAULNamespace
+		r = self
+		while not (r == None):
+			# Try finding it here
+			#put('finding "' + str(name) + '" in namespace "' + str(r) + '"...')
+			i = r.get_namespace(name)
+			if (i == None):
+				# If not, search one ns upwards
+				r = r.parent
+			else:
+				#put('found "' + str(name) + '" in namespace "' + str(r) + '"...')
+				return i
+		return None
+	
 	def get_or_create_namespace(self, name):
 		#@var ns HAULNamespace
 		ns = self.get_namespace(name)
@@ -236,7 +252,7 @@ class HAULNamespace:
 				#else:	put('    != "' + str(ns) + '"')
 			r = r.parent
 		
-		raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!')	#\n' + rootNamespace.dump())
+		#raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!')	#\n' + rootNamespace.dump())
 		return None
 	
 	def clear(self):
@@ -687,6 +703,11 @@ ns.add_id('write', kind=K_FUNCTION, data_type=T_NOTHING)
 ns.add_id('close', kind=K_FUNCTION, data_type=T_NOTHING)
 rootNamespace.add_id('open', kind=K_FUNCTION, data_type=T_HANDLE)
 rootNamespace.add_namespace(ns)
+
+# Internal Exceptions
+ns = HAULNamespace('Exception', parent=rootNamespace)
+rootNamespace.add_namespace(ns)
+ns.add_id('message', kind=K_VARIABLE, data_type=T_STRING)
 
 
 """
