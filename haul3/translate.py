@@ -39,14 +39,33 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None):
 	
 	name = nameByFilename(source_filename)
 	
-	streamIn = StringReader(readFile(source_filename))
-	reader = HAULReader_py(stream=streamIn, filename=source_filename)
+	# Prepare input
+	put('Preparing input...')
+	stream_in = StringReader(readFile(source_filename))
+	reader = HAULReader_py(stream=stream_in, filename=source_filename)
 	
-	streamOut = StringWriter()
+	
+	# Pre-scan libraries, so they are known
+	libs_ns = rootNamespace
+	
+	lib_filenames = ['haul/haul.py', 'haul/utils.py']
+	
+	for lib_filename in lib_filenames:
+		lib_name = lib_filename[:-3].replace('/', '.')
+		lib_stream_in = StringReader(readFile(lib_filename))
+		lib_reader = HAULReader_py(stream=lib_stream_in, filename=lib_filename)
+		put('Scanning lib "' + lib_filename + '"...')
+		lib_m = lib_reader.readModule(name=lib_name, namespace=libs_ns, scanOnly=True)
+		put('Lib namespace:\n' + libs_ns.dump())
+	
+	
+	# Prepare output
+	put('Preparing output...')
+	stream_out = StringWriter()
 	if dialect is None:
-		writer = WriterClass(streamOut)
+		writer = WriterClass(stream_out)
 	else:
-		writer = WriterClass(streamOut, dialect=dialect)
+		writer = WriterClass(stream_out, dialect=dialect)
 	
 	if output_path is None:
 		output_filename = source_filename + '.' + writer.defaultExtension
@@ -61,17 +80,13 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None):
 	
 	put('Translating input file "' + source_filename + '"...')
 	
-	try:
-		writer.stream(reader, monolithic=monolithic)	# That's where the magic happens!
-	except HAULParseError as e:
-		put('Parse error: ' + str(e.message))
-		#raise
+	writer.stream(reader, namespace=libs_ns, monolithic=monolithic)	# That's where the magic happens!
 	
 	put('Writing output file "' + output_filename + '"...')
-	writeFile(output_filename, streamOut.r)
+	writeFile(output_filename, stream_out.r)
 	
 
-source_file = 'examples/hello.py'
+#source_file = 'examples/hello.py'
 #source_file = 'examples/small.py'
 #source_file = 'examples/infer.py'
 #source_file = 'examples/complex.py'
@@ -79,6 +94,7 @@ source_file = 'examples/hello.py'
 #source_file = 'examples/shellmini.py'
 #source_file = 'examples/vm.py'
 #source_file = 'haul/haul.py'
+source_file = 'haul/langs/py/haulReader_py.py'
 
 output_path = 'build'
 
@@ -96,9 +112,11 @@ WRITER_CLASSES = [
 	HAULWriter_vbs,
 ]
 
-WriterClass = WRITER_CLASSES[10]
+WriterClass = HAULWriter_py
 
-translate(source_file, WriterClass, output_path)
-
+try:
+	translate(source_file, WriterClass, output_path)
+except HAULParseError as e:
+	put('Parse error: ' + str(e.message))
 
 put('translate.py ended.')

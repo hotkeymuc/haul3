@@ -95,6 +95,8 @@ T_FUNCTION = '#func'
 T_CLASS = '#class'
 T_MODULE = '#mod'
 
+T_HANDLE = '#hnd'
+
 class HAULId:
 	"Unique identifier (e.g. function name, variable name, ...)"
 	#@var name str
@@ -200,10 +202,17 @@ class HAULNamespace:
 	def add_namespace(self, ns):
 		self.nss.append(ns)
 	
-	def find_or_create_namespace(self, name):
+	def get_namespace(self, name):
 		#@var ns HAULNamespace
 		for ns in self.nss:
 			if ns.name == name: return ns
+		
+		return None
+	
+	def get_or_create_namespace(self, name):
+		#@var ns HAULNamespace
+		ns = self.get_namespace(name)
+		if (ns != None): return ns
 		
 		# Create
 		ns = HAULNamespace(name=name, parent=self)
@@ -619,6 +628,7 @@ ns.add_id('<=', kind=K_FUNCTION, data_type=T_BOOLEAN)
 ns.add_id('not', kind=K_FUNCTION, data_type=T_BOOLEAN)
 ns.add_id('and', kind=K_FUNCTION, data_type=T_BOOLEAN)
 ns.add_id('or', kind=K_FUNCTION, data_type=T_BOOLEAN)
+ns.add_id('in', kind=K_FUNCTION, data_type=T_BOOLEAN)
 
 ns.add_id('&', kind=K_FUNCTION, data_type=T_INTEGER)
 ns.add_id('|', kind=K_FUNCTION, data_type=T_INTEGER)
@@ -648,6 +658,7 @@ ns.add_id('Dict', kind=K_TYPE, data_type=T_OBJECT)
 
 ns.add_id('xrange', kind=K_FUNCTION, data_type=T_INTEGER)
 
+
 #T_NONE = '#none'
 ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=None)
 ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=True)
@@ -659,14 +670,26 @@ ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 ns = HAULNamespace(T_ARRAY, parent=rootNamespace)
 rootNamespace.add_namespace(ns)
 ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
+I_ARRAY_SLICE = ns.add_id('slice', kind=K_FUNCTION, data_type=T_ARRAY)
+I_ARRAY_LEN = ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
 
 # Internal string functions
 ns = HAULNamespace(T_STRING, parent=rootNamespace)
 rootNamespace.add_namespace(ns)
 ns.add_id('replace', kind=K_FUNCTION, data_type=T_STRING)
+ns.add_id('index', kind=K_FUNCTION, data_type=T_INTEGER)
+ns.add_id('rfind', kind=K_FUNCTION, data_type=T_INTEGER)
+
+# Internal handle functions (files, pipes, ...)
+ns = HAULNamespace(T_HANDLE, parent=rootNamespace)
+ns.add_id('read', kind=K_FUNCTION, data_type=T_STRING)
+ns.add_id('write', kind=K_FUNCTION, data_type=T_NOTHING)
+ns.add_id('close', kind=K_FUNCTION, data_type=T_NOTHING)
+rootNamespace.add_id('open', kind=K_FUNCTION, data_type=T_HANDLE)
+rootNamespace.add_namespace(ns)
 
 
-
+"""
 # Prepare known/internal libraries
 LIB_NAMESPACES = {}
 
@@ -679,7 +702,7 @@ ns.add_id('get', kind=K_FUNCTION, data_type=T_STRING)
 ns.add_id('int_str', kind=K_FUNCTION, data_type=T_STRING)
 ns.add_id('float_str', kind=K_FUNCTION, data_type=T_STRING)
 LIB_NAMESPACES['hio'] = ns
-
+"""
 
 
 # Implicit function calls. They are "so internal" that they don't need to be exposed to a global namespace, but are handled directly by the parser
@@ -844,20 +867,21 @@ class HAULWriter:
 	
 	#@fun stream
 	#@arg reader HAULReader
-	def stream(self, reader, monolithic=False):
+	def stream(self, reader, namespace=None, monolithic=False):
 		"Write to output stream what the reader provides. Returns the module object"
+		
+		#@var ns HAULNamespace
+		ns = rootNamespace
+		if (namespace != None): ns = namespace
 		
 		if monolithic:
 			### Cheap (greedy: read whole input file into AST, then translate)
-			m = reader.readModule()
+			m = reader.readModule(namespace=ns)
 			self.writeModule(m)
 		
 		else:
 			#@var i int
-			#@var ns HAULNamespace
 			#@var name str
-			
-			ns = rootNamespace
 			name = reader.filename.replace('.', '_')
 			
 			### Smart (streaming: scan input file, then seek to individual items and translate them)

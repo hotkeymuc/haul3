@@ -93,6 +93,10 @@ class HAULWriter_py(HAULWriter):
 		#self.writeNamespace(f.namespace, indent+1)
 		self.writeBlock(f.block, indent+1)
 		
+		# Extra blank line after functions
+		self.writeIndent(indent)
+		self.write('\n')
+	
 	def writeModule(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
@@ -138,6 +142,10 @@ class HAULWriter_py(HAULWriter):
 		
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
+		# Extra blank line after classes
+		self.writeIndent(indent)
+		self.write('\n')
+	
 	def writeBlock(self, b, indent=0):
 		#self.write('# Block "' + b.name + '"\n')
 		b.destination = self.streamOut.size	# Record offset in output stream

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import copy	# For copy.copy()
 from haul.haul import *
 from haul.utils import *
 
@@ -30,7 +29,7 @@ PAT_INFIX = [
 	'&', 'and', 'or', '|', '^'
 	'>', '<', '==', '>=', '<=', '!=',
 	'<<', '>>',
-	#'in',	# confusion with for ... in
+	'in',	# confusion with for ... in
 	#'+=', '-='
 ]
 
@@ -447,29 +446,51 @@ class HAULReader_py(HAULReader):
 				self.getNextToken()	# Skip bracket
 				
 				# Wrap current expression
-				#i = HAULId(t2.data)
 				e.call = implicitCall(I_ARRAY_LOOKUP)
-				#e.call.args = self.readArgs(bracket=']')
 				
 				v = ns.find_id(t.data)
-				e1 = HAULExpression(var=v)
+				e_var = HAULExpression(var=v)
+				
+				t = self.peekNextToken()
+				if (t.data == ':'):
+					# Start omitted, use 0
+					e_index = HAULExpression(value=0)
+				else:
+					e_index = self.readExpression(namespace=ns)
+				
 				e.call.args = [
-					e1,
-					#e.call.args[0]	# Only 1-dimensional
-					self.readExpression(namespace=ns)
+					e_var,
+					e_index
 				]
 				#@FIXME: Need to return the array base type!
 				e.returnType = v.data_type	# This might result in "array", but we need the array base type!
 				#v.data_array_type
 				
-				self.getNextToken()	# Skip bracket
+				t = self.peekNextToken()
+				if (t.data == ':'):
+					put_debug('Array slicing...')
+					self.getNextToken() # Consume
+					e.call = implicitCall(I_ARRAY_SLICE)
+					
+					t = self.peekNextToken()
+					if (t.data == ']'):
+						# End omitted, use len
+						e_index2 = implicitCall(I_ARRAY_LEN)
+						e_index2.args.append(e_var)
+					else:
+						e_index2 = self.readExpression(namespace=ns)
+					e.call.args.append(e_index2)
+				
+				self.getAssertData(']', 'Expected closing "]" bracket after index')
 				
 			elif (t2.data == '.'):
 				# Object look-up
 				put_debug('Object look-up... ' + str(t) + ' in ' + str(namespace) + ' / ' + str(namespaceLocal))
 				self.getNextToken()	# Skip dot
+				
 				e.call = implicitCall(I_OBJECT_LOOKUP)
-				e1 = HAULExpression()
+				
+				e_object = HAULExpression()
 				#v = HAULVariable()
 				#v.id = ns.find_id(t.data)
 				
@@ -482,8 +503,11 @@ class HAULReader_py(HAULReader):
 				if (v == None):
 					v = ns.find_id(t.data)
 				
-				e1.var = v
-				e1.returnType = v.data_type
+				if (v == None) or (v.data_type == T_UNKNOWN):
+					self.raiseParseError('Object lookup failed, because "' + str(t.data) + '" is unknown', t)
+				
+				e_object.var = v
+				e_object.returnType = v.data_type
 				
 				# When doing a object look-up, the name space shifts to the looked-up value. Alternatively we could store it as "run-time look-up/late binding"
 				put_debug('Variable "' + str(v.name) + '" is a ' + str(v.kind)+ ' of type "' + str(v.data_type) + '". Shifting namespace for object look-up...')
@@ -505,27 +529,39 @@ class HAULReader_py(HAULReader):
 				#put_debug('Using local namespace ("' + str(ns_shifted) + '") for finding target ids...')
 				# Use local namespace for further resolution of ids
 				#self.readExpression(namespace=ns_shifted, checkInfix=False, checkCall=False)	# the field identifier can not be a function call itself and may not contain infixes
-				e2 = self.readExpression(namespace=ns, namespaceLocal=ns_shifted, checkInfix=False, checkCall=False)
+				e_member = self.readExpression(namespace=ns, namespaceLocal=ns_shifted, checkInfix=False, checkCall=False)
 				
 				e.call.args = [
-					e1,
-					e2
+					e_object,
+					e_member
 				]
 				
 				# Use the return value of that member
-				e.returnType = e2.returnType
+				e.returnType = e_member.returnType
 				
 				t2 = self.peekNextToken()
 				#@TODO: Handle multiple brackets, like test[4][3](123)[2,2]()
 				if (t2.data == '('):
-					# (method) Call!
+					# (method) Call! Convert the look-up into a call(look-up, params...)
 					put_debug('Object-lookup (method) call...')
 					self.getNextToken()	# Skip bracket
 					
-					cNew = implicitCall(I_OBJECT_CALL)
-					cNew.args = [copy.copy(e)] + self.readArgs(namespace=ns, bracket=')')	# array merge
+					e_lookup = e
+					
+					# Create new outer expression
+					e = HAULExpression()
+					
+					c_invoke = implicitCall(I_OBJECT_CALL)
+					
+					# Merge lookup and actual arguments
+					c_invoke.args = [e_lookup]
+					args = self.readArgs(namespace=ns, bracket=')')
+					for arg in args:
+						c_invoke.args.append(arg)
 					#self.getNextToken()	# Skip bracket
-					e.call = cNew
+					e.call = c_invoke
+					e.origin = e_lookup.origin
+					e.returnType = e_member.returnType
 					
 			else:
 				# Var
@@ -614,10 +650,8 @@ class HAULReader_py(HAULReader):
 				#put('End of trailing infix argument and outer expression. Next: ' + str(t2))
 				
 				return eNew
-				#return copy.copy(eNew)
 		
 		return e
-		#return copy.copy(e)
 	
 	def readInstr(self, namespace, scanOnly=False, module=None):
 		#put_debug('readInstr()')
@@ -700,11 +734,16 @@ class HAULReader_py(HAULReader):
 			c = implicitControl(C_FOR)
 			
 			# read expression and block
-			c.addExpr(self.readExpression(namespace=ns))
+			e_iter = self.readExpression(namespace=ns)
 			
-			t = self.getAssertData('in', 'Expected "in" after for-iterator')
+			# Only support "in"
+			if ((e_iter.call == None) or (e_iter.call.id.name != 'in') or (len(e_iter.call.args) != 2)):
+				self.raiseParseError('Only "X in Y" is supported as iterator in for loops', t)
 			
-			c.addExpr(self.readExpression(namespace=ns))
+			# Transform
+			c.addExpr(e_iter.call.args[0])
+			c.addExpr(e_iter.call.args[1])
+			
 			t = self.getAssertData(':', 'Expected ":" after for-syntax')
 			
 			c.addBlock(self.readBlock(namespace=ns, blockName='__forBlock' + str(self.loc())))
@@ -837,8 +876,8 @@ class HAULReader_py(HAULReader):
 			else:
 				# Just a call
 				i.call = e.call
-		#return i
-		return copy.copy(i)
+		return i
+		#return copy.copy(i)
 	
 	def readBlock(self, namespace, scanOnly=False, blockName='__someBlock', module=None):
 		put_debug('readBlock()...')
@@ -848,7 +887,7 @@ class HAULReader_py(HAULReader):
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			# Option A: Introduce dedicated namespace for local values
-			b.namespace = namespace.find_or_create_namespace(blockName)
+			b.namespace = namespace.get_or_create_namespace(blockName)
 			ns = b.namespace	# Write all new entries inside this block to the block namespace (better, i.e. for Java)
 		else:
 			# Option B: Re-use parent namespace
@@ -983,7 +1022,7 @@ class HAULReader_py(HAULReader):
 			# Create new one / Re-use
 			#if (scanOnly):	f.namespace = HAULNamespace(name=t.data, parent=namespace)
 			#else:			f.namespace = namespace.findNamespace(t.data)
-			f.namespace = namespace.find_or_create_namespace(t.data)
+			f.namespace = namespace.get_or_create_namespace(t.data)
 		
 		ns = f.namespace
 		# Use parent namespace
@@ -1060,7 +1099,7 @@ class HAULReader_py(HAULReader):
 		else:
 			#if (scanOnly):	c.namespace = HAULNamespace(name=t.data, parent=namespace)
 			#else:	c.namespace = namespace.findNamespace(t.data)
-			c.namespace = namespace.find_or_create_namespace(t.data)
+			c.namespace = namespace.get_or_create_namespace(t.data)
 			
 		ns = c.namespace
 		
@@ -1164,7 +1203,7 @@ class HAULReader_py(HAULReader):
 			m.namespace = HAULNamespace(name=m.name, parent=namespace)
 			namespace.add_namespace(m.namespace)
 		else:
-			m.namespace = namespace.find_or_create_namespace(m.name)
+			m.namespace = namespace.get_or_create_namespace(m.name)
 			
 		m.namespace.data_module = m
 		
@@ -1198,49 +1237,65 @@ class HAULReader_py(HAULReader):
 				elif (t.data == L_IMPORT):
 					self.getNextToken()
 					inc = self.getNextToken()
-					impName = inc.data
-					put('readModule():	Import "' + impName + '"')
+					imp_name = inc.data
+					put('readModule():	Import "' + imp_name + '"')
 					
-					if not impName in LIB_NAMESPACES:
-						self.raiseParseError('Unknown import "' + impName + '" not in list of known libraries.', t)
+					"""
+					if not imp_name in LIB_NAMESPACES:
+						self.raiseParseError('Unknown import "' + imp_name + '" not in list of known libraries.', t)
 						return None
-					
-					m.addImport(impName)
-					impNs = LIB_NAMESPACES[impName]
+					imp_ns = LIB_NAMESPACES[imp_name]
 					# Add library import to local namespace
-					put('Importing library namespace for "' + impName + '"...')
-					ns.add_id(name=impName, kind=K_MODULE, data_type=T_MODULE, origin=self.loc())
-					ns.add_namespace(impNs)
+					"""
+					imp_ns = namespace.get_namespace(imp_name)
+					if (imp_ns == None):
+						self.raiseParseError('Unknown import "' + imp_name + '" not in namespace.', t)
+					
+					put('Importing library namespace for "' + imp_name + '"...')
+					ns.add_id(name=imp_name, kind=K_MODULE, data_type=T_MODULE, origin=self.loc())
+					#ns.add_namespace(imp_name)
+					
+					m.addImport(imp_name)
 				
 				elif (t.data == L_FROM):
 					self.getNextToken()
 					
-					t2 = self.getNextToken()
-					impName = t2.data
-					put_debug('readModule():	Import from "' + impName + '"')
+					imp_name = ''
+					t2 = self.peekNextToken()
+					while (t2.data != L_IMPORT) and (t2.type != TOKEN_EOL):
+						t2 = self.getNextToken()
+						imp_name = imp_name + t2.data
+						t2 = self.peekNextToken()
+					put_debug('readModule():	Import from "' + imp_name + '"')
 					
 					self.getAssertData(L_IMPORT, 'Expected "' + L_IMPORT + '" after "' + L_FROM + '"')
 					
-					if not impName in LIB_NAMESPACES:
-						self.raiseParseError('Unknown import "' + impName + '" not in list of known libraries.', t)
+					"""
+					if not imp_name in LIB_NAMESPACES:
+						self.raiseParseError('Unknown import "' + imp_name + '" not in list of known libraries.', t)
 						return None
 					
-					m.addImport(impName)
-					impNs = LIB_NAMESPACES[impName]
+					m.addImport(imp_name)
+					imp_ns = LIB_NAMESPACES[imp_name]
+					"""
+					
+					imp_ns = namespace.get_namespace(imp_name)
+					if (imp_ns == None):
+						self.raiseParseError('Unknown import "' + imp_name + '" not in namespace.', t)
 					
 					# Read list of things to import
-					impList = []
-					impAll = False
+					imp_list = []
+					imp_all = False
 					t2 = self.getNextToken(skipBlank=True)
 					while t2.type != TOKEN_EOL:
 						if (t2.data != ','):
-							impList.append(str(t2.data))
+							imp_list.append(str(t2.data))
 							if (t2.data == '*'):
-								impAll = True
+								imp_all = True
 						t2 = self.getNextToken(skipBlank=True)
 					
-					for id in impNs.ids:
-						if (impAll) or (id.name in impList):
+					for id in imp_ns.ids:
+						if (imp_all) or (id.name in imp_list):
 							put_debug('Importing "' + str(id.name) + '" into local namespace')
 							# Clone to current namespace
 							i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
@@ -1302,7 +1357,7 @@ class HAULReader_py(HAULReader):
 		
 		if (parts[0] == K_FUNCTION):
 			put_debug('readAnnotation():	Creating temporary namespace for function annotation inside ns=' + str(namespace))
-			self.tempNs = namespace.find_or_create_namespace(parts[1])
+			self.tempNs = namespace.get_or_create_namespace(parts[1])
 			
 			# Auto-add return type
 			if (len(parts) > 2):
