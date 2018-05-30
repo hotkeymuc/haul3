@@ -60,3 +60,10 @@ The builders, however, require their own platform-dependent tool chains (see `to
 * **data** holds language/platform specific data, e.g. native libraries or resources
 * **examples** holds some example code, ready to be translated to any other language
 * **tools** holds external tools that are needed for some builders, e.g. emulators, compilers and SDKs
+
+## Known issues:
+* Conditions must be surrounded by brackets or they might be misinterpreted
+* `not` is not yet implemented. Use `!=` instead for now
+* `+=` is not working. Write it out. Sorry.
+* Comments at the beginning of a block may break the current block. Try keeping comments in a new line in these cases.
+* When using "monolithic" mode, you may get "undefined id" for id's that are declared *later* in the same file. You may use annotations to do a forward declaration.

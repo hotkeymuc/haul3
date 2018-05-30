@@ -49,12 +49,13 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	libs_ns = rootNamespace
 	if (libs != None):
 		for lib_filename in libs:
+			# By reading the libs in in "scanOnly" mode, the namespace gets populated without doing too much extra parsing work
 			lib_name = lib_filename[:-3].replace('/', '.')
 			lib_stream_in = StringReader(readFile(lib_filename))
 			lib_reader = HAULReader_py(stream=lib_stream_in, filename=lib_filename)
 			put('Scanning lib "' + lib_filename + '"...')
 			lib_m = lib_reader.readModule(name=lib_name, namespace=libs_ns, scanOnly=True)
-			put('Lib namespace:\n' + libs_ns.dump())
+			#put('Lib namespace:\n' + libs_ns.dump())
 	
 	
 	# Prepare output
@@ -72,12 +73,9 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 			os.makedirs(output_path)
 		output_filename = output_path + '/' + name + '.' + writer.defaultExtension
 	
-	monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
-	
-	reader.seek(0)
-	
 	put('Translating input file "' + source_filename + '"...')
-	
+	reader.seek(0)
+	monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 	writer.stream(reader, namespace=libs_ns, monolithic=monolithic)	# That's where the magic happens!
 	
 	put('Writing output file "' + output_filename + '"...')

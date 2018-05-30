@@ -78,31 +78,41 @@ class HAULReader_py(HAULReader):
 		self.lastIfBlock = [None]	# Used for ELIF handling (adding one block to a previous one)
 		self.lastFunction = None	#@FIXME: Used to infer function returnType based on the type of a return statement
 	
+	#@fun raiseParseError
+	#@arg text str
+	#@arg token HAULToken
+	def raiseParseError(self, text, token):
+		#raise Exception('HAULReader parse error: ' + text + ' at file "' + self.filename + '", line ' + str(self.originLine) + ', pos ' + str(self.originPos) + ' (at "' + token.data + '")')
+		# How to make SciTE recognize an error in a Python file:
+		#' + text + '
+		#raise Exception('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
+		put('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
+		raise HAULParseError(text, token)
+	
 	def getAll(self, pats):
 		"Return string as long as pattern matches"
 		r = ''
 		c = self.peek()
-		while (not self.eof()):
+		while (self.eof() == False):
 			found = False
+			#@var pat str
 			for pat in pats:
-				if pat == c:
+				if (pat == c):
 					found = True
 					break
-			if not found: break
+				
 			
-			r += self.get()
+			if (found == False):
+				break
+			
+			r = r + self.get()
 			c = self.peek()
 		return r
-	
-	def peekNextToken(self, skipBlank=True):
-		if (self.peekNext == None):	# or ((skipBlank) and (self.peekNext.type == TOKEN_BLANK))):
-			self.peekNext = self.getNextToken(skipBlank=skipBlank)
-		return self.peekNext
 	
 	def getNextToken(self, skipBlank=True):
 		self.ofsGet = self.ofs
 		
-		if (not self.peekNext == None):
+		if (self.peekNext != None):
 			r = self.peekNext
 			self.peekNext = None
 			return r
@@ -115,19 +125,19 @@ class HAULReader_py(HAULReader):
 		r.originPos = self.linePos
 		c = self.peek()
 		
-		if skipBlank:
-			while (not self.eof()) and (c in PAT_BLANK):
+		if (skipBlank == True):
+			while ((self.eof() == False) and (c in PAT_BLANK)):
 				self.get()
 				c = self.peek()
 		
 		# Identify tokens by their first character (this could be done much nicer and dynamically)
-		if c in PAT_BLANK:
+		if (c in PAT_BLANK):
 			r.type = TOKEN_BLANK
 			r.data = self.getAll(PAT_BLANK)
-		elif c in PAT_EOL:
+		elif (c in PAT_EOL):
 			r.type = TOKEN_EOL
 			r.data = self.getAll(PAT_EOL)
-		elif c in PAT_NUM_1:
+		elif (c in PAT_NUM_1):
 			r.type = TOKEN_NUM
 			#r.data = self.getAll(PAT_NUM_N)
 			
@@ -154,13 +164,14 @@ class HAULReader_py(HAULReader):
 				else:
 					# int
 					r.data = int(s)
+					
 				
 				# Handle minus
 				if (c == '-'):
-					r.data = -r.data
+					r.data = -1 * r.data
 				
 			
-		elif c in PAT_IDENT_1:
+		elif (c in PAT_IDENT_1):
 			r.type = TOKEN_IDENT
 			r.data = self.getAll(PAT_IDENT_N)
 		else:
@@ -168,9 +179,14 @@ class HAULReader_py(HAULReader):
 		
 		return r
 	
+	def peekNextToken(self, skipBlank=True):
+		if (self.peekNext == None):
+			self.peekNext = self.getNextToken(skipBlank=skipBlank)
+		return self.peekNext
+	
 	def peekAssertData(self, check, msg):
 		t = self.peekNextToken()
-		if (not t.data == check):
+		if (t.data != check):
 			self.raiseParseError(msg, t)
 		return t
 	def getAssertData(self, check, msg):
@@ -179,7 +195,7 @@ class HAULReader_py(HAULReader):
 		return t
 	def peekAssertType(self, check, msg):
 		t = self.peekNextToken()
-		if (not t.type == check):
+		if (t.type != check):
 			self.raiseParseError(msg, t)
 		return t
 	def getAssertType(self, check, msg):
@@ -187,25 +203,36 @@ class HAULReader_py(HAULReader):
 		self.getNextToken()
 		return t
 	
-	#def skipBlank(self)
-	def raiseParseError(self, text, token):
-		#raise Exception('HAULReader parse error: ' + text + ' at file "' + self.filename + '", line ' + str(self.originLine) + ', pos ' + str(self.originPos) + ' (at "' + token.data + '")')
-		# How to make SciTE recognize an error in a Python file:
-		#' + text + '
-		#raise Exception('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
-		put('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
-		raise HAULParseError(text, token)
-	
 	def readLine(self, skipBlank=False):
 		l = ''
 		t = self.getNextToken(skipBlank=skipBlank)
-		l += str(t.data)
+		l = l + str(t.data)
 		c = self.peek()
-		while (not c in PAT_EOL) and (not self.eof()):
-			l += self.get()
+		while ((c in PAT_EOL) == False) and (self.eof() == False):
+			l = l + self.get()
 			c = self.peek()
 		return l
 	
+	def getType(self, t):
+		if   (t == 'None'): return T_NOTHING
+		elif (t == 'int'): return T_INTEGER
+		elif (t == 'float'): return T_FLOAT
+		elif (t == 'str'): return T_STRING
+		elif (t == 'bool'): return T_BOOLEAN
+		elif (t == 'obj'): return T_OBJECT
+		elif (t == 'arr'): return T_ARRAY	#@TODO: of which type?
+		else:
+			put_debug('Assuming "' + str(t) + '" is a class name, interpreting as type')
+			return str(t)
+		#return T_UNKNOWN
+		
+	
+	def readType(self, namespace):
+		t = self.getNextToken()
+		return self.getType(t.data)
+	
+	#@fun readVarDef HAULId
+	#@arg namespace HAULNamespace
 	def readVarDef(self, namespace):
 		t = self.getNextToken()
 		#v = HAULVariable()
@@ -228,34 +255,17 @@ class HAULReader_py(HAULReader):
 		
 		return i
 	
-	def readType(self, namespace):
-		t = self.getNextToken()
-		return self.getType(t.data)
-	
-	def getType(self, t):
-		if   (t == 'None'): return T_NOTHING
-		elif (t == 'int'): return T_INTEGER
-		elif (t == 'float'): return T_FLOAT
-		elif (t == 'str'): return T_STRING
-		elif (t == 'bool'): return T_BOOLEAN
-		elif (t == 'obj'): return T_OBJECT
-		elif (t == 'arr'): return T_ARRAY	#@TODO: of which type?
-		else:
-			put_debug('Assuming "' + str(t) + '" is a class name, interpreting as type')
-			return str(t)
-		#return T_UNKNOWN
-		
 	
 	def readArgs(self, namespace, bracket=')'):
 		"Read argument list"
 		r = []
 		t = self.peekNextToken()
 		
-		while ((not self.eof()) and (t.type == TOKEN_EOL)):
+		while ((self.eof() == False) and (t.type == TOKEN_EOL)):
 			self.getNextToken()
 			t = self.peekNextToken()
 		
-		while (not self.eof()) and (not (t.data == bracket)):
+		while ((self.eof() == False) and (t.data != bracket)):
 			
 			#@TODO: When reading call arguments we need to look inside the functions namespace for the names of the args
 			#r.append(self.readExpression(namespace=namespace_target, namespaceLocal=namespace))
@@ -280,7 +290,7 @@ class HAULReader_py(HAULReader):
 				self.getNextToken()
 				t = self.peekNextToken()
 			
-			while ((not self.eof()) and (t.type == TOKEN_EOL)):
+			while ((self.eof() == False) and (t.type == TOKEN_EOL)):
 				self.getNextToken()
 				t = self.peekNextToken()
 			
@@ -297,7 +307,7 @@ class HAULReader_py(HAULReader):
 		r = []
 		t = self.peekNextToken()
 		#while (not self.eof()) and (not t.data == ')'):
-		while (not self.eof()) and not (t.data == '}'):
+		while ((self.eof() == False) and (t.data != '}')):
 			put_debug('Reading dict key...')
 			r.append(self.readExpression(namespace=namespace))
 			
@@ -313,7 +323,7 @@ class HAULReader_py(HAULReader):
 				self.getNextToken()
 				t = self.peekNextToken()
 			# Skip comment
-			while (t.type == TOKEN_UNKNOWN) and (t.data[0] == L_COMMENT):
+			while ((t.type == TOKEN_UNKNOWN) and (t.data[0] == L_COMMENT)):
 				comment = self.readLine()
 				self.getNextToken()
 				t = self.peekNextToken()
@@ -349,7 +359,7 @@ class HAULReader_py(HAULReader):
 			
 			#self.getNextToken()	# Skip bracket
 			e.call = implicitCall(I_ARRAY_CONSTRUCTOR)
-			e.returnType = 'array'
+			e.returnType = T_ARRAY
 			
 			t2 = self.peekNextToken()
 			if (not t2.data == ']'):
@@ -362,7 +372,7 @@ class HAULReader_py(HAULReader):
 		elif (t.data == '{'):
 			put_debug('Dict constructor')
 			e.call = implicitCall(I_DICT_CONSTRUCTOR)
-			e.returnType = 'dict'
+			e.returnType = T_DICT
 			
 			e.call.args = self.readDict(namespace=ns)
 			self.getNextToken()	# Skip trailing bracket
@@ -513,10 +523,10 @@ class HAULReader_py(HAULReader):
 					v = namespaceLocal.find_id(t.data, ignore_unknown=True)
 				
 				if (v == None):
-					v = ns.find_id(t.data)
+					v = ns.find_id(t.data, ignore_unknown=True)
 				
 				if (v == None) or (v.data_type == T_UNKNOWN):
-					self.raiseParseError('Object lookup failed, because "' + str(t.data) + '" is unknown', t)
+					self.raiseParseError('Object lookup failed, because "' + str(t.data) + '" is unknown at ' + str(ns), t)
 				
 				e_object.var = v
 				e_object.returnType = v.data_type
@@ -530,12 +540,12 @@ class HAULReader_py(HAULReader):
 					"""
 					ns_shifted = ns.find_namespace_of(v.name)
 					if (ns_shifted == None):
-						self.raiseParseError('Static access on "' + str(v.name) + '" failed, because its namespace is unknown', t)
+						self.raiseParseError('Static access on "' + str(v.name) + '" failed, because its namespace is unknown at ' + str(ns), t)
 					"""
 				else:
 					ns_shifted = ns.find_namespace_of(v.data_type)
 					if (ns_shifted == None):
-						self.raiseParseError('Object lookup for "' + str(v.name) + '" failed, because namespace for type "' + str(v.data_type) + '" is unknown', t)
+						self.raiseParseError('Object lookup for "' + str(v.name) + '" failed, because namespace for type "' + str(v.data_type) + '" is unknown at ' + str(ns), t)
 				
 				
 				"""
@@ -613,7 +623,7 @@ class HAULReader_py(HAULReader):
 						e.var = i
 						
 					else:
-						self.raiseParseError('Undefined id "' + str(t.data) + '". Started searching at ' + str(ns2), t)
+						self.raiseParseError('Undefined id "' + str(t.data) + '"  at ' + str(ns2), t)
 						
 				e.returnType = e.var.data_type
 			
@@ -1351,7 +1361,10 @@ class HAULReader_py(HAULReader):
 							i.data_function = id.data_function
 							i.data_class = id.data_class
 							i.data_module = id.data_module
-					#@TODO: Also add sub-namespaces
+					
+					# Also add sub-namespaces
+					for imp_nss in imp_ns.nss:
+						ns.add_namespace(imp_nss)
 					#ns.add_namespace(...)
 				
 				else:

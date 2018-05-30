@@ -95,6 +95,7 @@ T_FUNCTION = '#func'
 T_CLASS = '#class'
 T_MODULE = '#mod'
 
+T_DICT = '#dict'
 T_HANDLE = '#hnd'
 
 class HAULId:
@@ -178,7 +179,7 @@ class HAULNamespace:
 				return i
 		
 		if (ignore_unknown == False):
-			raise Exception('HAULNamespace Error: Id "' + str(name) + '" (kind=' + str(kind) + ') is not defined in any namespace starting at "' + str(self) + '"!')
+			raise Exception('Id "' + str(name) + '" (kind=' + str(kind) + ') is unknown at "' + str(self) + '"!')
 		
 		return None
 	
@@ -210,18 +211,18 @@ class HAULNamespace:
 		return None
 	
 	def find_namespace(self, name):
+		
 		#@var r HAULNamespace
-		#@var ns HAULNamespace
 		r = self
 		while not (r == None):
+			if (r.name == name):
+				return r
+			
 			# Try finding it here
-			#put('finding "' + str(name) + '" in namespace "' + str(r) + '"...')
 			i = r.get_namespace(name)
 			if (i == None):
-				# If not, search one ns upwards
 				r = r.parent
 			else:
-				#put('found "' + str(name) + '" in namespace "' + str(r) + '"...')
 				return i
 		return None
 	
