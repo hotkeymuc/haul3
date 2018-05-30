@@ -1,3 +1,0 @@
-This is just a test.
-Second line.
-HotKey was here.
