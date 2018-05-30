@@ -63,7 +63,8 @@ The builders, however, require their own platform-dependent tool chains (see `to
 
 ## Known issues:
 * Conditions must be surrounded by brackets or they might be misinterpreted
-* `not` is not yet implemented. Use `!=` instead for now
+* Precedence can be off. Use brackets to make things clear.
+* `not` is not yet implemented. Use `!=` instead for now.
 * `+=` is not working. Write it out. Sorry.
-* Comments at the beginning of a block may break the current block. Try keeping comments in a new line in these cases.
+* Comments at the same line of a colon may break the current block. Try keeping those comments in a new line in these cases.
 * When using "monolithic" mode, you may get "undefined id" for id's that are declared *later* in the same file. You may use annotations to do a forward declaration.

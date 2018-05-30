@@ -109,6 +109,7 @@ class HAULReader_py(HAULReader):
 			c = self.peek()
 		return r
 	
+	#@fun getNextToken HAULToken
 	def getNextToken(self, skipBlank=True):
 		self.ofsGet = self.ofs
 		
@@ -179,6 +180,8 @@ class HAULReader_py(HAULReader):
 		
 		return r
 	
+	
+	#@fun peekNextToken HAULToken
 	def peekNextToken(self, skipBlank=True):
 		if (self.peekNext == None):
 			self.peekNext = self.getNextToken(skipBlank=skipBlank)
@@ -337,6 +340,8 @@ class HAULReader_py(HAULReader):
 	
 	def readExpression(self, namespace, checkInfix=True, checkCall=True, namespaceLocal=None, allowUnknown=False):
 		#put('readExpression() in ' + str(namespace))
+		
+		#@var e HAULExpression
 		e = HAULExpression()
 		e.origin = self.loc()
 		e.returnType = '?'
@@ -362,7 +367,7 @@ class HAULReader_py(HAULReader):
 			e.returnType = T_ARRAY
 			
 			t2 = self.peekNextToken()
-			if (not t2.data == ']'):
+			if (t2.data != ']'):
 				e.call.args = self.readArgs(namespace=ns, bracket=']')
 				#t2 = self.peekNextToken()
 			else:
@@ -379,7 +384,7 @@ class HAULReader_py(HAULReader):
 			put_debug('dict returned: ' + str(e.call.args))
 			
 			
-		elif (t.data == '"') or (t.data == "'"):
+		elif ((t.data == '"') or (t.data == "'")):
 			# Read string
 			#put('string')
 			
@@ -391,7 +396,7 @@ class HAULReader_py(HAULReader):
 			delimiter = t.data
 			escape = False
 			c = ''
-			while (not self.eof()):
+			while (self.eof() == False):
 				c = self.get()
 				if (c == delimiter): break
 				if (c == '\\'):
@@ -399,7 +404,7 @@ class HAULReader_py(HAULReader):
 					if (c == 'n'): c = '\n'
 					elif (c == 'r'): c = '\r'
 					elif (c == 't'): c = '\t'
-				e.value.data += c
+				e.value.data = e.value.data + c
 			
 			# Check for triple quotes
 			t2 = self.peekNextToken()
@@ -412,7 +417,7 @@ class HAULReader_py(HAULReader):
 					self.getNextToken()
 					t = self.readLine()
 					put_debug('Block comment: Skipping line "' + tq + '" != "' + t + '"')
-					e.value.data += t
+					e.value.data = e.value.data + t
 					
 				put_debug('End of triple quote')
 			
@@ -470,7 +475,12 @@ class HAULReader_py(HAULReader):
 				# Wrap current expression
 				e.call = implicitCall(I_ARRAY_LOOKUP)
 				
-				v = ns.find_id(t.data)
+				if (namespaceLocal != None):
+					v = namespaceLocal.find_id(t.data)
+				else:
+					v = ns.find_id(t.data)
+				
+				
 				e_var = HAULExpression(var=v)
 				
 				t = self.peekNextToken()
@@ -702,7 +712,7 @@ class HAULReader_py(HAULReader):
 			if (str(t.data)[0] == L_COMMENT):
 				self.readAnnotation(namespace=namespace)
 			
-			elif (t.data == '"'): qs += 1
+			elif (t.data == '"'): qs = qs + 1
 			else: qs = 0
 			
 			if (qs == 3):
@@ -712,7 +722,7 @@ class HAULReader_py(HAULReader):
 				qs = 0
 				while (qs < 3):
 					c = self.get()
-					if (c == '"'): qs += 1
+					if (c == '"'): qs = qs + 1
 					else: qs = 0
 				qs = 0
 			
@@ -998,8 +1008,8 @@ class HAULReader_py(HAULReader):
 					t = self.peekNextToken()
 					while (not self.eof()) and (t.data[0] == L_COMMENT):
 						if (i.comment == None): i.comment = ''
-						else: i.comment += '\n'
-						i.comment += self.readLine()
+						else: i.comment = i.comment + '\n'
+						i.comment = i.comment + self.readLine()
 						t = self.peekNextToken()
 					#
 				#

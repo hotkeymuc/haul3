@@ -50,9 +50,9 @@ class HAULWriter_json(HAULWriter):
 		self.write(v.name)
 	
 	def writeNamespace(self, ns, indent=0):
-		self.write('{')
+		self.write('{\n')
 		
-		self.write('\t/* ' + str(ns) + ' */\n')
+		#self.write('\t/* ' + str(ns) + ' */\n')
 		
 		i = 0
 		for id in ns.ids:

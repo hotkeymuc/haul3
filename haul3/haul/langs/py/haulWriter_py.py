@@ -166,6 +166,7 @@ class HAULWriter_py(HAULWriter):
 				if not self.writeInstr(instr, indent): self.write('\n')
 		
 		if (i == 0):
+			# Empty blocks should at least have "pass" in them
 			self.writeIndent(indent)
 			self.write('pass\n')
 		

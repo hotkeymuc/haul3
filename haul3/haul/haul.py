@@ -457,12 +457,14 @@ class HAULExpression:
 	#@var var HAULId
 	#@var call HAULCall
 	#@var returnType HAULType
+	#@var origin int
 	
 	def __init__(self, value=None, var=None, call=None):
 		self.value = value
 		self.var = var
 		self.call = call
 		self.returnType = None
+		self.origin = None
 		
 	def getType(self):
 		# Guess the type of this expression
@@ -737,12 +739,10 @@ I_ARRAY_LOOKUP = ns.add_id('#A_lookUp', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_OBJECT_LOOKUP = ns.add_id('#O_lookUp', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_OBJECT_CALL = ns.add_id('#O_call', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_DICT_CONSTRUCTOR = ns.add_id('#D_new', kind=K_FUNCTION, data_type=T_OBJECT)
-#I_UNKNOWN = HAULId('#?', ns, kind=K_CONST, data_type=T_UNKNOWN)
-
-
 
 def implicitCall(id):
 	return HAULCall(id)
+
 
 
 
