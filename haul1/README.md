@@ -1,4 +1,10 @@
-# SR1/HAL1 (2011-07 - 2012-03
+# HAL+HTK = HAUL1 (2011-07 - 2012-03)
+HAUL1 consists of the language HAL (HotKey's Average Language) and HTKs (HAL Translation Kernels) which can transform HAL into other scripting languages.
+
+HAUL1 can also translate its own source code into other languages. It is kept simple to parse, and so it combines the worst of PHP and Assembly in one package :-) Well, it was just a proof of concept.
+Oh, and it comes with "Shadow Runner", a simple VM that is written in HAL and which can be programmed for using HAL. A nice strange loop, don't you think?
+
+## Features and Bugs
 * = "Flat" translation: no lexer, compiler - just a simple text-translator
 * = First word in each line is always the command, then tab separated parameters
 * = Written in PHP :-(
@@ -17,7 +23,7 @@
  > Maybe some sort of syntax tree is not bad after all... Especially for binary output.
 
 
-# Usage
+## Usage
 * Write your code in HAL (see src.hal for examples)
 * Pick an output language (JS, PHP, VBS, SR), see src.hal/htk_*.hal for a selection
 * Translate the HTK for the desired language to your current platform (e.g. by running translateOnce.php or run_deploy.php). Oh, create "src.gen" and "deploy" directories first.

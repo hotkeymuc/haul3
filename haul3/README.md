@@ -5,6 +5,7 @@ The goal of HAUL is to have a piece of code that can translate itself into any o
 
 ![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
 
+
 This is in no way intended for any productive use. It's food for thought. An elaborate toy. Art and fart.
 
 Have fun with it and don't hurt your brain.
@@ -13,8 +14,8 @@ Have fun with it and don't hurt your brain.
 
 
 ## Version 3 (2013-01 - now)
-* This version can not yet translate its own source, but it's getting very close.
-* In the meantime it can translate whatever other source code you throw at it.
+* This version can not *yet* translate its own source, but it's getting very close.
+* In the meantime it can translate other source code you throw at it.
 * Finally, I am using a proper AST structure (modules, functions, expressions, instructions, ...)
 * Just doing it the way everyone else does it: Lex it, parse it, generate output. Boring, yet powerful. Now, translation to binary output is finally feasible.
 * This is the most OOP approach yet. Much easier to comprehend than the previous versions, which streamed the tokens on-the-fly.
