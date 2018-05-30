@@ -10,7 +10,7 @@ These kinds of programs are nothing new and nothing *too* special. Every program
 
 This project is in no way intended for any productive use. It's food for thought. An elaborate toy. Art and fart.
 
-Have fun with it and don't hurt your brain.
+Have fun with it and compile responsibly.
 
 //HotKey
 
@@ -25,8 +25,8 @@ Have fun with it and don't hurt your brain.
 * - Con: High memory consumption (keeps a lot of structures in RAM), so it may be hard to run a big compilation on a C64...
 * HAUL3 adds the concept of "builders". A builder can translate code into another language and package it for a certain hardware platform. This means, for example, one-click deployment to a PalmOS device :-)
 
-## Stupid Name
-Initially, the language was called "HAL", which stood for *HotKey's Average Language* and, of course, paid tribune to the computer in [2001: A Space Odyssey](https://en.wikipedia.org/wiki/2001:_A_Space_Odyssey_(film)), as it also was a system that was seemingly running *everywhere*.
+## Name
+Initially, the language was called "HAL", which stood for *HotKey's Average Language* and, of course, paid tribute to the computer in [2001: A Space Odyssey](https://en.wikipedia.org/wiki/2001:_A_Space_Odyssey_(film)), as it also was a system that was seemingly running *everywhere*.
 But after a while I found that to be just too cheesy. Also, "HAL" [is also something completely different already](https://en.wikipedia.org/wiki/HAL_(software)).
 
 With version 3 I changed to "HAUL" which should create the mental image of *hauling blocks of code to a different place*.
