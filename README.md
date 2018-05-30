@@ -1,9 +1,9 @@
-# HAUL3 (2013-01 - now)
+# HAUL3
 HotKey's Amphibious Universal Language
 
 The goal of HAUL is to have a piece of code that can translate itself into any other language. On its journey it can -of course- translate other source code as well.
 
-![Hello HAUL](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/build_hello.gif "Hello HAUL")
+![Hello HAUL](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/build_hello.gif "Hello HAUL")
 
 This kind of program is nothing new, nothing special. Every programmer should have tried this at least once themself. (See: [Transpiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), [Quine](https://en.wikipedia.org/wiki/Quine_(computing)), [LLVM](https://llvm.org/), etc.) Well, this is just my own approach at that.
 
@@ -15,9 +15,9 @@ Have fun with it and don't hurt your brain.
 
 
 ## Versions
-This project is based on [HAUL2](https://github.com/hotkeymuc/haul2) which did not use a dedicated lexer/parser/AST. It was therefore much simpler and limited.
+Version 3 was started in early 2013. It is based on [HAUL2](https://github.com/hotkeymuc/haul2) which did not use a dedicated lexer/parser/AST. It was therefore much simpler and limited.
 
-If you are curious for the origins of this project, then have a look at the ugly PHP based first version [HAUL1](https://github.com/hotkeymuc/haul1).
+If you are curious for the origins of this project, then have a look at the nasty PHP based first version [HAUL1](https://github.com/hotkeymuc/haul1).
 
 ## Features and Limitations
 * This version can not *yet* translate its own source, but it's getting very close. At the moment there are quite some "pythonic" statements used in the parser; so they either have to be eliminated *or* implemented in HAL3 as well... In the meantime, feel free to throw other source code at it.
@@ -34,7 +34,7 @@ If you are curious for the origins of this project, then have a look at the ugly
 * Use `ide.py` to play around with different languages.
 * Use `build.py` to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
 
-![HAUL IDE](https://github.com/hotkeymuc/haul/raw/master/haul3/data/media/ide_screenshot000.png "HAUL IDE")
+![HAUL IDE](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/ide_screenshot000.png "HAUL IDE")
 
 ## Directory Structure
 * **haul** holds the main source code, including the parser(s) and builders
