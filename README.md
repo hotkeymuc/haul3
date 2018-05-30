@@ -14,6 +14,8 @@ Have fun with it and don't hurt your brain.
 
 //HotKey
 
+![Polymorphism](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/build_polymorphic.gif "Polymorphism")
+
 ## Features and Limitations
 * This version can not *yet* translate its own source, but it's getting very close. At the moment there are quite some "pythonic" statements used in the parser; so they either have to be eliminated *or* implemented in the language parser as well... In the meantime, feel free to throw other source code at it.
 * Finally, HAUL3 is using a proper AST structure, which allows output languages that vastly differ from scripting languages, e.g. JSON or Assembly.
@@ -41,7 +43,7 @@ So I changed it to "amphibious", which stems from the two-fold nature of the sou
 * Write your code in HAUL3 (which is valid python). You may need to annotate types where inference is not possible. Use either Python3 style colons or `#@var NAME TYPE` annotations for that. The latter ensures Python 2 compatibility.
 * Use `translate.py` to translate code into the desired target language.
 * Use `ide.py` to play around with different languages (requires wx).
-* Use `build.py` to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
+* Use `build.py` to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard a bit like cheating.
 
 ![HAUL IDE](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/ide_screenshot000.png "HAUL IDE")
 

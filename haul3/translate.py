@@ -71,28 +71,32 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None):
 	writeFile(output_filename, streamOut.r)
 	
 
-#source_file = 'examples/hello.py'
+source_file = 'examples/hello.py'
 #source_file = 'examples/small.py'
 #source_file = 'examples/infer.py'
 #source_file = 'examples/complex.py'
 #source_file = 'examples/classes.py'
 #source_file = 'examples/shellmini.py'
 #source_file = 'examples/vm.py'
-source_file = 'haul/haul.py'
+#source_file = 'haul/haul.py'
 
 output_path = 'build'
 
-#WriterClass = HAULWriter_asm
-#WriterClass = HAULWriter_bas
-#WriterClass = HAULWriter_c
-#WriterClass = HAULWriter_java
-#WriterClass = HAULWriter_js
-#WriterClass = HAULWriter_json
-#WriterClass = HAULWriter_lua
-#WriterClass = HAULWriter_opl
-#WriterClass = HAULWriter_pas
-WriterClass = HAULWriter_py
-#WriterClass = HAULWriter_vbs
+WRITER_CLASSES = [
+	HAULWriter_asm,
+	HAULWriter_bas,
+	HAULWriter_c,
+	HAULWriter_java,
+	HAULWriter_js,
+	HAULWriter_json,
+	HAULWriter_lua,
+	HAULWriter_opl,
+	HAULWriter_pas,
+	HAULWriter_py,
+	HAULWriter_vbs,
+]
+
+WriterClass = WRITER_CLASSES[10]
 
 translate(source_file, WriterClass, output_path)
 
