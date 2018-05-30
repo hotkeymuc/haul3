@@ -39,11 +39,19 @@ So I changed it to "amphibious", which stems from the two-fold nature of the sou
 * It is based on [HAUL2](https://github.com/hotkeymuc/haul2) which did not use a dedicated lexer/parser/AST. It was therefore much simpler and limited.
 * If you are curious for the origins of this project, then have a look at the nasty PHP based first version [HAUL1](https://github.com/hotkeymuc/haul1).
 
+## Installation
+None. Just download it.
+
+## Dependencies
+None. That would defeat the purpose. It's all self-contained.
+
+The builders, however, require their own platform-dependent tool chains (see `tools` directory). The goal is, of course, to get rid of any external dependency in the long run.
+
 ## Usage
 * Write your code in HAUL3 (which is valid python). You may need to annotate types where inference is not possible. Use either Python3 style colons or `#@var NAME TYPE` annotations for that. The latter ensures Python 2 compatibility.
 * Use `translate.py` to translate code into the desired target language.
-* Use `ide.py` to play around with different languages (requires wx).
 * Use `build.py` to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard a bit like cheating.
+* Use `ide.py` to play around with different languages and debug (requires wx).
 
 ![HAUL IDE](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/ide_screenshot000.png "HAUL IDE")
 
