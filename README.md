@@ -38,9 +38,9 @@ So I changed it to "amphibious", which stems from the two-fold nature of the sou
 * HAUL3 adds the concept of "builders". A builder can translate code into another language and package it for a certain hardware platform. This means, for example, one-click deployment to a PalmOS device :-)
 
 ## Usage
-* Write your code in HAUL3 (which is valid python). You need to annotate some variable types where inference is not possible. Use either Python3 colons or *#@var NAME TYPE* comments for that.
-* Use `translate.py` to translate that file into the desired target language.
-* Use `ide.py` to play around with different languages.
+* Write your code in HAUL3 (which is valid python). You may need to annotate types where inference is not possible. Use either Python3 style colons or `#@var NAME TYPE` annotations for that. The latter ensures Python 2 compatibility.
+* Use `translate.py` to translate code into the desired target language.
+* Use `ide.py` to play around with different languages (requires wx).
 * Use `build.py` to also compile/bundle/package/test the file on different architectures. This, unfortunately, requires external tools (QEMU, gcc, SDKs), which I regard as cheating.
 
 ![HAUL IDE](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/ide_screenshot000.png "HAUL IDE")
