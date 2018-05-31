@@ -53,10 +53,12 @@ class HAULWriter_py(HAULWriter):
 					#self.write('\t' + str(id.data_type))
 					self.write('\t')
 					self.writeType(id.data_type)
+					
 					if (id.data_value != None):
 						#self.write('\t' + str(id.data_value))
 						self.write('\t')
-						self.writeValue(id.data_value)
+						if (id.data_value): self.writeValue(id.data_value)
+					
 				self.write('\n')
 		
 	def writeFunc(self, f, indent=0):
@@ -347,13 +349,23 @@ class HAULWriter_py(HAULWriter):
 	def writeValue(self, v):
 		#if (type(v.data) == str):	#@TODO: Use v.type to determine it!
 		if (v.type == T_STRING):
-			s = str(v.data)
+			s = str(v.data_str)
 			s = s.replace('\\', '\\\\')
 			s = s.replace('\'', '\\\'')
 			s = s.replace('\r', '\\r')
 			s = s.replace('\n', '\\n')
 			self.write("'" + s + "'")
+		elif (v.type == T_INTEGER):
+			self.write(str(v.data_int))
+		elif (v.type == T_FLOAT):
+			self.write(str(v.data_int))
+		elif (v.type == T_BOOLEAN):
+			if (v.data_bool == True): self.write('True')
+			else: self.write('False')
+		elif (v.type == None):
+			self.write('[type=None]')
 		else:
+			put('Unknown value type: ' + str(v.type))
 			self.write(str(v))	#.data
 		
 	

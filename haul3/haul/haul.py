@@ -152,7 +152,7 @@ class HAULNamespace:
 		self.nss = []	# Array of child namespaces
 		self.origin = None
 		
-	
+	#@fun get_id HAULId
 	def get_id(self, name, kind=None):
 		"Finds the given id in this local namespace"
 		#@var i HAULId
@@ -162,6 +162,7 @@ class HAULNamespace:
 		#raise Exception('HAULNamespace error: "' + name + '" was not found in local namespace: ' + str(self.ids))
 		return None
 	
+	#@fun find_id HAULId
 	def find_id(self, name, kind=None, ignore_unknown=False):
 		"Also searches upwards"
 		
@@ -183,26 +184,35 @@ class HAULNamespace:
 		
 		return None
 	
-	def add_id(self, name, kind, origin=None, data_type=None, data_value=None):
+	def add_id(self, name, kind, origin=None, data_type=None, data_value=None, overwrite=False):
 		#if (data != None) and (not isinstance(data, str)): raise Exception('addId() must be called with string data, not "' + str(type(data)) + '"')
 		
 		# Check if already exists
 		i = self.get_id(name=name, kind=kind)
 		if (i != None):
-			#raise Exception('HAULNamespaceError: "' + (name) + '" is already present in current namespace!')
-			put('HAULNamespace Info: "' + (name) + '" is already present in current namespace.')
-			return i
-		#if (not self.find_id(name) == None): put('HAULNamespaceWarning: "' + (name) + '" hides previous declaration.')
+			if (overwrite == False):
+				#raise Exception('HAULNamespaceError: "' + (name) + '" is already present in current namespace!')
+				put('HAULNamespace Info: "' + (name) + '" is already present in current namespace, not overwriting!')
+				return i
+			
+			# Overwrite
+			put('Overwriting...')
+			i.origin = origin
+			i.data_type = data_type
+			i.data_value = data_value
+			
+		else:
+			#if (not self.find_id(name) == None): put('HAULNamespaceWarning: "' + (name) + '" hides previous declaration.')
+			put_debug('Registering id "' + name + '" (' + str(kind) + ') as "' + str(data_type) + '" in namespace "' + str(self) + '"')
+			i = HAULId(name=name, namespace=self, kind=kind, origin=origin, data_type=data_type, data_value=data_value)
+			self.ids.append(i)
 		
-		put_debug('Registering id "' + name + '" (' + str(kind) + ') as "' + str(data_type) + '" in namespace "' + str(self) + '"')
-		
-		i = HAULId(name=name, namespace=self, kind=kind, origin=origin, data_type=data_type, data_value=data_value)
-		self.ids.append(i)
 		return i
 	
 	def add_namespace(self, ns):
 		self.nss.append(ns)
 	
+	#@fun get_namespace HAULNamespace
 	def get_namespace(self, name):
 		#@var ns HAULNamespace
 		for ns in self.nss:
@@ -210,6 +220,7 @@ class HAULNamespace:
 		
 		return None
 	
+	#@fun find_namespace HAULNamespace
 	def find_namespace(self, name):
 		
 		#@var r HAULNamespace
@@ -289,19 +300,31 @@ class HAULNamespace:
 
 class HAULValue:
 	"Simple value (e.g. of a variable or constant expression)"
-	#@var type HAULType
-	#@var data obj
+	#@var type HAULType (primitives only)
+	#@var data_bool bool
+	#@var data_int int
+	#@var data_float float
+	#@var data_str str
 	
 	def __init__(self, type=None, data=None):
 		self.type = None	#HAULType
-		self.data = None	# binary
+		self.data_bool = False
+		self.data_int = 0
+		self.data_float = 0.0
+		self.data_str = ''
 		
 	
 	def __repr__(self):
-		if (self.type == T_STRING):
-			return '"' + self.data + '"'
-		else:
-			return str(self.data)
+		if (self.type == T_BOOLEAN):
+			if self.data_bool == True: return 'true'
+			else: return 'false'
+		if (self.type == T_INTEGER):
+			return str(self.data_int)
+		if (self.type == T_FLOAT):
+			return str(self.data_float)
+		elif (self.type == T_STRING):
+			return '"' + self.data_str + '"'
+			
 		
 	
 
@@ -311,6 +334,7 @@ class HAULClass:
 	#@var funcs arr HAULFunction
 	#@var namespace HAULNamespace
 	#@var inherits arr HAULId
+	#@var block HAULBlock
 	
 	#@var origin int
 	#@var destination int
@@ -321,7 +345,7 @@ class HAULClass:
 		#self.classes = []
 		self.funcs = []
 		#self.vars = []
-		#self.block = None
+		self.block = None
 		self.namespace = None	#HAULNamespace()
 		self.inherits = []
 		
@@ -615,6 +639,7 @@ C_BREAK = '#break'
 C_CONTINUE = '#continue'
 C_RAISE = '#raise'
 
+#@fun implicitControl HAULControl
 def implicitControl(controlType):
 	return HAULControl(controlType)
 
@@ -689,6 +714,7 @@ ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 ns = HAULNamespace(T_ARRAY, parent=rootNamespace)
 rootNamespace.add_namespace(ns)
 ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
+ns.add_id('pop', kind=K_FUNCTION, data_type=T_INHERIT)
 I_ARRAY_SLICE = ns.add_id('slice', kind=K_FUNCTION, data_type=T_ARRAY)
 I_ARRAY_LEN = ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
 
@@ -698,6 +724,8 @@ rootNamespace.add_namespace(ns)
 ns.add_id('replace', kind=K_FUNCTION, data_type=T_STRING)
 ns.add_id('index', kind=K_FUNCTION, data_type=T_INTEGER)
 ns.add_id('rfind', kind=K_FUNCTION, data_type=T_INTEGER)
+ns.add_id('startswith', kind=K_FUNCTION, data_type=T_BOOLEAN)
+ns.add_id('split', kind=K_FUNCTION, data_type=T_ARRAY)
 
 # Internal handle functions (files, pipes, ...)
 ns = HAULNamespace(T_HANDLE, parent=rootNamespace)
@@ -740,6 +768,7 @@ I_OBJECT_LOOKUP = ns.add_id('#O_lookUp', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_OBJECT_CALL = ns.add_id('#O_call', kind=K_FUNCTION, data_type=T_UNKNOWN)
 I_DICT_CONSTRUCTOR = ns.add_id('#D_new', kind=K_FUNCTION, data_type=T_OBJECT)
 
+#@fun implicitCall HAULCall
 def implicitCall(id):
 	return HAULCall(id)
 
@@ -749,10 +778,11 @@ def implicitCall(id):
 TOKEN_UNKNOWN = 0
 TOKEN_BLANK = 1
 TOKEN_EOL = 2
-TOKEN_NUM = 3
-TOKEN_IDENT = 4
+TOKEN_NUM_INT = 3
+TOKEN_NUM_FLOAT = 4
+TOKEN_IDENT = 5
 
-TOKEN_NAMES = ['unknown', 'blank', 'EOL', 'number', 'identifier']
+TOKEN_NAMES = ['unknown', 'blank', 'EOL', 'int', 'float', 'identifier']
 
 class HAULToken:
 	#@var type int
@@ -768,7 +798,7 @@ class HAULToken:
 		self.originLine = 0
 		self.originPos = 0
 	def __repr__(self):
-		return '<HAULToken ' + TOKEN_NAMES[self.type] + ' "' + str(self.data) + '" originLine="' + str(self.originLine) + '" originPos="' + str(self.originPos) + '" />'
+		return 'Token "' + str(self.data) + '" [' + TOKEN_NAMES[self.type] + '] at line ' + str(self.originLine) + ', col ' + str(self.originPos) + ''
 
 class HAULParseError(Exception):
 	#@var message str
@@ -822,8 +852,8 @@ class HAULReader:
 		self.peekNext = None
 		self.ofs = ofs
 		self.ofsGet = ofs
-		self.lineNum = -1
-		self.linePos = -1
+		self.lineNum = 1
+		self.linePos = 1
 	
 	def peek(self):
 		return self.stream.peek()
