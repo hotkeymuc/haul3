@@ -90,11 +90,13 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 #source_file = 'examples/shellmini.py'
 #source_file = 'examples/vm.py'
 #source_file = 'examples/arrays.py'
-#source_file = 'haul/haul.py'
-source_file = 'haul/langs/py/haulReader_py.py'
+source_file = 'haul/haul.py'
+#source_file = 'haul/utils.py'
+#source_file = 'haul/langs/py/haulReader_py.py'
+#source_file = 'haul/langs/py/haulReader_py.py'
 
-#libs = None
-libs = ['haul/haul.py', 'haul/utils.py']
+libs = None
+#libs = ['haul/haul.py', 'haul/utils.py']
 
 
 output_path = 'build'
@@ -114,10 +116,10 @@ WRITER_CLASSES = [
 ]
 
 WriterClass = HAULWriter_py
-
 try:
 	translate(source_file, WriterClass, output_path, libs=libs)
 except HAULParseError as e:
-	put('Parse error: ' + str(e.message))
+	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))
+	
 
 put('translate.py ended.')

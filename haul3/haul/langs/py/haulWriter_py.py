@@ -131,6 +131,16 @@ class HAULWriter_py(HAULWriter):
 		self.writeIndent(indent)
 		self.write('class ')
 		self.write(c.id.name)
+		
+		if ((c.inherits != None) and (len(c.inherits) > 0)):
+			self.write('(')
+			i = 0
+			for inh_name in c.inherits:
+				if (i > 0): self.write(', ')
+				self.write(inh_name)
+				i = i + 1
+			self.write(')')
+		
 		self.write(':\n')
 		
 		if (c.namespace):
@@ -210,6 +220,11 @@ class HAULWriter_py(HAULWriter):
 				self.writeIndent(indent)
 				self.write('else:\n')
 				self.writeBlock(c.blocks[j], indent+1)
+			
+			# Add blank line at end of if/elif/else
+			self.writeIndent(indent)
+			self.write('\n')
+			
 			return True
 		elif (c.controlType == C_FOR):
 			self.write('for ')
@@ -264,6 +279,14 @@ class HAULWriter_py(HAULWriter):
 			self.writeExpressionList(c.args, 1, level)
 			self.write(']')
 			
+		elif i == I_ARRAY_SLICE.name:
+			self.writeExpression(c.args[0], level)
+			self.write('[')
+			self.writeExpression(c.args[1], level)
+			self.write(':')
+			self.writeExpression(c.args[2], level)
+			self.write(']')
+			
 		elif i == I_ARRAY_CONSTRUCTOR.name:
 			self.write('[')
 			self.writeExpressionList(c.args, 0, level)
@@ -295,11 +318,14 @@ class HAULWriter_py(HAULWriter):
 			self.writeExpression(c.args[1], 0)
 		
 		elif any(i in p for p in PAT_INFIX):
+			
 			self.writeExpression(c.args[0], level)	# level-1
 			
-			self.write(' ' + i + ' ')
-			
-			self.writeExpression(c.args[1], level)	# level-1
+			j = 1
+			while (j < len(c.args)):
+				self.write(' ' + i + ' ')
+				self.writeExpression(c.args[j], level)	# level-1
+				j += 1
 		
 		else:
 			# Write a standard call

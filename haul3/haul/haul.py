@@ -324,8 +324,11 @@ class HAULValue:
 			return str(self.data_float)
 		elif (self.type == T_STRING):
 			return '"' + self.data_str + '"'
-			
 		
+		elif (self.type == T_NOTHING):
+			return 'Nothing'
+		else:
+			return '[unhandled type ' + str(self.type) + ']'
 	
 
 class HAULClass:
@@ -714,7 +717,7 @@ ns = HAULNamespace(T_ARRAY, parent=rootNamespace)
 rootNamespace.add_namespace(ns)
 ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
 ns.add_id('pop', kind=K_FUNCTION, data_type=T_INHERIT)
-I_ARRAY_SLICE = ns.add_id('slice', kind=K_FUNCTION, data_type=T_ARRAY)
+I_ARRAY_SLICE = ns.add_id('#slice', kind=K_FUNCTION, data_type=T_ARRAY)
 I_ARRAY_LEN = ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
 
 # Internal string functions
@@ -759,7 +762,12 @@ def implicitCall(id):
 
 
 
-
+#@const TOKEN_UNKNOWN int 0
+#@const TOKEN_BLANK int 1
+#@const TOKEN_EOL int 2
+#@const TOKEN_NUM_INT int 3
+#@const TOKEN_NUM_FLOAT int 4
+#@const TOKEN_IDENT int 5
 TOKEN_UNKNOWN = 0
 TOKEN_BLANK = 1
 TOKEN_EOL = 2

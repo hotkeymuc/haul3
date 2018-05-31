@@ -542,6 +542,7 @@ class HAULReader_py(HAULReader):
 				# Check start of slice
 				t = self.peekNextToken()
 				if (t.data == ':'):
+					e.call.id = I_ARRAY_SLICE
 					# Start omitted, use 0
 					e_index = HAULExpression(value=0)
 				else:
@@ -562,13 +563,14 @@ class HAULReader_py(HAULReader):
 				if (t.data == ':'):
 					put_debug('Array slicing...')
 					self.getNextToken() # Consume
-					e.call = implicitCall(I_ARRAY_SLICE)
+					#e.call = implicitCall(I_ARRAY_SLICE)
+					e.call.id = I_ARRAY_SLICE
 					
 					t = self.peekNextToken()
 					if (t.data == ']'):
 						# End omitted: Insert implicit I_ARRAY_LEN
-						e_index2 = implicitCall(I_ARRAY_LEN)
-						e_index2.args.append(e_var)
+						e_index2 = HAULExpression(call=implicitCall(I_ARRAY_LEN))
+						e_index2.call.args.append(e_var)
 					else:
 						e_index2 = self.readExpression(namespace=ns)
 					e.call.args.append(e_index2)
@@ -719,26 +721,39 @@ class HAULReader_py(HAULReader):
 				
 				#put('Longest infix found: "' + iId + '", next up: ' + str(t2))
 				
+				e_right = self.readExpression(namespace=ns)
+				
 				# Wrap current expression
 				#@var eNew HAULExpression
 				eNew = HAULExpression()
 				eNew.call = HAULCall()
 				eNew.call.id = ns.find_id(iId)
 				
-				e1 = HAULExpression(value=e.value, var=e.var, call=e.call)
-				e1.returnType = e.returnType
-				
-				e2 = self.readExpression(namespace=ns)
-				eNew.call.args = [
-					e1,
-					e2
-				]
+				# Check if we can chain multiple "+" operations together
+				if ((iId == '+') and (e_right.call) and (e_right.call.id.name == '+')):
+					#put('Chaining together!')
+					
+					eNew.call.args.append(e)
+					
+					#@var ea HAULExpression
+					for ea in e_right.call.args:
+						eNew.call.args.append(ea)
+					
+				else:
+					# Clone old left side
+					e_left = HAULExpression(value=e.value, var=e.var, call=e.call)
+					e_left.returnType = e.returnType
+					
+					eNew.call.args = [
+						e_left,
+						e_right
+					]
 				
 				# Determine type of it (type inference)
 				#@TODO: Search for the widest type
 				#@FIXME: Just look in the internal namespace. The return value is stored there (T_INHERIT, T_BOOLEAN, ...)
 				if (iId in ['+', '-', '*', '/', 'and', 'or', 'not']):
-					#if (e1.returnType == e2.returnType):
+					#if (e_left.returnType == e_right.returnType):
 					#	Return type of first
 					eNew.returnType = e.returnType
 					#else:
@@ -961,28 +976,32 @@ class HAULReader_py(HAULReader):
 				i.call = implicitCall(I_VAR_SET)
 				
 				# Read the "right side"
-				e2 = self.readExpression(namespace=ns, allowUnknown=False)
+				e_right = self.readExpression(namespace=ns, allowUnknown=False)
 				
 				# Type inference
 				if (INFER_TYPE) and (e.var != None) and (e.returnType == T_UNKNOWN):
-					put_debug('Inferring type "' + e2.returnType + '" for variable "' + str(e.var) + '"')
+					put_debug('Inferring type "' + e_right.returnType + '" for variable "' + str(e.var) + '"')
 					e.var.kind = K_VARIABLE
-					e.var.data_type = e2.returnType
+					e.var.data_type = e_right.returnType
 				
 				
 				i.call.args = [
 					e,
-					e2
+					e_right
 				]
 				
 				# Check if variable is a K_CONST
 				if (e.var != None):
 					if (e.var.kind == K_CONST):
-						put('It is a const! This may only be set once')
-						if (e2.value == None):
-							self.raiseParseError('Constant ' + str(e.var) + ' can only be assigned a value, not a ' + str(e2), t)
+						if ((e.var.data_type != T_UNKNOWN) and (e.var.data_type != None)):
+							put('Re-setting constant ' + str(e.var) + ' which already has a value!')
+						
+						if (e_right.value == None):
+							self.raiseParseError('Constant ' + str(e.var) + ' can only be assigned a value, not a ' + str(e_right), t)
 						# Set constant value
-						e.var.data_value = e2.value
+						e.var.data_value = e_right.value
+						e.var.data_type = e_right.returnType
+					
 				
 			else:
 				# Just a call
@@ -1175,7 +1194,6 @@ class HAULReader_py(HAULReader):
 		t = self.peekNextToken()
 		while (self.eof() == False) and (t.data != ')'):
 			vd = self.readVarDef(namespace=ns)
-			f.addArg(vd)
 			t = self.peekNextToken()
 			
 			# Default value (not yet implemented)
@@ -1189,7 +1207,7 @@ class HAULReader_py(HAULReader):
 					put_debug('Inferring type "' + str(e_val.returnType) + '" for argument "' + str(vd) + '"')
 					vd.data_type = e_val.returnType
 				
-				put_debug('Default value for parameter "' + str(vd.name) + '"')
+				#put('Default value for parameter "' + str(vd.name) + '": ' + str(e_val))
 				#put('Expression: ' + str(e_val))
 				#put('Expression.value: ' + str(e_val.value))
 				#put('Expression.var: ' + str(e_val.var))
@@ -1200,9 +1218,16 @@ class HAULReader_py(HAULReader):
 				
 				if (e_val.var != None):
 					#HAULValue(type=e_val.var.data_type, data=e_val.var.data_value)
+					#if (e_val.var.kind != K_CONST):
+					if ((e_val.var.data_value == None) or (e_val.var.data_value.type == None)):
+						self.raiseParseError('Cannot determine default value for parameter "' + str(vd.name) + '", because variable ' + str(e_val.var) + ' has no (constant) value', t)
+					
+					put('Converting default value for parameter "' + str(vd.name) + '" from variable ' + str(e_val.var) + ' to value ' + str(e_val.var.data_value))
 					vd.data_value = e_val.var.data_value
 				
 				t = self.peekNextToken()
+			
+			f.addArg(vd)
 			
 			if (t.data == ','): t = self.getNextToken()
 			t = self.peekNextToken()
@@ -1260,14 +1285,19 @@ class HAULReader_py(HAULReader):
 			self.getNextToken()	# Skip bracket
 			
 			#@FIXME: Use something else for that (array of strings?)
-			c.inherits = self.readArgs(namespace=namespace, bracket=')')
+			#c.inherits = self.readArgs(namespace=namespace, bracket=')')
+			c.inherits = []
+			t2 = self.peekNextToken()
+			while (t2.data != ')'):
+				if (t2.data != ','):
+					c.inherits.append(t2.data)
+				self.getNextToken()
+				t2 = self.peekNextToken()
+			self.getAssertData(')', 'Expected ")" after inheritance list')
 			
 			# Inheritance
-			#@var e_inh HAULExpression
-			for e_inh in c.inherits:
-				if (e_inh.var == None):
-					self.raiseParseError('Could not inherit from ' + str(e_inh) + ' into class "' + c.id.name + '", because the former needs to be a class, not a ' + str(e_inh), t)
-				inh_name = e_inh.var.name
+			#@var inh_name str
+			for inh_name in c.inherits:
 				
 				put('Inheriting from class "' + inh_name + '" into class "' + c.id.name + '"...')
 				#ns_inh = e_inh.var.namespace
@@ -1477,6 +1507,9 @@ class HAULReader_py(HAULReader):
 					for imp_nss in imp_ns.nss:
 						ns.add_namespace(imp_nss)
 					#ns.add_namespace(...)
+					
+					m.addImport(imp_name)
+					
 				
 				else:
 					# Read main block
