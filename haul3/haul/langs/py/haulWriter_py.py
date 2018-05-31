@@ -42,21 +42,31 @@ class HAULWriter_py(HAULWriter):
 		self.write(r)
 		
 	def writeNamespace(self, ns, indent=0):
+		# Delimiter (must match readAnnotation())
+		d = ' '
+		
 		if (ns and len(ns.ids) > 0):
 			self.writeIndent(indent)
 			self.writeComment('Namespace "' + str(ns) + '"')
 			for id in sorted(ns.ids):
 				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type))
+				
+				if (id.name == 'self'): continue
+				if (id.name == '__init__'): continue
+				
+				# Skip functions here, add them when they get declared
+				if (id.kind == K_FUNCTION): continue
+				
 				self.writeIndent(indent)
-				self.write('#@' + str(id.kind) + '\t' + str(id.name))
-				if ((id.data_type != None) and (id.data_type != T_UNKNOWN)):
+				self.write('#@' + str(id.kind) + d + str(id.name))
+				if (id.data_type != None):
 					#self.write('\t' + str(id.data_type))
-					self.write('\t')
+					self.write(d)
 					self.writeType(id.data_type)
 					
 					if (id.data_value != None):
 						#self.write('\t' + str(id.data_value))
-						self.write('\t')
+						self.write(d)
 						if (id.data_value): self.writeValue(id.data_value)
 					
 				self.write('\n')
@@ -64,7 +74,35 @@ class HAULWriter_py(HAULWriter):
 	def writeFunc(self, f, indent=0):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
-		self.writeNamespace(f.namespace, indent)
+		#self.writeNamespace(f.namespace, indent)
+		
+		# Write function annotation
+		d = ' '
+		self.writeIndent(indent)
+		self.write('#@fun' + d + str(f.id.name))
+		#if ((f.id.data_type != None) and (f.id.data_type != T_NOTHING)):
+		if ((f.returnType != None) and (f.returnType != T_NOTHING)):
+			self.write(d)
+			#self.writeType(f.id.data_type)
+			self.writeType(f.returnType)
+		self.write('\n')
+		
+		#@var a HAULId
+		for a in f.args:
+			
+			if (a.name == 'self'): continue
+			
+			self.writeIndent(indent)
+			self.write('#@arg' + d + str(a.name))
+			if ((a.data_type != None) and (a.data_type != T_NOTHING)):
+				self.write(d)
+				self.writeType(a.data_type)
+				if ((a.data_value != None) and (a.data_value.type != T_UNKNOWN)):
+					self.write(d)
+					self.writeValue(a.data_value)
+			
+			self.write('\n')
+		# End of manual function annotation
 		
 		self.writeIndent(indent)
 		self.write('def ')
@@ -92,7 +130,9 @@ class HAULWriter_py(HAULWriter):
 		
 		self.write(':\n')
 		
-		#self.writeNamespace(f.namespace, indent+1)
+		# Depends on "BLOCKS_HAVE_LOCAL_NAMESPACE" - variables might be stored here (False) o in the block (True)
+		self.writeNamespace(f.namespace, indent+1)
+		
 		self.writeBlock(f.block, indent+1)
 		
 		# Extra blank line after functions

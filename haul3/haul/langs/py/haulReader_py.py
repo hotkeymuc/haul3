@@ -258,6 +258,7 @@ class HAULReader_py(HAULReader):
 			i = namespace.add_id(name=t.data, kind=K_VARIABLE, data_type=typ, origin=self.loc())
 		else:
 			i = namespace.find_id(name=t.data, kind=K_VARIABLE, ignore_unknown=True)
+			#i = namespace.get_id(name=t.data, kind=K_VARIABLE)
 		
 		if (i == None):
 			put_debug('Yet unknown argument "' + str(t.data) + '" may be inferred.')
@@ -269,13 +270,17 @@ class HAULReader_py(HAULReader):
 	#@arg namespace HAULNamespace
 	def readAnnotation(self, namespace):
 		self.getNextToken()	# Skip "@"
+		
+		t = self.peekNextToken()
+		
 		comment = self.readLine()
 		put_debug('readAnnotation(): "' + str(comment) + '"')
 		
 		ns = namespace
 		
 		# Annotations
-		parts = comment.split(' ')
+		d = ' '
+		parts = comment.split(d)
 		
 		if (parts[0] == K_FUNCTION):
 			put_debug('readAnnotation():	Creating temporary namespace for function annotation inside ns=' + str(namespace))
@@ -289,7 +294,10 @@ class HAULReader_py(HAULReader):
 		elif (parts[0] == A_ARGUMENT):
 			# Arguments need to be declared in a forward manner, that's why a "temporary namespace" is used which is checked on function declaration
 			if (self.tempNs == None):
-				raiseParseError('Argument annotation without matching function annotation', t)
+				self.raiseParseError('Argument annotation without matching function annotation', t)
+			
+			if (len(parts) < 3):
+				self.raiseParseError('Incomplete argument annotation: "' + str(comment) + '"', t)
 			
 			#self.tempNs.add_id(name=parts[1], kind=K_ARGUMENT, data=parts[2], origin=self.loc())
 			self.tempNs.add_id(name=parts[1], kind=K_VARIABLE, data_type=self.getType(parts[2]), origin=self.loc())
@@ -300,10 +308,14 @@ class HAULReader_py(HAULReader):
 			
 		elif (parts[0] == K_VARIABLE):
 			put_debug('Var annotation: ' + str(parts))
+			if (len(parts) < 3):
+				self.raiseParseError('Incomplete variable annotation: "' + str(comment) + '"', t)
 			ns.add_id(name=parts[1], kind=K_VARIABLE, data_type=self.getType(parts[2]), origin=self.loc(), overwrite=True)
 			
 		elif (parts[0] == K_CONST):
 			#put('Const annotation! ' + str(parts))
+			if (len(parts) < 4):
+				self.raiseParseError('Incomplete const annotation: "' + str(comment) + '"', t)
 			ns.add_id(name=parts[1], kind=K_CONST, data_type=self.getType(parts[2]), data_value=parts[3], origin=self.loc())
 		
 		self.getNextToken()	# Skip EOL
@@ -731,7 +743,7 @@ class HAULReader_py(HAULReader):
 				
 				# Check if we can chain multiple "+" operations together
 				if ((iId == '+') and (e_right.call) and (e_right.call.id.name == '+')):
-					#put('Chaining together!')
+					put_debug('Chaining infixed "+" terms together')
 					
 					eNew.call.args.append(e)
 					
@@ -1018,7 +1030,7 @@ class HAULReader_py(HAULReader):
 		b.origin = self.loc()
 		b.name = blockName
 		
-		if BLOCKS_HAVE_LOCAL_NAMESPACE:
+		if (BLOCKS_HAVE_LOCAL_NAMESPACE == True):
 			# Option A: Introduce dedicated namespace for local values
 			b.namespace = namespace.get_or_create_namespace(blockName)
 			ns = b.namespace	# Write all new entries inside this block to the block namespace (better, i.e. for Java)
@@ -1170,6 +1182,7 @@ class HAULReader_py(HAULReader):
 			f.returnType = i.data_type
 		f.id.data_function = f
 		
+		
 		if (self.tempNs):
 			# Use the annotated one
 			put_debug('Using annotated temp namespace...')
@@ -1180,9 +1193,11 @@ class HAULReader_py(HAULReader):
 			# Create new one / Re-use
 			#if (scanOnly):	f.namespace = HAULNamespace(name=t.data, parent=namespace)
 			#else:			f.namespace = namespace.findNamespace(t.data)
-			f.namespace = namespace.get_or_create_namespace(t.data)
+			f.namespace = namespace.get_or_create_namespace(f.id.name)
 		
+		# Everything else goes into the functions own namespace
 		ns = f.namespace
+		
 		# Use parent namespace
 		#ns = namespace
 		
@@ -1193,7 +1208,10 @@ class HAULReader_py(HAULReader):
 		# Read argument definitions
 		t = self.peekNextToken()
 		while (self.eof() == False) and (t.data != ')'):
+			#@var vd HAULId
 			vd = self.readVarDef(namespace=ns)
+			
+			#put('Argument was defined as ' + str(vd))
 			t = self.peekNextToken()
 			
 			# Default value (not yet implemented)
@@ -1201,9 +1219,11 @@ class HAULReader_py(HAULReader):
 				put_debug('Handling argument definition with default value')
 				self.getNextToken()
 				
+				# Search in parent namespace
 				e_val = self.readExpression(namespace=namespace)
+				
 				# Put this information into the namespace!
-				if (INFER_TYPE) and (vd.data_type == T_UNKNOWN):
+				if ((INFER_TYPE) and ((vd.data_type == T_UNKNOWN) or (vd.data_type == None))):
 					put_debug('Inferring type "' + str(e_val.returnType) + '" for argument "' + str(vd) + '"')
 					vd.data_type = e_val.returnType
 				
@@ -1213,10 +1233,11 @@ class HAULReader_py(HAULReader):
 				#put('Expression.var: ' + str(e_val.var))
 				#put('VarDef: ' + str(vd))
 				# Store default value in namespace
-				if (e_val.value != None):
+				if ((e_val.value != None) and (vd.data_value == None)):
+					#vd.data_type = e_val.value.type
 					vd.data_value = e_val.value
 				
-				if (e_val.var != None):
+				if ((e_val.var != None) and (vd.data_value == None)):
 					#HAULValue(type=e_val.var.data_type, data=e_val.var.data_value)
 					#if (e_val.var.kind != K_CONST):
 					if ((e_val.var.data_value == None) or (e_val.var.data_value.type == None)):
@@ -1224,6 +1245,7 @@ class HAULReader_py(HAULReader):
 					
 					put('Converting default value for parameter "' + str(vd.name) + '" from variable ' + str(e_val.var) + ' to value ' + str(e_val.var.data_value))
 					vd.data_value = e_val.var.data_value
+					#vd.data_type = e_val.var.data_value.type
 				
 				t = self.peekNextToken()
 			

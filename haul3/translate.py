@@ -90,13 +90,14 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 #source_file = 'examples/shellmini.py'
 #source_file = 'examples/vm.py'
 #source_file = 'examples/arrays.py'
-source_file = 'haul/haul.py'
-#source_file = 'haul/utils.py'
-#source_file = 'haul/langs/py/haulReader_py.py'
-#source_file = 'haul/langs/py/haulReader_py.py'
 
-libs = None
-#libs = ['haul/haul.py', 'haul/utils.py']
+#source_file = 'haul/utils.py'
+#source_file = 'haul/haul.py'
+source_file = 'haul/langs/py/haulReader_py.py'
+
+#libs = None
+#libs = ['haul/utils.py']
+libs = ['haul/haul.py', 'haul/utils.py']
 
 
 output_path = 'build'

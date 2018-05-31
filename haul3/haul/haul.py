@@ -463,6 +463,8 @@ class HAULCall:
 	#@var id HAULId
 	#@var args arr HAULExpression
 	
+	#@fun __init__
+	#@arg id HAULId
 	def __init__(self, id=None):
 		self.id = id
 		self.args = []
@@ -486,6 +488,10 @@ class HAULExpression:
 	#@var returnType HAULType
 	#@var origin int
 	
+	#@fun __init__
+	#@arg value HAULValue
+	#@arg var HAULId
+	#@arg call HAULCall
 	def __init__(self, value=None, var=None, call=None):
 		self.value = value
 		self.var = var
