@@ -159,7 +159,7 @@ class HAULNamespace:
 		for i in self.ids:
 			if (i.name == name) and ((kind == None) or (i.kind == kind)): return i
 		
-		#raise Exception('HAULNamespace error: "' + name + '" was not found in local namespace: ' + str(self.ids))
+		#raise Exception('Namespace error: "' + name + '" was not found in local namespace: ' + str(self.ids))
 		return None
 	
 	#@fun find_id HAULId
@@ -192,11 +192,11 @@ class HAULNamespace:
 		if (i != None):
 			if (overwrite == False):
 				#raise Exception('HAULNamespaceError: "' + (name) + '" is already present in current namespace!')
-				put('HAULNamespace Info: "' + (name) + '" is already present in current namespace, not overwriting!')
+				put('"' + (name) + '" is already present in namespace ' + str(self) + ' at ' + str(i.origin) + ', not overwriting!')
 				return i
 			
 			# Overwrite
-			put('Overwriting...')
+			put('Overwriting previous id ' + str(i) + ' in namespace ' + str(self) + '...')
 			i.origin = origin
 			i.data_type = data_type
 			i.data_value = data_value
@@ -306,12 +306,12 @@ class HAULValue:
 	#@var data_float float
 	#@var data_str str
 	
-	def __init__(self, type=None, data=None):
-		self.type = None	#HAULType
-		self.data_bool = False
-		self.data_int = 0
-		self.data_float = 0.0
-		self.data_str = ''
+	def __init__(self, type, data_bool=False, data_int=0, data_float=0.0, data_str=''):
+		self.type = type	#HAULType
+		self.data_bool = data_bool
+		self.data_int = data_int
+		self.data_float = data_float
+		self.data_str = data_str
 		
 	
 	def __repr__(self):
@@ -689,7 +689,6 @@ ns.add_id('<<', kind=K_FUNCTION, data_type=T_INHERIT)
 #ns.add_id('-=', kind=K_FUNCTION, data_type='#decBy')
 
 ns.add_id('.', kind=K_FUNCTION, data_type=T_UNKNOWN)	# Or pointer / unsure?
-#ns.add_id('in', kind=K_FUNCTION, data_type=T_ARRAY) # or T_BOOLEAN
 
 ns.add_id('untyped', kind=K_TYPE, data_type=T_UNKNOWN)
 ns.add_id('bool', kind=K_TYPE, data_type=T_BOOLEAN)
@@ -704,9 +703,9 @@ ns.add_id('xrange', kind=K_FUNCTION, data_type=T_INTEGER)
 
 
 #T_NONE = '#none'
-ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=None)
-ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=True)
-ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN, data_value=False)
+ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=HAULValue(type=T_NOTHING))
+ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=True))
+ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=False))
 ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 
 
@@ -741,20 +740,6 @@ rootNamespace.add_namespace(ns)
 ns.add_id('message', kind=K_VARIABLE, data_type=T_STRING)
 
 
-"""
-# Prepare known/internal libraries
-LIB_NAMESPACES = {}
-
-# HIO
-ns = HAULNamespace('hio', parent=None)
-ns.add_id('put', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('put_direct', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('shout', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('get', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('int_str', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('float_str', kind=K_FUNCTION, data_type=T_STRING)
-LIB_NAMESPACES['hio'] = ns
-"""
 
 
 # Implicit function calls. They are "so internal" that they don't need to be exposed to a global namespace, but are handled directly by the parser

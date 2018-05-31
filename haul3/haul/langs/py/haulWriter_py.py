@@ -18,9 +18,9 @@ PAT_INFIX = [
 	'&', 'and', 'or', '|', '||', '^'
 	'>', '<', '==', '>=', '<=', '!=',
 	'<<', '>>',
-	#'in',	# confusion with for ... in
-	#'+=', '-='
+	'in'
 ]
+#'+=', '-='
 
 class HAULWriter_py(HAULWriter):
 	"Writes Python code"
@@ -49,7 +49,7 @@ class HAULWriter_py(HAULWriter):
 				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type))
 				self.writeIndent(indent)
 				self.write('#@' + str(id.kind) + '\t' + str(id.name))
-				if (id.data_type != None):
+				if ((id.data_type != None) and (id.data_type != T_UNKNOWN)):
 					#self.write('\t' + str(id.data_type))
 					self.write('\t')
 					self.writeType(id.data_type)
@@ -362,7 +362,11 @@ class HAULWriter_py(HAULWriter):
 		elif (v.type == T_BOOLEAN):
 			if (v.data_bool == True): self.write('True')
 			else: self.write('False')
+		elif (v.type == T_NOTHING):
+			self.write('None')
 		elif (v.type == None):
+			# This should not happen!
+			put('Value has no type!')
 			self.write('[type=None]')
 		else:
 			put('Unknown value type: ' + str(v.type))
@@ -376,8 +380,9 @@ class HAULWriter_py(HAULWriter):
 		elif (t == T_STRING): self.write('str')
 		elif (t == T_OBJECT): self.write('obj')
 		elif (t == T_NOTHING): self.write('void')
-		elif (t == T_UNKNOWN): self.write('?')
+		elif (t == T_UNKNOWN): self.write('[type=UNKNOWN]')
 		else:
+			# Class name assumed
 			self.write(str(t))
 	
 	def writeVar(self, v):
