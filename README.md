@@ -17,10 +17,11 @@ Have fun with it and compile responsibly.
 ![Polymorphism](https://raw.githubusercontent.com/hotkeymuc/haul3/master/media/build_polymorphic.gif "Polymorphism")
 
 ## Features and Limitations
-* This version can not *yet* translate its own source, but it's getting very close. At the moment there are quite some "pythonic" statements used in the parser; so they either have to be eliminated *or* implemented in the language parser as well... In the meantime, feel free to throw other source code at it.
+* This version can ~~not *yet* translate its own source, but it's getting very close. At the moment there are quite some "pythonic" statements used in the parser; so they either have to be eliminated *or* implemented in the language parser as well...~~ translate most of its own source, but there is still room for stability improvements
 * Finally, HAUL3 is using a proper AST structure, which allows output languages that vastly differ from scripting languages, e.g. JSON or Assembly.
 * The source language is now valid (subset of) Python, eliminating the "chicken-egg-problem" of the previous versions. No more bootstrapping needed.
 * This is the most object-oriented approach yet. Much easier to comprehend than the previous versions, but also much more complex and powerful. Finally: Real classes, namespaces, imports, libraries, ...
+* Working goodies: Type inference, class inheritance, library imports
 * + Pro: Pretty easy to add new output languages and features.
 * - Con: High memory consumption (keeps a lot of structures in RAM), so it may be hard to run a big compilation on a C64...
 * HAUL3 adds the concept of "builders". A builder can translate code into another language and package it for a certain hardware platform. This means, for example, one-click deployment to a PalmOS device :-)
