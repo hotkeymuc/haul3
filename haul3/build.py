@@ -16,7 +16,7 @@ from haul.platforms.webos.haulBuilder_webos import *
 
 
 
-source_filename = 'hello.py'
+#source_filename = 'hello.py'
 #source_filename = 'small.py'
 #source_filename = 'shellmini.py'
 #source_filename = 'hres_test.py'
@@ -29,50 +29,37 @@ perform_test_run = True
 #builder = HAULBuilder_arduino()
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
-#builder = HAULBuilder_html()
+builder = HAULBuilder_html()
 #builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
 #builder = HAULBuilder_vtech()
-builder = HAULBuilder_webos()
+#builder = HAULBuilder_webos()
 
 
-source_path = os.path.abspath('examples')
-staging_path = os.path.abspath('staging')
-output_path = os.path.abspath('build')
-data_path = os.path.abspath('data')
 #resources = [
 #	os.path.join(source_path, 'hres_data1.txt'),
 #	os.path.join(source_path, 'hres_data2.txt'),
 #]
 
-builder.configure(
-	source_path=source_path,
-	libs_path='libs',
-	staging_path='staging',
-	output_path='build',
-	data_path='data',
-)
+builder.source_path = os.path.abspath('examples')
+builder.libs_path = 'libs'
+builder.data_path = 'data'
+builder.staging_path = 'staging'
+builder.output_path = 'build'
 
-builder.add_lib('hio', 'libs/hio.py')
+
+builder.add_lib('hio')
 #builder.add_source('helper', 'examples/small.py', is_main=False)
-builder.add_source('hello', 'hello.py', is_main=True)
+builder.set_source('examples/hello.py')
 
-builder.build()
+#builder.translate()
+#builder.package()
+#builder.test()
 
-builder.test()
-
-builder.finish()
+#builder.finish()
 
 
-
-builder.build(
-	source_path=source_path,
-	source_filename=source_filename,
-	output_path=output_path,
-	staging_path=staging_path,
-	data_path=data_path,
-	resources=resources,
-	perform_test_run=perform_test_run)
+builder.build(perform_test_run=perform_test_run)
 
 put('build.py ended.')

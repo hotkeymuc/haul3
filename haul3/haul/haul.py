@@ -273,7 +273,7 @@ class HAULNamespace:
 				#else:	put('    != "' + str(ns) + '"')
 			r = r.parent
 		
-		#raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!')	#\n' + rootNamespace.dump())
+		#raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!')
 		return None
 	
 	def clear(self):
@@ -740,16 +740,16 @@ ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 
 
 # Internal array functions
-ns = HAULNamespace(T_ARRAY, parent=rootNamespace)
-rootNamespace.add_namespace(ns)
+ns = HAULNamespace(T_ARRAY, parent=HAUL_ROOT_NAMESPACE)
+HAUL_ROOT_NAMESPACE.add_namespace(ns)
 ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
 ns.add_id('pop', kind=K_FUNCTION, data_type=T_INHERIT)
 I_ARRAY_SLICE = ns.add_id('#slice', kind=K_FUNCTION, data_type=T_ARRAY)
 I_ARRAY_LEN = ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
 
 # Internal string functions
-ns = HAULNamespace(T_STRING, parent=rootNamespace)
-rootNamespace.add_namespace(ns)
+ns = HAULNamespace(T_STRING, parent=HAUL_ROOT_NAMESPACE)
+HAUL_ROOT_NAMESPACE.add_namespace(ns)
 ns.add_id('replace', kind=K_FUNCTION, data_type=T_STRING)
 ns.add_id('index', kind=K_FUNCTION, data_type=T_INTEGER)
 ns.add_id('rfind', kind=K_FUNCTION, data_type=T_INTEGER)
@@ -757,16 +757,16 @@ ns.add_id('startswith', kind=K_FUNCTION, data_type=T_BOOLEAN)
 ns.add_id('split', kind=K_FUNCTION, data_type=T_ARRAY)
 
 # Internal handle functions (files, pipes, ...)
-ns = HAULNamespace(T_HANDLE, parent=rootNamespace)
+ns = HAULNamespace(T_HANDLE, parent=HAUL_ROOT_NAMESPACE)
+HAUL_ROOT_NAMESPACE.add_namespace(ns)
 ns.add_id('read', kind=K_FUNCTION, data_type=T_STRING)
 ns.add_id('write', kind=K_FUNCTION, data_type=T_NOTHING)
 ns.add_id('close', kind=K_FUNCTION, data_type=T_NOTHING)
-rootNamespace.add_id('open', kind=K_FUNCTION, data_type=T_HANDLE)
-rootNamespace.add_namespace(ns)
+HAUL_ROOT_NAMESPACE.add_id('open', kind=K_FUNCTION, data_type=T_HANDLE)
 
 # Internal Exceptions
-ns = HAULNamespace('Exception', parent=rootNamespace)
-rootNamespace.add_namespace(ns)
+ns = HAULNamespace('Exception', parent=HAUL_ROOT_NAMESPACE)
+HAUL_ROOT_NAMESPACE.add_namespace(ns)
 ns.add_id('message', kind=K_VARIABLE, data_type=T_STRING)
 
 
@@ -836,7 +836,6 @@ class HAULReader:
 	#@var lineNum int
 	#@var linePos int
 	#@var peekNext HAULToken
-	#@var rootNamespace HAULNamespace
 	
 	#@var tempNs HAULNamespace
 	
@@ -850,9 +849,6 @@ class HAULReader:
 		self.lineNum = 1
 		self.linePos = 1
 		self.peekNext = None
-		
-		#self.rootNamespace = HAULNamespace(name=filename, parent=rootNamespace)	# Root namespace
-		self.rootNamespace = rootNamespace
 		
 		#self.annot = None	# Current annotation
 		self.tempNs = None	# For storing function annotations before function actually created (forward annotation)
@@ -954,19 +950,23 @@ class HAULWriter:
 	def stream(self, reader, namespace=None, monolithic=False):
 		"Write to output stream what the reader provides. Returns the module object"
 		
+		#@var name str
+		name = reader.filename.replace('.', '_')
+		
+		
 		#@var ns HAULNamespace
-		ns = rootNamespace
-		if (namespace != None): ns = namespace
+		if (namespace != None):
+			ns = namespace
+		else:
+			ns = HAUL_ROOT_NAMESPACE
 		
 		if monolithic:
 			### Cheap (greedy: read whole input file into AST, then translate)
-			m = reader.read_module(namespace=ns)
+			m = reader.read_module(name=name, namespace=ns)
 			self.write_module(m)
 		
 		else:
 			#@var i int
-			#@var name str
-			name = reader.filename.replace('.', '_')
 			
 			### Smart (streaming: scan input file, then seek to individual items and translate them)
 			put('>>> Using Smart (streaming) translation...')
@@ -974,7 +974,7 @@ class HAULWriter:
 			m = reader.read_module(name=name, namespace=ns, scan_only=True)
 			put('Done pre-processing.')
 			
-			put('Namespace after scanning:\n' + rootNamespace.dump())
+			put('Namespace after scanning:\n' + ns.dump())
 			#m.namespace.clear()
 			
 			
@@ -1011,7 +1011,6 @@ class HAULWriter:
 			self.write_comment('This file might be incomplete, because smart (streaming) translation is not fully tested, yet! Use cheap (greedy) translation instead!\n')
 			self.write_post()
 		
-		#put('Final namespace:\n' + rootNamespace.dump())
 		return m
 		
 	

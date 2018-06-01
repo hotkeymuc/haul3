@@ -7,34 +7,28 @@ import shutil
 import subprocess	# for running commands
 
 from utils import *
+from langs.py.haulReader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
 
 def put(t):
 	print('HAULBuilder:\t' + str(t))
 
-class HAULSource:
-	def __init__(self, name, stream, filename='?', is_native=False, is_main=False):
-		self.name = name
-		self.stream = stream
-		self.filename = filename
-		
-		self.is_native = is_native
-		self.is_main = is_main
-		self.module = None
-
 class HAULBuilder:
 	"Provides the functionality to build a HAUL file for another platform. Like make etc."
 	
-	def __init__(self, lang, platform):
-		self.lang = lang
+	def __init__(self, platform, lang=None):
 		self.platform = platform
+		self.lang = lang
 		
-		self.ReaderClass = None
-		self.WriterClass = None
+		self.source_path = '.'
+		self.source_filename = None
+		self.name = None
 		
+		self.libs_path = 'libs'
+		self.data_path = 'data'
 		self.staging_path = 'staging'
 		self.output_path = 'build'
 		
-		self.sources = []
+		self.libs = []
 		self.namespace = HAULNamespace(name='builder', parent=HAUL_ROOT_NAMESPACE)
 	
 	# File system abstraction
@@ -99,48 +93,39 @@ class HAULBuilder:
 		stream = StringReader(self.type(filename))
 		return stream
 	
+	def set_source(self, filename):
+		self.source_filename = filename
+		self.name = name_by_filename(self.source_filename)
 	
-	def add_source(self, name, filename, is_native=False, is_main=False):
-		stream = self.stream_from_file(filename)
-		s = HAULSource(name=name, stream=stream, filename=filename, is_native=is_native, is_main=is_main)
-		self.sources.append(s)
-		
+	def add_lib(self, name):
+		self.libs.append(name)
 	
-	def translate(self):
-		"Read all libs and prepare a namespace that contains all definitions. This makes them available for files to import them."
-		
-		for s in self.sources:
-			put('Processing source "{}" in file "{}"...'.format(s.name, s.filename))
-			
-			reader = self.ReaderClass(stream=s.stream, filename=s.filename)
-			
-			if (s.is_native):
-				# No need for reading the actual implementation
-				s.module = reader.read_module(name=s.name, namespace=self.namespace, scan_only=True)
-			else:
-				# Actually translate
-				s.module = reader.read_module(name=s.name, namespace=self.namespace, scan_only=False)
-				
-			
-			
-		
+	def scan_libs(self):
+		for l in self.libs:
+			name = l
+			filename = self.libs_path + '/' + name + '.py'
+			stream = self.stream_from_file(filename)
+			reader = HAULReader_py(stream=stream, filename=filename)
+			m = reader.read_module(name=name, namespace=self.namespace, scan_only=True)
 	
-	def translate(self, name, source_filename, SourceReaderClass, dest_filename, DestWriterClass, dialect=None):
+	def translate(self, name, source_filename, dest_filename, DestWriterClass, dialect=None):
+		
 		put('Translating file "' + source_filename + '" to "' + dest_filename + '"...')
-		streamIn = self.stream_from_file(source_filename)
-		reader = SourceReaderClass(streamIn, name)
+		stream_in = self.stream_from_file(source_filename)
+		
+		reader = HAULReader_py(stream_in, name)
 		monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 		reader.seek(0)
-		streamOut = StringWriter()
+		stream_out = StringWriter()
 		
 		if (dialect == None):
-			writer = DestWriterClass(streamOut)
+			writer = DestWriterClass(stream_out)
 		else:
-			writer = DestWriterClass(streamOut, dialect=dialect)
-		m = writer.stream(reader, monolithic=monolithic)	# That's where the magic happens!
+			writer = DestWriterClass(stream_out, dialect=dialect)
+		m = writer.stream(reader, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
 		
 		put('Writing to "%s"...' % (dest_filename))
-		writeFile(dest_filename, streamOut.r)
+		self.touch(dest_filename, stream_out.r)
 		return m
 	
 	def bundle(self, resources, dest_filename):
@@ -157,20 +142,18 @@ class HAULBuilder:
 			t = t.replace('\r', '\\r')
 			r += '_data[' + str(i) + '] = \'' + t + '\'\n'
 			i += 1
-		writeFile(dest_filename, r)
+		self.touch(dest_filename, r)
 	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path=None, resources=None, perform_test_run=False):
+	def build(self, perform_test_run=False):
 		"Actually build a file."
 		
 		put('Starting build...')
-		self.source_filename = source_filename
-		self.output_path = output_path
 		
-		put('Creating output path "' + output_path + '"...')
-		self.mkdir(output_path)
+		put('Creating output path "' + self.output_path + '"...')
+		self.mkdir(self.output_path)
 		
-		put('Cleaning staging path "' + staging_path + '"...')
-		self.clean(staging_path)
+		put('Cleaning staging path "' + self.staging_path + '"...')
+		self.clean(self.staging_path)
 		
 		
 	

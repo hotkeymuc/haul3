@@ -46,7 +46,7 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	
 	
 	# Pre-scan libraries, so they are known
-	libs_ns = rootNamespace
+	libs_ns = HAUL_ROOT_NAMESPACE
 	if (libs != None):
 		for lib_filename in libs:
 			# By reading the libs in in "scan_only" mode, the namespace gets populated without doing too much extra parsing work
