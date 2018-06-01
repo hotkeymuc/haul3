@@ -72,7 +72,7 @@ class HAULWriter_c(HAULWriter):
 	def __init__(self, streamOut, dialect=DIALECT_C):
 		HAULWriter.__init__(self, streamOut)
 		self.defaultExtension = 'c'
-		self.writeComment('Translated from HAUL3 to C on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to C on ' + str(datetime.datetime.now()) )
 		
 		self.dialect = dialect
 		
@@ -83,7 +83,7 @@ class HAULWriter_c(HAULWriter):
 			r += '\t'
 		self.write(r)
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		self.streamOut.put('// ' + t + '\n')
 		
@@ -103,7 +103,7 @@ class HAULWriter_c(HAULWriter):
 			self.writeIndent(indent)
 			self.write(' */\n')
 		
-	def writeFunc(self, f, indent=0, parentClassName=None):
+	def write_function(self, f, indent=0, parentClassName=None):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		###self.writeNamespace(f.namespace, indent)
 		
@@ -142,14 +142,14 @@ class HAULWriter_c(HAULWriter):
 		self.write(') {\n')
 		
 		#self.writeNamespace(f.namespace, indent+1)
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		self.writeIndent(indent)
 		self.write('}\n')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
-		self.writeComment('### Begin of Module "' + m.name + '"')
+		self.write_comment('### Begin of Module "' + m.name + '"')
 		
 		#self.write('### Module namespace...\n')
 		self.writeNamespace(m.namespace, indent)
@@ -159,7 +159,7 @@ class HAULWriter_c(HAULWriter):
 		
 		if (len(m.imports) > 0):
 			self.write('\n')
-			self.writeComment('### Imports...')
+			self.write_comment('### Imports...')
 			
 			for im in m.imports:
 				if self.dialect == DIALECT_GBDK:
@@ -184,20 +184,20 @@ class HAULWriter_c(HAULWriter):
 		
 		if (len(m.classes) > 0):
 			self.write('\n')
-			self.writeComment('### Classes...')
+			self.write_comment('### Classes...')
 			for typ in m.classes:
-				self.writeClass(typ, indent)
+				self.write_class(typ, indent)
 				self.write('\n')
 		
 		if (len(m.funcs) > 0):
 			self.write('\n')
-			self.writeComment('### Functions...')
+			self.write_comment('### Functions...')
 			for func in m.funcs:
-				self.writeFunc(func, indent)
+				self.write_function(func, indent)
 				self.write('\n')
 		
 		self.write('\n')
-		self.writeComment('### Root Block (main function)...')
+		self.write_comment('### Root Block (main function)...')
 		if self.dialect == DIALECT_GBDK:
 			self.write('void main_internal() {\n')
 		elif self.dialect == DIALECT_Z88DK:
@@ -209,7 +209,7 @@ class HAULWriter_c(HAULWriter):
 			self.write('int main() {\n')
 		
 		if (m.block):
-			self.writeBlock(m.block, indent+1)
+			self.write_block(m.block, indent+1)
 		
 		
 		if self.dialect == DIALECT_GBDK:
@@ -227,14 +227,14 @@ class HAULWriter_c(HAULWriter):
 		
 		
 		self.write('\n')
-		self.writeComment('### End of Module')
+		self.write_comment('### End of Module')
 		
 	
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.writeIndent(indent)
-		self.writeComment('# Class "' + c.id.name + '"')
+		self.write_comment('# Class "' + c.id.name + '"')
 		
 		
 		# Because we will mess up the namespace
@@ -253,16 +253,16 @@ class HAULWriter_c(HAULWriter):
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent+0, parentClassName=c.id.name)
+			self.write_function(func, indent+0, parentClassName=c.id.name)
 		
 		# Restore sanity
 		c.namespace = nsOld
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		
-		#self.writeComment("# Block \"" + b.name + "\"")
+		#self.write_comment("# Block \"" + b.name + "\"")
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			if (b.namespace and len(b.namespace.ids) > 0):
@@ -290,7 +290,7 @@ class HAULWriter_c(HAULWriter):
 		
 		#put(' writing instruction: ' + str(i))
 		if (i.comment):
-			self.writeComment(i.comment)
+			self.write_comment(i.comment)
 			self.writeIndent(indent)
 			
 		if (i.control): self.writeControl(i.control, indent)
@@ -307,7 +307,7 @@ class HAULWriter_c(HAULWriter):
 				
 				self.writeExpression(c.exprs[j])
 				self.write(') {\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				self.writeIndent(indent)
 				self.write('}')
 				if (j < len(c.blocks)):
@@ -319,7 +319,7 @@ class HAULWriter_c(HAULWriter):
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('else {\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				self.writeIndent(indent)
 				self.write('}\n')
 		
@@ -331,7 +331,7 @@ class HAULWriter_c(HAULWriter):
 			#self.writeExpression(c.exprs[1])
 			if (len(c.exprs) < 2):
 				put('TOO LESS FOR EXPRESSIONS!')
-				self.writeComment('Too less expressions: ')
+				self.write_comment('Too less expressions: ')
 				self.writeExpressionList(c.exprs)
 			
 			elif ((c.exprs[1].call != None) and (c.exprs[1].call.id.name == 'xrange')):
@@ -344,21 +344,21 @@ class HAULWriter_c(HAULWriter):
 				self.write('++')
 			else:
 				put('UNHANDLED FOR CONSTRUCT: ' + str(c.exprs))
-				#self.writeComment('Unhandled kind of for-loop construct: ')
+				#self.write_comment('Unhandled kind of for-loop construct: ')
 				#self.write(str(c.exprs))
 				self.write(' in ')
 				self.writeExpression(c.exprs[1])
 			
 			
 			self.write(') {\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			self.writeIndent(indent)
 			self.write('}\n')
 		elif (c.controlType == C_WHILE):
 			self.write('while (')
 			self.writeExpression(c.exprs[0])
 			self.write(') {\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			self.writeIndent(indent)
 			self.write('}\n')
 		elif (c.controlType == C_RETURN):

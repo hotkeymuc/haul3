@@ -23,9 +23,9 @@ class HAULWriter_vbs(HAULWriter):
 		HAULWriter.__init__(self, streamOut)
 		#self.defaultExtension = 'bas'
 		self.defaultExtension = 'vbs'
-		self.writeComment('Translated from HAUL3 to Visual BASIC on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to Visual BASIC on ' + str(datetime.datetime.now()) )
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		#self.streamOut.put('REM ' + t + '\n')
 		self.streamOut.put('\' ' + t + '\n')
@@ -39,7 +39,7 @@ class HAULWriter_vbs(HAULWriter):
 	def writeNamespace(self, ns, indent=0):
 		if (ns and len(ns.ids) > 0):
 			self.writeIndent(indent)
-			self.writeComment('Namespace "' + str(ns) + '"')
+			self.write_comment('Namespace "' + str(ns) + '"')
 			for id in ns.ids:
 				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type))
 				if (id.name == 'res'): continue	# Do not (re-)declare result
@@ -52,7 +52,7 @@ class HAULWriter_vbs(HAULWriter):
 					self.writeType(id.data_type)
 					self.write('\n')
 		
-	def writeFunc(self, f, indent=0):
+	def write_function(self, f, indent=0):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
 		#self.writeNamespace(f.namespace, indent)
@@ -68,7 +68,7 @@ class HAULWriter_vbs(HAULWriter):
 			"""
 			id = f.namespace.find_id(f.args[i].name)
 			if (id == None):
-				#self.writeComment('UnknownType')
+				#self.write_comment('UnknownType')
 				pass
 			else:
 				self.write(' AS ')
@@ -79,15 +79,15 @@ class HAULWriter_vbs(HAULWriter):
 		self.write('\n')
 		
 		#self.writeNamespace(f.namespace, indent+1)
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		self.writeIndent(indent)
 		self.write('END FUNCTION\n')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
-		self.writeComment('### Module "' + m.name + '"')
+		self.write_comment('### Module "' + m.name + '"')
 		for im in m.imports:
 			self.write('\'INCLUDE ')
 			self.write(str(im))
@@ -96,19 +96,19 @@ class HAULWriter_vbs(HAULWriter):
 		#self.write('### Module namespace...\n')
 		self.writeNamespace(m.namespace, indent)
 		
-		self.writeComment('### Classes...')
+		self.write_comment('### Classes...')
 		for typ in m.classes:
-			self.writeClass(typ, indent)
+			self.write_class(typ, indent)
 		
-		self.writeComment('### Funcs...')
+		self.write_comment('### Funcs...')
 		for func in m.funcs:
-			self.writeFunc(func, indent)
+			self.write_function(func, indent)
 		
-		self.writeComment('### Root Block (main function):')
+		self.write_comment('### Root Block (main function):')
 		if (m.block):
-			self.writeBlock(m.block, indent)
+			self.write_block(m.block, indent)
 		
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		
 		#self.write('# Class "' + t.id.name + '"\n')
@@ -124,11 +124,11 @@ class HAULWriter_vbs(HAULWriter):
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent+1)
+			self.write_function(func, indent+1)
 		
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		
 		#self.write("# Block \"" + b.name + "\"\n")
@@ -161,13 +161,13 @@ class HAULWriter_vbs(HAULWriter):
 				
 				self.writeExpression(c.exprs[j])
 				self.write(') THEN\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				j += 1
 			
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('ELSE\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 			self.write('END IF\n')
 		
 		elif (c.controlType == C_FOR):
@@ -176,7 +176,7 @@ class HAULWriter_vbs(HAULWriter):
 			self.write(' in ')
 			self.writeExpression(c.exprs[1])
 			self.write('\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			
 			self.write('NEXT ')
 			self.writeExpression(c.exprs[0])

@@ -147,9 +147,9 @@ class HAULWriter_asm(HAULWriter):
 		#self.heapSize = 0
 		self.codeSize = 0
 		self.entryPoint = 0
-		self.writeComment('Translated from HAUL3 to Assembly on ' + str(datetime.datetime.now()))
+		self.write_comment('Translated from HAUL3 to Assembly on ' + str(datetime.datetime.now()))
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		self.streamOut.put('; ' + t + '\n')
 		
@@ -161,7 +161,7 @@ class HAULWriter_asm(HAULWriter):
 		#id.user = self.heapSize
 		#self.heapSize += 1
 	
-	def writePost(self, indent=0):
+	def write_post(self, indent=0):
 		"Post-processing"
 		
 		# Write heap section
@@ -211,7 +211,7 @@ class HAULWriter_asm(HAULWriter):
 				self.write(('#\t%04X' % int(id.user)) + '\t' + str(id.kind) + '\t' + str(id.name) + '\t' + str(id.data) + '\n')
 			"""
 	
-	def writeFunc(self, f, indent=0):
+	def write_function(self, f, indent=0):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.writeIndent(indent)
@@ -237,14 +237,14 @@ class HAULWriter_asm(HAULWriter):
 		self.write('\n')
 		
 		#self.writeNamespace(f.namespace, indent+1)
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		self.writeIndent(indent+1)
 		self.write('# End of function ' + f.id.name + '\n')
 		self.writeIndent(indent)
 		self.write('\n')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.write('### Module "' + m.name + '"\n')
@@ -258,20 +258,20 @@ class HAULWriter_asm(HAULWriter):
 		
 		self.write('### Classes...\n')
 		for typ in m.classes:
-			self.writeClass(typ, indent)
+			self.write_class(typ, indent)
 		
 		self.write('### Funcs...\n')
 		for func in m.funcs:
-			self.writeFunc(func, indent)
+			self.write_function(func, indent)
 		
 		self.write('### Root Block (main function):\n')
 		if (m.block):
 			self.entryPoint = self.codeSize
-			self.writeBlock(m.block, indent)
+			self.write_block(m.block, indent)
 		
-		self.writePost(indent=indent)
+		self.write_post(indent=indent)
 		
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		
 		#self.write('# Class "' + t.id.name + '"\n')
@@ -287,13 +287,13 @@ class HAULWriter_asm(HAULWriter):
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent+1)
+			self.write_function(func, indent+1)
 		
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		self.writeIndent(indent)
 		self.write('\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.write('# Block "' + b.name + '"\n')
@@ -321,7 +321,7 @@ class HAULWriter_asm(HAULWriter):
 		atom = Atom()
 		
 		if (i.comment != None):
-			self.writeComment(i.comment)
+			self.write_comment(i.comment)
 		
 		if (i.control): self.writeControl(i.control, atom=atom, indent=indent)
 		if (i.call): self.writeCall(i.call, atom=atom)
@@ -343,13 +343,13 @@ class HAULWriter_asm(HAULWriter):
 				self.write('if (')
 				self.writeExpression(c.exprs[j], atom=atom)
 				self.write('):\n')
-				self.writeBlock(c.blocks[j], indent=indent+1)
+				self.write_block(c.blocks[j], indent=indent+1)
 				j += 1
 			
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('else:\n')
-				self.writeBlock(c.blocks[j], indent=indent+1)
+				self.write_block(c.blocks[j], indent=indent+1)
 		
 		elif (c.controlType == C_FOR):
 			self.write('for ')
@@ -357,7 +357,7 @@ class HAULWriter_asm(HAULWriter):
 			self.write(' in ')
 			self.writeExpression(c.exprs[1], atom=atom)
 			self.write(':\n')
-			self.writeBlock(c.blocks[0], atom=atom, indent=indent+1)
+			self.write_block(c.blocks[0], atom=atom, indent=indent+1)
 		#@TODO: C_WHILE
 		#@TODO: C_CONTINUE
 		#@TODO: C_BREAK
@@ -388,7 +388,7 @@ class HAULWriter_asm(HAULWriter):
 			storVal = atom.use()
 			"""
 			
-			self.writeComment('Set value of variable ' + str(c.args[0]) + ' to the result of ' + str(c.args[1]) + '\n')
+			self.write_comment('Set value of variable ' + str(c.args[0]) + ' to the result of ' + str(c.args[1]) + '\n')
 			
 			"""
 			self.writeExpression(c.args[1], atom=atom, level=level)
@@ -400,12 +400,12 @@ class HAULWriter_asm(HAULWriter):
 			atom.pushInstr('MOV', consume=[storVar, storVal])
 			"""
 			
-			self.writeComment('First: Calculate the primitive result of expression ' + str(c.args[1]))
+			self.write_comment('First: Calculate the primitive result of expression ' + str(c.args[1]))
 			self.writeExpression(c.args[1], atom=atom, level=level)
 			storVal = atom.use(ref=REF_VALUE)
 			
 			
-			self.writeComment('Second: Set value of variable %s to that value' % str(c.args[1]))
+			self.write_comment('Second: Set value of variable %s to that value' % str(c.args[1]))
 			atom.pushInstr('LD	[%04X %s], ' % (c.args[0].var.user, c.args[0].var.name), consume=[storVal])
 			
 		

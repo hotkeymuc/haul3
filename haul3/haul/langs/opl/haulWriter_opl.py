@@ -25,11 +25,11 @@ class HAULWriter_opl(HAULWriter):
 		self.defaultExtension = 'opl'
 		
 		#OPL needs proc name in first line, so we can not add this comment
-		#	self.writeComment('Translated from HAUL3 to OPL on ' + str(datetime.datetime.now()) )
+		#	self.write_comment('Translated from HAUL3 to OPL on ' + str(datetime.datetime.now()) )
 		
 		self.dialect = dialect
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		#self.streamOut.put('REM ' + t + '\n')
 		self.streamOut.put('REM ' + t + '\n')
@@ -45,7 +45,7 @@ class HAULWriter_opl(HAULWriter):
 		if (len(ns.ids) == 0): return
 		
 		self.writeIndent(indent)
-		self.writeComment('Namespace "' + str(ns) + '"')
+		self.write_comment('Namespace "' + str(ns) + '"')
 		
 		# Count all vars that need to be declared. OPL does not allow empty LOCAL instruction
 		i = 0
@@ -71,7 +71,7 @@ class HAULWriter_opl(HAULWriter):
 		self.write('\n')
 		
 		
-	def writeFunc(self, f, indent=0):
+	def write_function(self, f, indent=0):
 		#self.writeNamespace(f.namespace, indent)
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
@@ -97,7 +97,7 @@ class HAULWriter_opl(HAULWriter):
 				"""
 				id = f.namespace.findId(f.args[i].name)
 				if (id == None):
-					#self.writeComment('UnknownType')
+					#self.write_comment('UnknownType')
 					pass
 				else:
 					self.write(' AS ')
@@ -109,14 +109,14 @@ class HAULWriter_opl(HAULWriter):
 		
 		#if self.dialect == DIALECT_OPL:
 		#	self.writeNamespace(f.namespace, indent+1)
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		if self.dialect != DIALECT_OPL3:
 			self.write('ENDP\n')
 			self.writeIndent(indent)
 			self.write('\n')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
 		wait_before_exit = True	# Add a wait statement (so you can read the output)
@@ -127,7 +127,7 @@ class HAULWriter_opl(HAULWriter):
 		self.write('\n')
 		
 		self.writeIndent(indent+1)
-		self.writeComment('### Module "' + m.name + '"')
+		self.write_comment('### Module "' + m.name + '"')
 		
 		for im in m.imports:
 			self.writeIndent(indent+1)
@@ -143,10 +143,10 @@ class HAULWriter_opl(HAULWriter):
 		self.writeNamespace(m.namespace, indent+1)
 		
 		self.writeIndent(indent+1)
-		self.writeComment('### Root Block (main function):')
+		self.write_comment('### Root Block (main function):')
 		
 		if (m.block):
-			self.writeBlock(m.block, indent+1)
+			self.write_block(m.block, indent+1)
 			
 			if wait_before_exit: self.write('GET\n')	# Wait for key
 			#self.write('PAUSE 40\n')
@@ -154,20 +154,20 @@ class HAULWriter_opl(HAULWriter):
 		if self.dialect == DIALECT_OPL3:
 			# Old OPL needs to have each PROC in its own file. Newer OPL can have "PROC xxx:" in source
 			self.writeIndent(indent+1)
-			self.writeComment('Functions and classes are in separate files')
+			self.write_comment('Functions and classes are in separate files')
 		else:
 			self.writeIndent(indent)
-			self.writeComment('### Classes...')
+			self.write_comment('### Classes...')
 			for typ in m.classes:
-				self.writeClass(typ, indent)
+				self.write_class(typ, indent)
 			
 			self.writeIndent(indent)
-			self.writeComment('### Funcs...')
+			self.write_comment('### Funcs...')
 			for func in m.funcs:
-				self.writeFunc(func, indent)
+				self.write_function(func, indent)
 		
 		
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		#self.write('# Class "' + t.id.name + '"\n')
 		
@@ -183,18 +183,18 @@ class HAULWriter_opl(HAULWriter):
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent+1)
+			self.write_function(func, indent+1)
 		
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		#self.write("# Block \"" + b.name + "\"\n")
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			if (b.namespace and len(b.namespace.ids) > 0):
 				#self.writeIndent(indent)
-				#self.writeComment('### Block namespace...')
+				#self.write_comment('### Block namespace...')
 				self.writeNamespace(b.namespace, indent)
 		
 		for instr in b.instrs:
@@ -223,13 +223,13 @@ class HAULWriter_opl(HAULWriter):
 				self.write(')')
 				#self.write(' THEN')
 				self.write('\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				j += 1
 			
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('ELSE\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 			
 			self.writeIndent(indent)
 			self.write('ENDIF\n')
@@ -240,7 +240,7 @@ class HAULWriter_opl(HAULWriter):
 			self.write(' in ')
 			self.writeExpression(c.exprs[1])
 			self.write('\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			
 			self.writeIndent(indent)
 			self.write('NEXT ')

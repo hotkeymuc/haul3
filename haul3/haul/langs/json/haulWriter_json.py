@@ -10,9 +10,9 @@ class HAULWriter_json(HAULWriter):
 	def __init__(self, streamOut):
 		HAULWriter.__init__(self, streamOut)
 		self.defaultExtension = 'json'
-		self.writeComment('Translated from HAUL to JSON on ' + str(datetime.datetime.now()))
+		self.write_comment('Translated from HAUL to JSON on ' + str(datetime.datetime.now()))
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file - NOT for JSON!"
 		#self.streamOut.put('// ' + t + '\n')
 		put('NOT adding comment to file: "' + t + '"')
@@ -73,7 +73,7 @@ class HAULWriter_json(HAULWriter):
 		self.writeIndent(indent)
 		self.write('}')
 	
-	def writeFunc(self, f, indent=0):
+	def write_function(self, f, indent=0):
 		self.write('{' + '\n')
 		
 		self.writeIndent(indent+1)
@@ -100,7 +100,7 @@ class HAULWriter_json(HAULWriter):
 		self.writeIndent(indent+1)
 		self.write('"block": ')
 		if (f.block):
-			self.writeBlock(f.block, indent+1)
+			self.write_block(f.block, indent+1)
 		else:
 			self.write('null')
 		self.write('\n')
@@ -108,7 +108,7 @@ class HAULWriter_json(HAULWriter):
 		self.writeIndent(indent)
 		self.write('}')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		self.write('{' + '\n')
 		#self.write('\t' + '//Module "' + m.id.name + '"\n')
 		
@@ -129,18 +129,18 @@ class HAULWriter_json(HAULWriter):
 		
 		self.writeIndent(indent+1)
 		self.write('"classes": ')
-		self.writeArray(m.classes, self.writeClass, indent+1)
+		self.writeArray(m.classes, self.write_class, indent+1)
 		self.write(',' + '\n')
 		
 		self.writeIndent(indent+1)
 		self.write('"funcs": ')
-		self.writeArray(m.funcs, self.writeFunc, indent+1)
+		self.writeArray(m.funcs, self.write_function, indent+1)
 		self.write(',' + '\n')
 		
 		self.writeIndent(indent+1)
 		self.write('"block": ')
 		if (m.block):
-			self.writeBlock(m.block, indent+1)
+			self.write_block(m.block, indent+1)
 		else:
 			self.write('null')
 		self.write('\n')
@@ -148,7 +148,7 @@ class HAULWriter_json(HAULWriter):
 		self.writeIndent(indent)
 		self.write('}' + '\n')
 		
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		#self.write('# Type "' + t.id.name + '"')
 		self.write('{' + '\n')
 		
@@ -167,13 +167,13 @@ class HAULWriter_json(HAULWriter):
 		
 		self.writeIndent(indent+1)
 		self.write('"funcs": ')
-		self.writeArray(c.funcs, self.writeFunc, indent+1)
+		self.writeArray(c.funcs, self.write_function, indent+1)
 		self.write('\n')
 		
 		self.writeIndent(indent)
 		self.write('}')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		# Just write instructions
 		self.write('{' + '\n')
 		
@@ -224,7 +224,7 @@ class HAULWriter_json(HAULWriter):
 		
 		self.writeIndent(indent+1)
 		self.write('"blocks": ')
-		self.writeArray(c.blocks, self.writeBlock, indent+1)
+		self.writeArray(c.blocks, self.write_block, indent+1)
 		self.write('\n')
 		
 		

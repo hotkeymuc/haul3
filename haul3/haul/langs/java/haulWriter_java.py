@@ -52,7 +52,7 @@ class HAULWriter_java(HAULWriter):
 	def __init__(self, streamOut):
 		HAULWriter.__init__(self, streamOut)
 		self.defaultExtension = 'java'
-		self.writeComment('Translated from HAUL3 to Java on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to Java on ' + str(datetime.datetime.now()) )
 		
 	def writeIndent(self, num):
 		r = ''
@@ -60,7 +60,7 @@ class HAULWriter_java(HAULWriter):
 			r += '\t'
 		self.write(r)
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		self.streamOut.put('// ' + t + '\n')
 		
@@ -80,7 +80,7 @@ class HAULWriter_java(HAULWriter):
 			self.writeIndent(indent)
 			self.write(' */\n')
 		
-	def writeFunc(self, f, indent=0, parentClassName=None):
+	def write_function(self, f, indent=0, parentClassName=None):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
 		###self.writeNamespace(f.namespace, indent)
@@ -119,15 +119,15 @@ class HAULWriter_java(HAULWriter):
 		self.write(') {\n')
 		
 		#self.writeNamespace(f.namespace, indent+1)
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		self.writeIndent(indent)
 		self.write('}\n')
 		
-	def writeModule(self, m, indent=0, package='wtf.haul'):
+	def write_module(self, m, indent=0, package='wtf.haul'):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
-		self.writeComment('### Begin of Module "' + m.name + '"')
+		self.write_comment('### Begin of Module "' + m.name + '"')
 		
 		self.write('//package ' + str(m.namespace) + '\n')
 		
@@ -143,7 +143,7 @@ class HAULWriter_java(HAULWriter):
 		
 		if (len(m.imports) > 0):
 			self.write('\n')
-			self.writeComment('### Imports...')
+			self.write_comment('### Imports...')
 			for im in m.imports:
 				self.write('// import ')
 				self.write(str(im))
@@ -153,13 +153,13 @@ class HAULWriter_java(HAULWriter):
 		
 		if (len(m.classes) > 0):
 			self.write('\n')
-			self.writeComment('### Classes...')
+			self.write_comment('### Classes...')
 			for typ in m.classes:
-				self.writeClass(typ, indent)
+				self.write_class(typ, indent)
 				self.write('\n')
 		
 		self.write('\n')
-		self.writeComment('### Root Block (main function)...')
+		self.write_comment('### Root Block (main function)...')
 		
 		# Wrap all functions into a class
 		self.writeIndent(indent)
@@ -182,9 +182,9 @@ class HAULWriter_java(HAULWriter):
 		if (len(m.funcs) > 0):
 			#self.write('\n')
 			self.writeIndent(indent+1)
-			self.writeComment('### Functions...')
+			self.write_comment('### Functions...')
 			for func in m.funcs:
-				self.writeFunc(func, indent+1, parentClassName=None)
+				self.write_function(func, indent+1, parentClassName=None)
 				#self.write('\n')
 		
 		
@@ -193,7 +193,7 @@ class HAULWriter_java(HAULWriter):
 		self.write('public void _main() {\n')
 		
 		if (m.block):
-			self.writeBlock(m.block, indent+2)
+			self.write_block(m.block, indent+2)
 		
 		self.writeIndent(indent+1)
 		self.write('}\n')
@@ -204,14 +204,14 @@ class HAULWriter_java(HAULWriter):
 		self.write(JAVA_GLUE_CODE_POST)
 		#self.write('\n')
 		
-		self.writeComment('### End of Module')
+		self.write_comment('### End of Module')
 		
 	
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.writeIndent(indent)
-		self.writeComment('# Class "' + c.id.name + '"')
+		self.write_comment('# Class "' + c.id.name + '"')
 		
 		self.writeIndent(indent)
 		self.write('class ' + c.id.name + ' {\n')
@@ -232,7 +232,7 @@ class HAULWriter_java(HAULWriter):
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent+1, parentClassName=c.id.name)
+			self.write_function(func, indent+1, parentClassName=c.id.name)
 		
 		# Restore sanity
 		c.namespace = nsOld
@@ -241,10 +241,10 @@ class HAULWriter_java(HAULWriter):
 		self.writeIndent(indent)
 		self.write('}\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		
-		#self.writeComment("# Block \"" + b.name + "\"")
+		#self.write_comment("# Block \"" + b.name + "\"")
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			if (b.namespace and len(b.namespace.ids) > 0):
@@ -272,7 +272,7 @@ class HAULWriter_java(HAULWriter):
 		
 		#put(' writing instruction: ' + str(i))
 		if (i.comment):
-			self.writeComment(i.comment)
+			self.write_comment(i.comment)
 			self.writeIndent(indent)
 			
 		if (i.control): self.writeControl(i.control, indent)
@@ -289,7 +289,7 @@ class HAULWriter_java(HAULWriter):
 				
 				self.writeExpression(c.exprs[j])
 				self.write(') {\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				self.writeIndent(indent)
 				self.write('}')
 				if (j < len(c.blocks)):
@@ -301,7 +301,7 @@ class HAULWriter_java(HAULWriter):
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('else {\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				self.writeIndent(indent)
 				self.write('}\n')
 		
@@ -325,14 +325,14 @@ class HAULWriter_java(HAULWriter):
 			"""
 			
 			self.write(') {\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			self.writeIndent(indent)
 			self.write('}\n')
 		elif (c.controlType == C_WHILE):
 			self.write('while (')
 			self.writeExpression(c.exprs[0])
 			self.write(') {\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			self.writeIndent(indent)
 			self.write('}')
 		elif (c.controlType == C_RETURN):

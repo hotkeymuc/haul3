@@ -452,7 +452,7 @@ class HAULFunction:
 		
 		self.user = None	# User defined, e.g. for parsing
 	
-	def addArg(self, arg):
+	def add_arg(self, arg):
 		self.args.append(arg)
 	
 	def __repr__(self):
@@ -476,7 +476,7 @@ class HAULCall:
 		self.id = id
 		self.args = []
 		
-	def getType(self):
+	def get_type(self):
 		return self.id.data_type
 	
 	def __repr__(self):
@@ -506,11 +506,11 @@ class HAULExpression:
 		self.returnType = None
 		self.origin = None
 		
-	def getType(self):
+	def get_type(self):
 		# Guess the type of this expression
-		if (self.value != None): return self.value.getType()
-		if (self.var != None): return self.var.getType()
-		if (self.call != None): return self.call.getType()
+		if (self.value != None): return self.value.get_type()
+		if (self.var != None): return self.var.get_type()
+		if (self.call != None): return self.call.get_type()
 		put('Could not get type of expression: ' + str(self))
 		return None
 	
@@ -530,12 +530,12 @@ class HAULBlock:
 	
 	#@var namespace HAULNamespace
 	
-	#@var scanOnly bool
+	#@var scan_only bool
 	#@var origin int
 	#@var destination int
 	#@var instrs_count int
 	
-	def __init__(self, scanOnly=False):
+	def __init__(self, scan_only=False):
 		self.instrs = []
 		#self.vars = []	#HAULVariable[]	Local variables
 		#self.funcs = []	#HAULFunction[]	Local functions
@@ -547,17 +547,17 @@ class HAULBlock:
 		self.name = None	# For better debugging and namespacing. Not really needed
 		self.origin = None	#HAULOrigin?
 		self.destination = None	# Record offset in output stream
-		self.scanOnly = scanOnly
+		self.scan_only = scan_only
 		self.instrs_count = 0
 		
-	def addInstr(self, instr):
-		if self.scanOnly:
+	def add_instruction(self, instr):
+		if self.scan_only:
 			self.instrs_count = self.instrs_count + 1
 		else:
 			self.instrs.append(instr)
 	
-	def addComment(self, comment):
-		if self.scanOnly:
+	def add_comment(self, comment):
+		if self.scan_only:
 			pass
 		else:
 			i = HAULInstruction(comment=comment)
@@ -582,11 +582,11 @@ class HAULModule:
 	
 	#@var origin int
 	#@var destination int
-	#@var scanOnly bool
+	#@var scan_only bool
 	#@var classes_origins arr int
 	#@var funcs_origins arr int
 	
-	def __init__(self, scanOnly=False):
+	def __init__(self, scan_only=False):
 		self.name = '?'
 		self.namespace = None
 		
@@ -597,15 +597,15 @@ class HAULModule:
 		
 		self.origin = None
 		self.destination = None	# Record offset in output stream
-		self.scanOnly = scanOnly
+		self.scan_only = scan_only
 		self.classes_origins = []
 		self.funcs_origins = []
 		
 	
-	#@fun addClass
+	#@fun add_class
 	#@arg t HAULClass
-	def addClass(self, t):
-		if self.scanOnly:
+	def add_class(self, t):
+		if self.scan_only:
 			self.classes_origins.append(t.origin)
 		else:
 			self.classes.append(t)
@@ -614,15 +614,15 @@ class HAULModule:
 	#@fun addFunc
 	#@arg func HAULFunction
 	def addFunc(self, func):
-		if self.scanOnly:
+		if self.scan_only:
 			self.funcs_origins.append(func.origin)
 		else:
 			self.funcs.append(func)
 		
 	
-	#@fun addImport
+	#@fun add_import
 	#@arg imp str
-	def addImport(self, imp):
+	def add_import(self, imp):
 		self.imports.append(imp)
 		
 	
@@ -907,19 +907,19 @@ class HAULWriter:
 		"Write to output stream."
 		self.streamOut.put(t)
 	
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		self.streamOut.put('// ' + t + '\n')
 	
-	def writeModule(self, m):
+	def write_module(self, m):
 		pass
-	def writeClass(self, c):
+	def write_class(self, c):
 		pass
-	def writeFunc(self, f):
+	def write_function(self, f):
 		pass
-	def writeBlock(self, b):
+	def write_block(self, b):
 		pass
-	def writePost(self):
+	def write_post(self):
 		"Post-process"
 		pass
 	
@@ -935,7 +935,7 @@ class HAULWriter:
 		if monolithic:
 			### Cheap (greedy: read whole input file into AST, then translate)
 			m = reader.read_module(namespace=ns)
-			self.writeModule(m)
+			self.write_module(m)
 		
 		else:
 			#@var i int
@@ -945,7 +945,7 @@ class HAULWriter:
 			### Smart (streaming: scan input file, then seek to individual items and translate them)
 			put('>>> Using Smart (streaming) translation...')
 			put('Pre-processing file...')
-			m = reader.read_module(name=name, namespace=ns, scanOnly=True)
+			m = reader.read_module(name=name, namespace=ns, scan_only=True)
 			put('Done pre-processing.')
 			
 			put('Namespace after scanning:\n' + rootNamespace.dump())
@@ -957,7 +957,7 @@ class HAULWriter:
 			
 			#@TODO: Write imports...
 			
-			self.writeComment('Using HAULWriter smart translation. The order of items is static for ALL languages at the moment!')
+			self.write_comment('Using HAULWriter smart translation. The order of items is static for ALL languages at the moment!')
 			
 			#@var origin int
 			
@@ -966,24 +966,24 @@ class HAULWriter:
 				put('Seeking to origin of class (' + str(origin) + ')...')
 				reader.seek(origin)
 				c = reader.read_class(namespace=ns)
-				self.writeClass(c)
+				self.write_class(c)
 			
 			put('Writing functions...')
 			for origin in m.funcs_origins:
 				put('Seeking to origin of function (' + str(origin) + ')...')
 				reader.seek(origin)
 				f = reader.read_function(namespace=ns)
-				self.writeFunc(f)
+				self.write_function(f)
 			
 			put('Writing main block...')
 			#ns = m.block.namespace
 			origin = m.block.origin
 			reader.seek(origin)
 			b = reader.read_block(namespace=ns, name=m.block.name)
-			self.writeBlock(b)
+			self.write_block(b)
 			
-			self.writeComment('This file might be incomplete, because smart (streaming) translation is not fully tested, yet! Use cheap (greedy) translation instead!\n')
-			self.writePost()
+			self.write_comment('This file might be incomplete, because smart (streaming) translation is not fully tested, yet! Use cheap (greedy) translation instead!\n')
+			self.write_post()
 		
 		#put('Final namespace:\n' + rootNamespace.dump())
 		return m

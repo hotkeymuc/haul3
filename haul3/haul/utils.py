@@ -29,9 +29,9 @@ def writeFile(filename, data):
 	
 
 
-#@fun nameByFilename str
+#@fun name_by_filename str
 #@arg inputFilename str
-def nameByFilename(inputFilename):
+def name_by_filename(inputFilename):
 	# Create human readable name from filename
 	
 	#@var inputName str

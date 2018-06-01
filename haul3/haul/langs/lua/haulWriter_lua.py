@@ -21,9 +21,9 @@ class HAULWriter_lua(HAULWriter):
 	def __init__(self, streamOut):
 		HAULWriter.__init__(self, streamOut)
 		self.defaultExtension = 'lua'
-		self.writeComment('Translated from HAUL3 to Lua on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to Lua on ' + str(datetime.datetime.now()) )
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		self.streamOut.put('-- ' + t + '\n')
 		
@@ -36,14 +36,14 @@ class HAULWriter_lua(HAULWriter):
 	def writeNamespace(self, ns, indent=0):
 		if (ns and len(ns.ids) > 0):
 			self.writeIndent(indent)
-			self.writeComment('# Namespace "' + str(ns) + '"')
+			self.write_comment('# Namespace "' + str(ns) + '"')
 			for id in ns.ids:
 				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type))
 				# local NAME = VALUE?
 				self.writeIndent(indent)
-				self.writeComment(' @' + str(id.kind) + ' ' + str(id.name) + ' ' + str(id.data_type) )
+				self.write_comment(' @' + str(id.kind) + ' ' + str(id.name) + ' ' + str(id.data_type) )
 		
-	def writeFunc(self, f, indent=0):
+	def write_function(self, f, indent=0):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.writeNamespace(f.namespace, indent)
@@ -61,15 +61,15 @@ class HAULWriter_lua(HAULWriter):
 		self.write('\n')
 		
 		#self.writeNamespace(f.namespace, indent+1)
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		self.write('end')
 		self.write('\n')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
-		self.writeComment('### Module "' + m.name + '"')
+		self.write_comment('### Module "' + m.name + '"')
 		for im in m.imports:
 			
 			#self.write('local ')
@@ -85,23 +85,23 @@ class HAULWriter_lua(HAULWriter):
 		#self.write('### Module namespace...\n')
 		self.writeNamespace(m.namespace, indent)
 		
-		self.writeComment('### Classes...')
+		self.write_comment('### Classes...')
 		for typ in m.classes:
-			self.writeClass(typ, indent)
+			self.write_class(typ, indent)
 		
-		self.writeComment('### Funcs...')
+		self.write_comment('### Funcs...')
 		for func in m.funcs:
-			self.writeFunc(func, indent)
+			self.write_function(func, indent)
 		
-		self.writeComment('### Root Block (main function):')
+		self.write_comment('### Root Block (main function):')
 		if (m.block):
-			self.writeBlock(m.block, indent)
+			self.write_block(m.block, indent)
 		
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.writeIndent(indent)
-		self.writeComment('Class "' + c.id.name + '"')
+		self.write_comment('Class "' + c.id.name + '"')
 		
 		self.writeIndent(indent)
 		self.write(c.id.name)
@@ -120,12 +120,12 @@ class HAULWriter_lua(HAULWriter):
 		
 		for func in c.funcs:
 			#@TODO: Pre-pend class name with colon
-			self.writeComment('pre-pend "' + c.id.name + ':" because it\'s a method')
-			self.writeFunc(func, indent+1)
+			self.write_comment('pre-pend "' + c.id.name + ':" because it\'s a method')
+			self.write_function(func, indent+1)
 		
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		
 		#self.write("# Block \"" + b.name + "\"\n")
@@ -146,7 +146,7 @@ class HAULWriter_lua(HAULWriter):
 		
 		#put(' writing instruction: ' + str(i))
 		if (i.comment): 
-			self.writeComment(i.comment)
+			self.write_comment(i.comment)
 		
 		if (i.control): self.writeControl(i.control, indent)
 		if (i.call): self.writeCall(i.call)
@@ -160,13 +160,13 @@ class HAULWriter_lua(HAULWriter):
 				
 				self.writeExpression(c.exprs[j])
 				self.write(') then\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				j += 1
 			
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('else\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 			self.writeIndent(indent)
 			self.write('end\n')
 		
@@ -176,7 +176,7 @@ class HAULWriter_lua(HAULWriter):
 			self.write(' in ')
 			self.writeExpression(c.exprs[1])
 			self.write(':\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 		elif (c.controlType == C_RETURN):
 			self.write('return ')
 			self.writeExpression(c.exprs[0])

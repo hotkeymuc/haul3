@@ -62,9 +62,9 @@ class HAULWriter_js(HAULWriter):
 		HAULWriter.__init__(self, streamOut)
 		self.defaultExtension = 'js'
 		self.dialect = dialect
-		self.writeComment('Translated from HAUL3 to JavaScript on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to JavaScript on ' + str(datetime.datetime.now()) )
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		self.streamOut.put('// ' + t + '\n')
 		
@@ -95,12 +95,12 @@ class HAULWriter_js(HAULWriter):
 						self.writeValue(id.data_value)
 					self.write(';\n')
 		
-	def writeFunc(self, f, indent=0, parentClassName=None):
+	def write_function(self, f, indent=0, parentClassName=None):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		
 		# No need to declare arguments
 		#self.writeNamespace(f.namespace, indent)	# Namespace outside function
-		self.writeComment('Namespace skipped (function args)')
+		self.write_comment('Namespace skipped (function args)')
 		
 		name = f.id.name
 		if (not parentClassName == None):
@@ -127,12 +127,12 @@ class HAULWriter_js(HAULWriter):
 		self.write(') {\n')
 		
 		#self.writeNamespace(f.namespace, indent+1)	# Namespace inside function
-		self.writeBlock(f.block, indent+1)
+		self.write_block(f.block, indent+1)
 		
 		self.writeIndent(indent)
 		self.write('};\n')
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.write('//### Module "' + m.name + '"\n')
@@ -146,25 +146,25 @@ class HAULWriter_js(HAULWriter):
 		
 		self.write('//### Classes...\n')
 		for typ in m.classes:
-			self.writeClass(typ, indent)
+			self.write_class(typ, indent)
 		
 		self.write('//### Funcs...\n')
 		for func in m.funcs:
-			self.writeFunc(func, indent)
+			self.write_function(func, indent)
 		
 		self.write('//### Root Block (main function):\n')
 		if (self.dialect == DIALECT_WRAP_MAIN):
 			self.write('function main() {\n');
 			if (m.block):
-				self.writeBlock(m.block, indent+1)
+				self.write_block(m.block, indent+1)
 			self.write('}\n');
 		else:
 			if (m.block):
-				self.writeBlock(m.block, indent)
+				self.write_block(m.block, indent)
 		
 		
 	
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		
 		self.writeIndent(indent)
@@ -187,13 +187,13 @@ class HAULWriter_js(HAULWriter):
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent+0, parentClassName=c.id.name)
+			self.write_function(func, indent+0, parentClassName=c.id.name)
 		
 		# Restore sanity
 		c.namespace = nsOld
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		#self.write("# Block \"" + b.name + "\"\n")
 		
@@ -215,7 +215,7 @@ class HAULWriter_js(HAULWriter):
 		#put(' writing instruction: ' + str(i))
 		if (i.comment):
 			self.writeIndent(indent)
-			self.writeComment(i.comment)
+			self.write_comment(i.comment)
 			
 		if (i.control):
 			self.writeIndent(indent)
@@ -235,7 +235,7 @@ class HAULWriter_js(HAULWriter):
 				
 				self.writeExpression(c.exprs[j])
 				self.write(') {\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				self.writeIndent(indent)
 				self.write('}')
 				if (j < len(c.blocks)):
@@ -247,7 +247,7 @@ class HAULWriter_js(HAULWriter):
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('else {\n')
-				self.writeBlock(c.blocks[j], indent+1)
+				self.write_block(c.blocks[j], indent+1)
 				self.writeIndent(indent)
 				self.write('}\n')
 		
@@ -270,14 +270,14 @@ class HAULWriter_js(HAULWriter):
 			"""
 			
 			self.write(') {\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			self.writeIndent(indent)
 			self.write('}\n')
 		elif (c.controlType == C_WHILE):
 			self.write('while (')
 			self.writeExpression(c.exprs[0])
 			self.write(') {\n')
-			self.writeBlock(c.blocks[0], indent+1)
+			self.write_block(c.blocks[0], indent+1)
 			self.writeIndent(indent)
 			self.write('}\n')
 		elif (c.controlType == C_RETURN):

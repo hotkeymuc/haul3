@@ -36,13 +36,13 @@ class HAULWriter_pas(HAULWriter):
 	def __init__(self, streamOut, dialect=DIALECT_TURBO):
 		HAULWriter.__init__(self, streamOut)
 		self.defaultExtension = 'pas'
-		self.writeComment('Translated from HAUL3 to Pascal on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to Pascal on ' + str(datetime.datetime.now()) )
 		
 		self.dialect = dialect
 		# Pascal uses name of function to return values
 		self.last_function_name = 'RESULT'
 		
-	def writeComment(self, t):
+	def write_comment(self, t):
 		"Add a comment to the file"
 		#self.streamOut.put('(* ' + t + ' *)\n')
 		self.streamOut.put('{ ' + t + ' }\n')
@@ -68,7 +68,7 @@ class HAULWriter_pas(HAULWriter):
 				self.write('\n');
 				
 				#self.write('\t');
-				#self.writeComment('Namespace "' + str(ns) + '"')
+				#self.write_comment('Namespace "' + str(ns) + '"')
 				
 				for id in ns.ids:
 					#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type))
@@ -85,7 +85,7 @@ class HAULWriter_pas(HAULWriter):
 						self.write(';\n')
 			#self.write('\n')
 		
-	def writeFunc(self, f, indent=0, writeBody=True):
+	def write_function(self, f, indent=0, writeBody=True):
 		f.destination = self.streamOut.size	# Record offset in output stream
 		#self.writeNamespace(f.namespace, indent)
 		
@@ -109,7 +109,7 @@ class HAULWriter_pas(HAULWriter):
 			#id = f.namespace.getId(f.args[i].name)
 			id = f.namespace.find_id(f.args[i].name)
 			if (id == None):
-				self.writeComment('UnknownType')
+				self.write_comment('UnknownType')
 			else:
 				self.writeType(id.data_type)
 		self.write(')')
@@ -123,14 +123,14 @@ class HAULWriter_pas(HAULWriter):
 		
 		if (writeBody == True):
 			#self.writeNamespace(f.namespace, indent+1)
-			self.writeBlock(f.block, indent)
+			self.write_block(f.block, indent)
 			self.write(';\n')
 			self.write('\n')
 		
 		
-	def writeModule(self, m, indent=0):
+	def write_module(self, m, indent=0):
 		m.destination = self.streamOut.size	# Record offset in output stream
-		self.writeComment('### Module "' + m.name + '"')
+		self.write_comment('### Module "' + m.name + '"')
 		
 		#@TODO: program or unit?
 		self.write('Program ' + m.name + ';\n');
@@ -159,24 +159,24 @@ class HAULWriter_pas(HAULWriter):
 					self.write('{$I ' + str(im) + '.pas}\n');
 		
 		
-		self.writeComment('### Module namespace...')
+		self.write_comment('### Module namespace...')
 		self.writeNamespace(m.namespace, indent)
 		
-		self.writeComment('### Classes...')
+		self.write_comment('### Classes...')
 		#@TODO: first "Interface", then "Implementation"
 		for typ in m.classes:
-			self.writeClass(typ, indent)
+			self.write_class(typ, indent)
 		
-		self.writeComment('### Funcs...')
+		self.write_comment('### Funcs...')
 		for func in m.funcs:
-			self.writeFunc(func, indent)
+			self.write_function(func, indent)
 		
-		self.writeComment('### Root Block (main function):')
+		self.write_comment('### Root Block (main function):')
 		if (m.block):
-			self.writeBlock(m.block, indent)
+			self.write_block(m.block, indent)
 			self.write('.')
 		
-	def writeClass(self, c, indent=0):
+	def write_class(self, c, indent=0):
 		c.destination = self.streamOut.size	# Record offset in output stream
 		#self.write('# Class "' + t.id.name + '"\n')
 		self.writeIndent(indent)
@@ -191,20 +191,20 @@ class HAULWriter_pas(HAULWriter):
 		
 		# Methods (only signature!)
 		for func in c.funcs:
-			self.writeFunc(func, indent+1, writeBody=False)
+			self.write_function(func, indent+1, writeBody=False)
 		
 		self.write('End;\n')
 		
-		self.writeComment('Implementation of "' + c.id.name + '"')
+		self.write_comment('Implementation of "' + c.id.name + '"')
 		# Implementation
 		#@TODO: Initializer?
 		for func in c.funcs:
-			self.writeFunc(func, indent)
+			self.write_function(func, indent)
 		
-		self.writeComment('End-of-Class "' + c.id.name + '"');
+		self.write_comment('End-of-Class "' + c.id.name + '"');
 		self.write('\n')
 		
-	def writeBlock(self, b, indent=0):
+	def write_block(self, b, indent=0):
 		b.destination = self.streamOut.size	# Record offset in output stream
 		#self.write("# Block \"" + b.name + "\"\n")
 		
@@ -243,13 +243,13 @@ class HAULWriter_pas(HAULWriter):
 				
 				self.writeExpression(c.exprs[j])
 				self.write(') Then ')
-				self.writeBlock(c.blocks[j], indent)
+				self.write_block(c.blocks[j], indent)
 				j += 1
 			
 			if (j < len(c.blocks)):
 				self.writeIndent(indent)
 				self.write('Else ')
-				self.writeBlock(c.blocks[j], indent)
+				self.write_block(c.blocks[j], indent)
 		
 		elif (c.controlType == C_FOR):
 			self.write('For ')
@@ -257,13 +257,13 @@ class HAULWriter_pas(HAULWriter):
 			self.write(' in ')
 			self.writeExpression(c.exprs[1])
 			self.write(' Do ')
-			self.writeBlock(c.blocks[0], indent)
+			self.write_block(c.blocks[0], indent)
 			
 		elif (c.controlType == C_WHILE):
 			self.write('While ')
 			self.writeExpression(c.exprs[0])
 			self.write(' Do ')
-			self.writeBlock(c.blocks[0], indent)
+			self.write_block(c.blocks[0], indent)
 			
 		elif (c.controlType == C_RETURN):
 			#self.write('Result {function name here!} := ')
