@@ -83,16 +83,6 @@ class HAULReader_py(HAULReader):
 		self.lastIfBlock = [None]	# Used for ELIF handling (adding one block to a previous one)
 		self.lastFunction = None	#@FIXME: Used to infer function returnType based on the type of a return statement
 	
-	#@fun raise_parse_error
-	#@arg text str
-	#@arg token HAULToken
-	def raise_parse_error(self, text, token):
-		#raise Exception('HAULReader parse error: ' + text + ' at file "' + self.filename + '", line ' + str(self.originLine) + ', pos ' + str(self.originPos) + ' (at "' + token.data + '")')
-		# How to make SciTE recognize an error in a Python file:
-		#' + text + '
-		#raise Exception('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
-		put('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
-		raise HAULParseError(text, token)
 	
 	def get_all_matching(self, pats):
 		"Return string as long as pattern matches"
@@ -1424,12 +1414,8 @@ class HAULReader_py(HAULReader):
 	#@fun read_module HAULModule
 	#@arg namespace HAULNamespace
 	#@arg name str
-	def read_module(self, namespace, name=None, scan_only=False):
+	def read_module(self, namespace, name, scan_only=False):
 		put_debug('read_module()')
-		
-		if (name == None):
-			# Guess a name from file name
-			name = name_by_filename(self.filename)
 		
 		m = HAULModule(scan_only=scan_only)
 		m.name = name

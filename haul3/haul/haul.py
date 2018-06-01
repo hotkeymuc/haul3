@@ -98,6 +98,8 @@ T_MODULE = '#mod'
 T_DICT = '#dict'
 T_HANDLE = '#hnd'
 
+#@TODO: class HAULOrigin: for use in all sorts of debugging stuff
+
 class HAULId:
 	"Unique identifier (e.g. function name, variable name, ...)"
 	#@var name str
@@ -673,10 +675,10 @@ def implicitControl(controlType):
 
 
 
-#@var rootNamespace HAULNamespace
+#@var HAUL_ROOT_NAMESPACE HAULNamespace
 #@var ns HAULNamespace
-rootNamespace = HAULNamespace('root', parent=None)
-ns = rootNamespace
+HAUL_ROOT_NAMESPACE = HAULNamespace('root', parent=None)
+ns = HAUL_ROOT_NAMESPACE
 
 # Some things we should handle internally (or put into external library)
 ns.add_id('pass', kind=K_FUNCTION, data_type=T_NOTHING)
@@ -839,7 +841,7 @@ class HAULReader:
 	#@var tempNs HAULNamespace
 	
 	
-	def __init__(self, stream, filename):
+	def __init__(self, stream, filename='?'):
 		self.stream = stream
 		self.filename = filename	# For useful error messages
 		
@@ -888,6 +890,18 @@ class HAULReader:
 		else:
 			self.linePos = self.linePos + 1
 		return r
+	
+	#@fun raise_parse_error
+	#@arg text str
+	#@arg token HAULToken
+	def raise_parse_error(self, text, token):
+		#raise Exception('HAULReader parse error: ' + text + ' at file "' + self.filename + '", line ' + str(self.originLine) + ', pos ' + str(self.originPos) + ' (at "' + token.data + '")')
+		# How to make SciTE recognize an error in a Python file:
+		#' + text + '
+		#raise Exception('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
+		put('HAULReader parse error: File "' + self.filename + '", line ' + str(token.originLine) + ', col ' + str(token.originPos) + ', byte ' + str(token.originByte) + ' at token "' + token.data + '": ' + text)
+		raise HAULParseError(text, token)
+		
 	
 	#@fun read_module HAULModule
 	def read_module(self):

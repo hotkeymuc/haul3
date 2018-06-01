@@ -11,6 +11,15 @@ from utils import *
 def put(t):
 	print('HAULBuilder:\t' + str(t))
 
+class HAULSource:
+	def __init__(self, name, stream, filename='?', is_native=False, is_main=False):
+		self.name = name
+		self.stream = stream
+		self.filename = filename
+		
+		self.is_native = is_native
+		self.is_main = is_main
+		self.module = None
 
 class HAULBuilder:
 	"Provides the functionality to build a HAUL file for another platform. Like make etc."
@@ -19,15 +28,14 @@ class HAULBuilder:
 		self.lang = lang
 		self.platform = platform
 		
-		self.source_filename = ''
+		self.ReaderClass = None
+		self.WriterClass = None
+		
 		self.staging_path = 'staging'
 		self.output_path = 'build'
-	
-	def set_staging_path(self, p):
-		self.staging_path = p
-	
-	def set_output_path(self, p):
-		self.output_path = p
+		
+		self.sources = []
+		self.namespace = HAULNamespace(name='builder', parent=HAUL_ROOT_NAMESPACE)
 	
 	# File system abstraction
 	def exists(self, filename):
@@ -86,9 +94,40 @@ class HAULBuilder:
 	
 	
 	
+	
+	def stream_from_file(self, filename):
+		stream = StringReader(self.type(filename))
+		return stream
+	
+	
+	def add_source(self, name, filename, is_native=False, is_main=False):
+		stream = self.stream_from_file(filename)
+		s = HAULSource(name=name, stream=stream, filename=filename, is_native=is_native, is_main=is_main)
+		self.sources.append(s)
+		
+	
+	def translate(self):
+		"Read all libs and prepare a namespace that contains all definitions. This makes them available for files to import them."
+		
+		for s in self.sources:
+			put('Processing source "{}" in file "{}"...'.format(s.name, s.filename))
+			
+			reader = self.ReaderClass(stream=s.stream, filename=s.filename)
+			
+			if (s.is_native):
+				# No need for reading the actual implementation
+				s.module = reader.read_module(name=s.name, namespace=self.namespace, scan_only=True)
+			else:
+				# Actually translate
+				s.module = reader.read_module(name=s.name, namespace=self.namespace, scan_only=False)
+				
+			
+			
+		
+	
 	def translate(self, name, source_filename, SourceReaderClass, dest_filename, DestWriterClass, dialect=None):
 		put('Translating file "' + source_filename + '" to "' + dest_filename + '"...')
-		streamIn = StringReader(readFile(source_filename))
+		streamIn = self.stream_from_file(source_filename)
 		reader = SourceReaderClass(streamIn, name)
 		monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 		reader.seek(0)

@@ -46,7 +46,6 @@ data_path = os.path.abspath('data')
 #	os.path.join(source_path, 'hres_data2.txt'),
 #]
 
-builder.set_staging_path(os.path.abspath('staging'))
 builder.configure(
 	source_path=source_path,
 	libs_path='libs',
@@ -55,10 +54,14 @@ builder.configure(
 	data_path='data',
 )
 
-builder.prepare()
-builder.compile()
-builder.package()
+builder.add_lib('hio', 'libs/hio.py')
+#builder.add_source('helper', 'examples/small.py', is_main=False)
+builder.add_source('hello', 'hello.py', is_main=True)
+
+builder.build()
+
 builder.test()
+
 builder.finish()
 
 
