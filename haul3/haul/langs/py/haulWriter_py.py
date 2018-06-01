@@ -46,16 +46,21 @@ class HAULWriter_py(HAULWriter):
 		d = ' '
 		
 		if (ns and len(ns.ids) > 0):
-			self.writeIndent(indent)
-			self.writeComment('Namespace "' + str(ns) + '"')
+			#self.writeIndent(indent)
+			#self.writeComment('Namespace "' + str(ns) + '"')
+			
 			for id in sorted(ns.ids):
-				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type))
+				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data_type) + '\n')
 				
+				#@TODO: lang.py.lang_py.L_PY_SELF
 				if (id.name == 'self'): continue
 				if (id.name == '__init__'): continue
 				
-				# Skip functions here, add them when they get declared
+				# Skip functions here, add the annotations later when they get declared (due to tempNs parsing)
 				if (id.kind == K_FUNCTION): continue
+				
+				# Skip "foreign" entries
+				if (id.namespace != ns): continue
 				
 				self.writeIndent(indent)
 				self.write('#@' + str(id.kind) + d + str(id.name))
@@ -70,6 +75,11 @@ class HAULWriter_py(HAULWriter):
 						if (id.data_value): self.writeValue(id.data_value)
 					
 				self.write('\n')
+			
+			# Extra blank line after namespaces
+			self.writeIndent(indent)
+			self.write('\n')
+			
 		
 	def writeFunc(self, f, indent=0):
 		f.destination = self.streamOut.size	# Record offset in output stream

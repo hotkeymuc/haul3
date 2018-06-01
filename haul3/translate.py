@@ -82,25 +82,35 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	writeFile(output_filename, stream_out.r)
 	
 
-#source_file = 'examples/hello.py'
-#source_file = 'examples/small.py'
-#source_file = 'examples/infer.py'
-#source_file = 'examples/complex.py'
-#source_file = 'examples/classes.py'
-#source_file = 'examples/shellmini.py'
-#source_file = 'examples/vm.py'
-#source_file = 'examples/arrays.py'
-
-#source_file = 'haul/utils.py'
-#source_file = 'haul/haul.py'
-source_file = 'haul/langs/py/haulReader_py.py'
-
+#source_filename = 'examples/hello.py'
+#source_filename = 'examples/small.py'
+#source_filename = 'examples/infer.py'
+#source_filename = 'examples/complex.py'
+#source_filename = 'examples/classes.py'
+#source_filename = 'examples/shellmini.py'
+#source_filename = 'examples/vm.py'
+#source_filename = 'examples/arrays.py'
+#output_path = 'build'
 #libs = None
 #libs = ['haul/utils.py']
+
+
+#source_filename = 'haul/utils.py'
+#output_path = 'build/haul'
+#libs = None
+
+
+#source_filename = 'haul/haul.py'
+#output_path = 'build/haul'
+#libs = None
+
+source_root_path = '.'
+package_path = 'haul/langs/py'
+source_filename = 'haulReader_py.py'
 libs = ['haul/haul.py', 'haul/utils.py']
-
-
 output_path = 'build'
+
+
 
 WRITER_CLASSES = [
 	HAULWriter_asm,
@@ -118,7 +128,12 @@ WRITER_CLASSES = [
 
 WriterClass = HAULWriter_py
 try:
-	translate(source_file, WriterClass, output_path, libs=libs)
+	#translate(source_filename, WriterClass, output_path, libs=libs)
+	translate(
+		source_filename=(source_root_path + '/' + package_path + '/' + source_filename),
+		WriterClass=HAULWriter_py,
+		output_path=(output_path + '/' + package_path),
+		libs=libs)
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))
 	

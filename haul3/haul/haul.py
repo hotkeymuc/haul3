@@ -184,6 +184,7 @@ class HAULNamespace:
 		
 		return None
 	
+	#@fun add_id HAULId
 	def add_id(self, name, kind, origin=None, data_type=None, data_value=None, overwrite=False):
 		#if (data != None) and (not isinstance(data, str)): raise Exception('addId() must be called with string data, not "' + str(type(data)) + '"')
 		
@@ -208,6 +209,12 @@ class HAULNamespace:
 			self.ids.append(i)
 		
 		return i
+	
+	#@fun add_id_foreign
+	#@arg i HAULId
+	def add_id_foreign(self, i):
+		"Adds the id without reference"
+		self.ids.append(i)
 	
 	def add_namespace(self, ns):
 		self.nss.append(ns)

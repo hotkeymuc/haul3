@@ -1518,11 +1518,14 @@ class HAULReader_py(HAULReader):
 						if (imp_all == True) or (id.name in imp_list):
 							put_debug('Importing "' + str(id.name) + '" from "' + imp_name + '" into local namespace')
 							
-							# Clone to current namespace
-							i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
-							i.data_function = id.data_function
-							i.data_class = id.data_class
-							i.data_module = id.data_module
+							## Clone to current namespace
+							#i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
+							#i.data_function = id.data_function
+							#i.data_class = id.data_class
+							#i.data_module = id.data_module
+							
+							ns.add_id_foreign(id)
+							
 					
 					# Also add sub-namespaces
 					#@var imp_nss HAULNamespace
