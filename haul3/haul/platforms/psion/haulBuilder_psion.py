@@ -39,7 +39,7 @@ class HAULBuilder_psion(HAULBuilder):
 		lcd_lines = 2	# 2 for CM/XP, 4 for LZ etc.
 		
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		staging_path = os.path.realpath(staging_path)
 		
 		name8 = name[0:8].upper()
@@ -67,7 +67,7 @@ class HAULBuilder_psion(HAULBuilder):
 		"""
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
 		
 		
 		### Split module into separate files

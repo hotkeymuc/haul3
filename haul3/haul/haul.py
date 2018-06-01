@@ -210,9 +210,9 @@ class HAULNamespace:
 		
 		return i
 	
-	#@fun add_id_foreign
+	#@fun add_foreign_id
 	#@arg i HAULId
-	def add_id_foreign(self, i):
+	def add_foreign_id(self, i):
 		"Adds the id without reference"
 		self.ids.append(i)
 	
@@ -278,24 +278,36 @@ class HAULNamespace:
 		self.ids = []
 		self.nss = []
 	
-	def dump(self, level=1, skipEmpty=True):
+	def dump(self, level=1, skipEmpty=False):
 		#@var i int
 		
 		indent = ''
 		for i in xrange(level):
-			indent = indent + '  '	#'\t'
+			indent = indent + ': '	#'\t'
 			
 		
-		r = str(self.name) + '("' + str(self) + '", ' + str(len(self.ids)) + ' ids, ' + str(len(self.nss)) + ' childs):\n'
+		r = str(self.name) + ' ("' + str(self) + '", ' + str(len(self.ids)) + ' ids, ' + str(len(self.nss)) + ' childs):\n'
+		
 		#@var id HAULId
 		for id in self.ids:
-			r = r + indent + '* ' + str(id.name) + ' [' + str(id.kind) + '] = ' + str(id.data_value) + ' [' + str(id.data_type) + ']' + '\n'
+			if (id.namespace != self):
+				# Foreign id
+				r = r + indent + '* foreign: ' + id.name + '\n'
+			else:
+				r = r + indent + '* ' + str(id.name) + ' [' + str(id.kind) + '] = ' + str(id.data_value) + ' [' + str(id.data_type) + ']' + '\n'
 			
 		
 		#@var ns HAULNamespace
 		for ns in self.nss:
 			if ((skipEmpty) and (len(ns.ids) == 0)): continue
-			r = r + indent + '. ' + ns.dump(level+1, skipEmpty)
+			
+			if (ns.parent != self):
+				# Foreign namespace
+				r = r + indent + '+ foreign: ' + ns.name + '\n'
+				
+			else:
+				r = r + indent + '+ ' + ns.dump(level+1, skipEmpty=skipEmpty)
+				
 			
 		return r
 	
@@ -807,7 +819,7 @@ class HAULToken:
 		return 'Token "' + str(self.data) + '" [' + TOKEN_NAMES[self.type] + '] at line ' + str(self.originLine) + ', col ' + str(self.originPos) + ''
 
 class HAULParseError(Exception):
-	#@var message str
+	# Already inherits: @var message str
 	#@var token HAULToken
 	
 	def __init__(self, message, token):

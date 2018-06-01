@@ -1007,7 +1007,9 @@ class HAULReader_py(HAULReader):
 				if (e.var != None):
 					if (e.var.kind == K_CONST):
 						if ((e.var.data_type != T_UNKNOWN) and (e.var.data_type != None)):
-							put('Re-setting constant ' + str(e.var) + ' which already has a value!')
+							#@TODO: It may have been annotated, so check if the value differs
+							put_debug('Re-setting constant ' + str(e.var) + ' which already has a value!')
+							pass
 						
 						if (e_right.value == None):
 							self.raise_parse_error('Constant ' + str(e.var) + ' can only be assigned a value, not a ' + str(e_right), t)
@@ -1244,7 +1246,7 @@ class HAULReader_py(HAULReader):
 					if ((e_val.var.data_value == None) or (e_val.var.data_value.type == None)):
 						self.raise_parse_error('Cannot determine default value for parameter "' + str(vd.name) + '", because variable ' + str(e_val.var) + ' has no (constant) value', t)
 					
-					put('Converting default value for parameter "' + str(vd.name) + '" from variable ' + str(e_val.var) + ' to value ' + str(e_val.var.data_value))
+					put_debug('Converting default value for parameter "' + str(vd.name) + '" from variable ' + str(e_val.var) + ' to value ' + str(e_val.var.data_value))
 					vd.data_value = e_val.var.data_value
 					#vd.data_type = e_val.var.data_value.type
 				
@@ -1338,11 +1340,12 @@ class HAULReader_py(HAULReader):
 					
 					if (id.kind == K_VARIABLE) or (id.kind == K_FUNCTION):
 						put_debug('Inheriting "' + str(id.name))
-						# Clone to current namespace
-						i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
-						i.data_function = id.data_function
-						i.data_class = id.data_class
-						i.data_module = id.data_module
+						## Clone to current namespace
+						#i = ns.add_id(name=id.name, kind=id.kind, origin=id.origin, data_type=id.data_type, data_value=id.data_value)
+						#i.data_function = id.data_function
+						#i.data_class = id.data_class
+						#i.data_module = id.data_module
+						ns.add_foreign_id(id)
 					
 				
 			
@@ -1419,17 +1422,14 @@ class HAULReader_py(HAULReader):
 		return c
 		
 	#@fun read_module HAULModule
-	#@arg name str
 	#@arg namespace HAULNamespace
-	def read_module(self, name=None, namespace=None, scan_only=False):
+	#@arg name str
+	def read_module(self, namespace, name=None, scan_only=False):
 		put_debug('read_module()')
 		
 		if (name == None):
+			# Guess a name from file name
 			name = name_by_filename(self.filename)
-		
-		# If no parent namespace is given: Use the root
-		if (namespace == None):
-			namespace = self.rootNamespace
 		
 		m = HAULModule(scan_only=scan_only)
 		m.name = name
@@ -1525,7 +1525,7 @@ class HAULReader_py(HAULReader):
 							#i.data_class = id.data_class
 							#i.data_module = id.data_module
 							
-							ns.add_id_foreign(id)
+							ns.add_foreign_id(id)
 							
 					
 					# Also add sub-namespaces

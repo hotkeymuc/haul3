@@ -40,7 +40,7 @@ class HAULBuilder_arduino(HAULBuilder):
 		#self.copy('haul/platforms/arduino/hio.c', output_path + '/sketch/hio.c')
 		
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		
 		cFilename = name + '.c'
 		hexFilename1 = cFilename + '.hex'
@@ -50,7 +50,7 @@ class HAULBuilder_arduino(HAULBuilder):
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=os.path.join(staging_path_1, cFilename), DestWriterClass=HAULWriter_c, dialect=DIALECT_ARDUINO)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=os.path.join(staging_path_1, cFilename), DestWriterClass=HAULWriter_c, dialect=DIALECT_ARDUINO)
 		
 		if not os.path.isfile(os.path.join(staging_path_1, cFilename)):
 			put('Main C file "%s" was not created! Aborting.' % (os.path.join(staging_path_1, cFilename)))

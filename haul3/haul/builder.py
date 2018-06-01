@@ -13,14 +13,17 @@ def put(t):
 
 
 class HAULBuilder:
-	"Provides the functionality to build a HAUL file for another platform"
+	"Provides the functionality to build a HAUL file for another platform. Like make etc."
+	
 	def __init__(self, lang, platform):
 		self.lang = lang
 		self.platform = platform
 		
-		self.inputFilename = ''
-		self.outputPath = ''
+		self.source_filename = ''
+		self.staging_path = ''
+		self.output_path = ''
 	
+	# File system abstraction
 	def exists(self, filename):
 		return (os.path.isfile(filename))
 	
@@ -31,8 +34,8 @@ class HAULBuilder:
 	def chdir(self, path):
 		os.chdir(path)
 	
-	def copy(self, sourceFilename, destFilename):
-		shutil.copy(sourceFilename, destFilename)
+	def copy(self, source_filename, dest_filename):
+		shutil.copy(source_filename, dest_filename)
 	
 	def clean(self, path):
 		"Make sure the path exists and is empty. Delete all files and folders within."
@@ -75,9 +78,11 @@ class HAULBuilder:
 		else:
 			return subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, env=env).stdout.read()
 	
-	def translate(self, name, sourceFilename, SourceReaderClass, destFilename, DestWriterClass, dialect=None):
-		put('Translating file "' + sourceFilename + '" to "' + destFilename + '"...')
-		streamIn = StringReader(readFile(sourceFilename))
+	
+	
+	def translate(self, name, source_filename, SourceReaderClass, dest_filename, DestWriterClass, dialect=None):
+		put('Translating file "' + source_filename + '" to "' + dest_filename + '"...')
+		streamIn = StringReader(readFile(source_filename))
 		reader = SourceReaderClass(streamIn, name)
 		monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 		reader.seek(0)
@@ -89,11 +94,11 @@ class HAULBuilder:
 			writer = DestWriterClass(streamOut, dialect=dialect)
 		m = writer.stream(reader, monolithic=monolithic)	# That's where the magic happens!
 		
-		put('Writing to "%s"...' % (destFilename))
-		writeFile(destFilename, streamOut.r)
+		put('Writing to "%s"...' % (dest_filename))
+		writeFile(dest_filename, streamOut.r)
 		return m
 	
-	def bundle(self, resources, destFilename):
+	def bundle(self, resources, dest_filename):
 		r = '# HRES data\n'
 		r += '#@var _data str[]\n'
 		r += '_data = []\n'
@@ -107,7 +112,7 @@ class HAULBuilder:
 			t = t.replace('\r', '\\r')
 			r += '_data[' + str(i) + '] = \'' + t + '\'\n'
 			i += 1
-		writeFile(destFilename, r)
+		writeFile(dest_filename, r)
 	
 	def build(self, source_path, source_filename, output_path, staging_path, data_path=None, resources=None, perform_test_run=False):
 		"Actually build a file."

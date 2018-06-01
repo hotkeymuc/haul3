@@ -18,7 +18,7 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		stagingPath = os.path.realpath(staging_path)
 		
 		libsPath = os.path.join(data_path, 'platforms', 'dos', 'libs')
@@ -44,7 +44,7 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_TURBO)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_TURBO)
 		
 		if not os.path.isfile(pasFilenameFull):
 			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))

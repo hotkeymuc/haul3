@@ -25,7 +25,7 @@ class HAULBuilder_html(HAULBuilder):
 		
 		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		
 		jsFilename = name + '.js'
 		jsFilenameFull = os.path.join(staging_path, jsFilename)
@@ -42,7 +42,7 @@ class HAULBuilder_html(HAULBuilder):
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
 		
 		if not os.path.isfile(jsFilenameFull):
 			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))

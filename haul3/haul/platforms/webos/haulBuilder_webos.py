@@ -43,13 +43,13 @@ class HAULBuilder_webos(HAULBuilder):
 		#@TODO: Use module.imports!
 		libs = ['hio']	#['sys', 'hio']
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		jsFilename = name + '.js'
 		jsFilenameFull = os.path.join(staging_path, jsFilename)
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
 		
 		
 		if not os.path.isfile(jsFilenameFull):

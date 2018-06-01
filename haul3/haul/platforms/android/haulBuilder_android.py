@@ -43,7 +43,7 @@ class HAULBuilder_android(HAULBuilder):
 		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		appNamespace = 'wtf.haul'
 		appId = appNamespace + '.' + name
 		appVersion = '0.0.1'
@@ -96,7 +96,7 @@ class HAULBuilder_android(HAULBuilder):
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=javaFilenameFull, DestWriterClass=HAULWriter_java)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=javaFilenameFull, DestWriterClass=HAULWriter_java)
 		
 		if not os.path.isfile(javaFilenameFull):
 			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))

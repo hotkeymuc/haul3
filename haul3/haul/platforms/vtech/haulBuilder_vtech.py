@@ -42,7 +42,7 @@ class HAULBuilder_vtech(HAULBuilder):
 		#@TODO: Use module.imports!
 		libs = ['hio']	#['sys', 'hio']
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		cFilename = name + '.c'
 		cFilenameStaging = os.path.abspath(os.path.join(staging_path, cFilename))
 		
@@ -54,7 +54,7 @@ class HAULBuilder_vtech(HAULBuilder):
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=cFilenameStaging, DestWriterClass=HAULWriter_c, dialect=DIALECT_Z88DK)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=cFilenameStaging, DestWriterClass=HAULWriter_c, dialect=DIALECT_Z88DK)
 		
 		if not os.path.isfile(cFilenameStaging):
 			put('Main C file "%s" was not created! Aborting.' % (cFilenameStaging))

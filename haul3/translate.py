@@ -37,7 +37,7 @@ def put(t):
 def translate(source_filename, WriterClass, output_path=None, dialect=None, libs=None):
 	"Translates the input file using the given language's Writer"
 	
-	name = nameByFilename(source_filename)
+	name = name_by_filename(source_filename)
 	
 	# Prepare input
 	put('Preparing input...')
@@ -49,12 +49,12 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	libs_ns = rootNamespace
 	if (libs != None):
 		for lib_filename in libs:
-			# By reading the libs in in "scanOnly" mode, the namespace gets populated without doing too much extra parsing work
+			# By reading the libs in in "scan_only" mode, the namespace gets populated without doing too much extra parsing work
 			lib_name = lib_filename[:-3].replace('/', '.')
 			lib_stream_in = StringReader(readFile(lib_filename))
 			lib_reader = HAULReader_py(stream=lib_stream_in, filename=lib_filename)
 			put('Scanning lib "' + lib_filename + '"...')
-			lib_m = lib_reader.read_module(name=lib_name, namespace=libs_ns, scanOnly=True)
+			lib_m = lib_reader.read_module(name=lib_name, namespace=libs_ns, scan_only=True)
 			#put('Lib namespace:\n' + libs_ns.dump())
 	
 	
@@ -80,6 +80,8 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	
 	put('Writing output file "' + output_filename + '"...')
 	writeFile(output_filename, stream_out.r)
+	
+	put(libs_ns.dump())
 	
 
 #source_filename = 'examples/hello.py'

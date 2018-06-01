@@ -28,7 +28,7 @@ class HAULBuilder_java(HAULBuilder):
 		
 		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		appNamespace = 'wtf.haul'	#'de.bernhardslawik.haul'
 		appId = appNamespace + '.' + name
 		
@@ -57,12 +57,12 @@ class HAULBuilder_java(HAULBuilder):
 			put('Bundling resources...')
 			resPyFilenameFull = os.path.join(staging_path, 'hresdata.py')
 			resFilenameFull = os.path.join(srcPath, 'hresdata.java')
-			self.bundle(resources=resources, destFilename=resPyFilenameFull)
-			m = self.translate(name='hresdata', sourceFilename=resPyFilenameFull, SourceReaderClass=HAULReader_py, destFilename=resFilenameFull, DestWriterClass=HAULWriter_java)
+			self.bundle(resources=resources, dest_filename=resPyFilenameFull)
+			m = self.translate(name='hresdata', source_filename=resPyFilenameFull, SourceReaderClass=HAULReader_py, dest_filename=resFilenameFull, DestWriterClass=HAULWriter_java)
 		
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=javaFilenameFull, DestWriterClass=HAULWriter_java)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=javaFilenameFull, DestWriterClass=HAULWriter_java)
 		
 		if not os.path.isfile(javaFilenameFull):
 			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))

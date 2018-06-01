@@ -37,14 +37,14 @@ class HAULBuilder_palmos(HAULBuilder):
 		for l in libs:
 			self.copy(os.path.join(libs_path, l + '.pas'), os.path.join(staging_path, l + '.pas'))
 		
-		name = nameByFilename(source_filename)
+		name = name_by_filename(source_filename)
 		pasFilename = name + '.pas'
 		exeFilename = name + '.exe'
 		
 		pasFilenameFull = os.path.join(staging_path, pasFilename)
 		
 		put('Translating source...')
-		m = self.translate(name=name, sourceFilename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, destFilename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_PP)
+		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_PP)
 		
 		if not os.path.isfile(pasFilenameFull):
 			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))
