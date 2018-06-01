@@ -54,7 +54,7 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 			lib_stream_in = StringReader(readFile(lib_filename))
 			lib_reader = HAULReader_py(stream=lib_stream_in, filename=lib_filename)
 			put('Scanning lib "' + lib_filename + '"...')
-			lib_m = lib_reader.readModule(name=lib_name, namespace=libs_ns, scanOnly=True)
+			lib_m = lib_reader.read_module(name=lib_name, namespace=libs_ns, scanOnly=True)
 			#put('Lib namespace:\n' + libs_ns.dump())
 	
 	

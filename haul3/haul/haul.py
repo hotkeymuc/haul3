@@ -412,10 +412,10 @@ class HAULControl:
 		self.exprs = []
 		self.blocks = []
 	
-	def addBlock(self, block):
+	def add_block(self, block):
 		self.blocks.append(block)
 	
-	def addExpr(self, expr):
+	def add_expression(self, expr):
 		self.exprs.append(expr)
 	
 	def __repr__(self):
@@ -877,20 +877,20 @@ class HAULReader:
 			self.linePos = self.linePos + 1
 		return r
 	
-	#@fun readModule HAULModule
-	def readModule(self):
+	#@fun read_module HAULModule
+	def read_module(self):
 		return None
-	#@fun readBlock HAULBlock
-	def readBlock(self):
+	#@fun read_block HAULBlock
+	def read_block(self):
 		return None
-	#@fun readClass HAULClass
-	def readClass(self):
+	#@fun read_class HAULClass
+	def read_class(self):
 		return None
-	#@fun readFunc HAULFunction
-	def readFunc(self):
+	#@fun read_function HAULFunction
+	def read_function(self):
 		return None
-	#@fun readExpression HAULExpression
-	def readExpression(self):
+	#@fun read_expression HAULExpression
+	def read_expression(self):
 		return None
 	
 
@@ -934,7 +934,7 @@ class HAULWriter:
 		
 		if monolithic:
 			### Cheap (greedy: read whole input file into AST, then translate)
-			m = reader.readModule(namespace=ns)
+			m = reader.read_module(namespace=ns)
 			self.writeModule(m)
 		
 		else:
@@ -945,7 +945,7 @@ class HAULWriter:
 			### Smart (streaming: scan input file, then seek to individual items and translate them)
 			put('>>> Using Smart (streaming) translation...')
 			put('Pre-processing file...')
-			m = reader.readModule(name=name, namespace=ns, scanOnly=True)
+			m = reader.read_module(name=name, namespace=ns, scanOnly=True)
 			put('Done pre-processing.')
 			
 			put('Namespace after scanning:\n' + rootNamespace.dump())
@@ -965,21 +965,21 @@ class HAULWriter:
 			for origin in (m.classes_origins):
 				put('Seeking to origin of class (' + str(origin) + ')...')
 				reader.seek(origin)
-				c = reader.readClass(namespace=ns)
+				c = reader.read_class(namespace=ns)
 				self.writeClass(c)
 			
 			put('Writing functions...')
 			for origin in m.funcs_origins:
 				put('Seeking to origin of function (' + str(origin) + ')...')
 				reader.seek(origin)
-				f = reader.readFunc(namespace=ns)
+				f = reader.read_function(namespace=ns)
 				self.writeFunc(f)
 			
 			put('Writing main block...')
 			#ns = m.block.namespace
 			origin = m.block.origin
 			reader.seek(origin)
-			b = reader.readBlock(namespace=ns, name=m.block.name)
+			b = reader.read_block(namespace=ns, name=m.block.name)
 			self.writeBlock(b)
 			
 			self.writeComment('This file might be incomplete, because smart (streaming) translation is not fully tested, yet! Use cheap (greedy) translation instead!\n')
