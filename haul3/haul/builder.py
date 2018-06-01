@@ -20,8 +20,14 @@ class HAULBuilder:
 		self.platform = platform
 		
 		self.source_filename = ''
-		self.staging_path = ''
-		self.output_path = ''
+		self.staging_path = 'staging'
+		self.output_path = 'build'
+	
+	def set_staging_path(self, p):
+		self.staging_path = p
+	
+	def set_output_path(self, p):
+		self.output_path = p
 	
 	# File system abstraction
 	def exists(self, filename):

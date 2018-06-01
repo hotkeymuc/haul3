@@ -41,10 +41,27 @@ source_path = os.path.abspath('examples')
 staging_path = os.path.abspath('staging')
 output_path = os.path.abspath('build')
 data_path = os.path.abspath('data')
-resources = [
-	os.path.join(source_path, 'hres_data1.txt'),
-	os.path.join(source_path, 'hres_data2.txt'),
-]
+#resources = [
+#	os.path.join(source_path, 'hres_data1.txt'),
+#	os.path.join(source_path, 'hres_data2.txt'),
+#]
+
+builder.set_staging_path(os.path.abspath('staging'))
+builder.configure(
+	source_path=source_path,
+	libs_path='libs',
+	staging_path='staging',
+	output_path='build',
+	data_path='data',
+)
+
+builder.prepare()
+builder.compile()
+builder.package()
+builder.test()
+builder.finish()
+
+
 
 builder.build(
 	source_path=source_path,
