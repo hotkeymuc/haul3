@@ -32,8 +32,8 @@ def put(t):
 	print(t)
 
 
-############################################################
-
+"""
+### Manual translation (without using HAULTranslator)
 def translate(source_filename, WriterClass, output_path=None, dialect=None, libs=None):
 	"Translates the input file using the given language's Writer"
 	
@@ -84,6 +84,30 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	put(libs_ns.dump())
 	
 
+
+source_root_path = '.'
+package_path = 'haul/langs/py'
+source_filename = 'haulReader_py.py'
+libs = ['haul/haul.py', 'haul/utils.py']
+output_path = 'build'
+
+WriterClass = HAULWriter_py
+try:
+	translate(
+		source_filename=(source_root_path + '/' + package_path + '/' + source_filename),
+		WriterClass=HAULWriter_py,
+		output_path=(output_path + '/' + package_path),
+		libs=libs
+	)
+except HAULParseError as e:
+	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))
+	
+"""
+
+
+
+
+
 #source_filename = 'examples/hello.py'
 #source_filename = 'examples/small.py'
 #source_filename = 'examples/infer.py'
@@ -106,38 +130,18 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 #output_path = 'build/haul'
 #libs = None
 
-source_root_path = '.'
-package_path = 'haul/langs/py'
-source_filename = 'haulReader_py.py'
-libs = ['haul/haul.py', 'haul/utils.py']
-output_path = 'build'
 
+from haul.translator import HAULTranslator
 
+t = HAULTranslator(HAULReader_py, HAULWriter_py)
 
-WRITER_CLASSES = [
-	HAULWriter_asm,
-	HAULWriter_bas,
-	HAULWriter_c,
-	HAULWriter_java,
-	HAULWriter_js,
-	HAULWriter_json,
-	HAULWriter_lua,
-	HAULWriter_opl,
-	HAULWriter_pas,
-	HAULWriter_py,
-	HAULWriter_vbs,
-]
-
-WriterClass = HAULWriter_py
 try:
-	#translate(source_filename, WriterClass, output_path, libs=libs)
-	translate(
-		source_filename=(source_root_path + '/' + package_path + '/' + source_filename),
-		WriterClass=HAULWriter_py,
-		output_path=(output_path + '/' + package_path),
-		libs=libs)
+	#t.process_lib('haul.utils', FileReader('haul/utils.py'))
+	t.process_lib('hio', FileReader('libs/hio.py'))
+	
+	t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.py'))
+	
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))
-	
 
 put('translate.py ended.')

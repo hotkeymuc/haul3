@@ -20,30 +20,32 @@ class HAULTranslator:
 		self.WriterClass = WriterClass
 		self.dialect = dialect
 		self.libs = []
-		self.namespace = HAULNamespace(name='translator', parent=rootNamespace)
-		#self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
+		self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
+		
 	
 	def process_lib(self, name, stream):
 		self.libs.append(name)
 		
-		lib_reader = self.ReaderClass(stream=stream, name=name)
+		put('Scanning "{}"...'.format(name))
+		lib_reader = self.ReaderClass(stream=stream, filename=name)
 		lib_m = lib_reader.read_module(name=name, namespace=self.namespace, scan_only=True)
 	
-	def translate(self, name, stream_in, stream_out):
-		put('Translating "' + name + '"...')
+	def translate(self, name, stream_in, stream_out, close_stream=True):
+		put('Translating "{}"...'.format(name))
 		
-		reader = self.ReaderClass(stream=stream_in, name=name)
+		reader = self.ReaderClass(stream=stream_in, filename=name)
 		
 		monolithic = True	# Use simple (but good) monolithic version (True) or a memory friendly multi-pass streaming method (False)
-		#reader.seek(0)
+		reader.seek(0)
 		
-		if (dialect == None):
-			writer = self.WriterClass(streamOut)
+		if (self.dialect == None):
+			writer = self.WriterClass(stream_out)
 		else:
-			writer = self.WriterClass(streamOut, dialect=dialect)
+			writer = self.WriterClass(stream_out, dialect=self.dialect)
 		
 		m = writer.stream(reader=reader, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
 		
+		if (close_stream): stream_out.close()
 		return m
 		
 	

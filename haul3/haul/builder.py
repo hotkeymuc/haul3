@@ -104,6 +104,8 @@ class HAULBuilder:
 		for l in self.libs:
 			name = l
 			filename = self.libs_path + '/' + name + '.py'
+			
+			put('Scanning library "{}" in "{}"...'.format(name, filename))
 			stream = self.stream_from_file(filename)
 			reader = HAULReader_py(stream=stream, filename=filename)
 			m = reader.read_module(name=name, namespace=self.namespace, scan_only=True)
@@ -149,11 +151,14 @@ class HAULBuilder:
 		
 		put('Starting build...')
 		
-		put('Creating output path "' + self.output_path + '"...')
-		self.mkdir(self.output_path)
-		
 		put('Cleaning staging path "' + self.staging_path + '"...')
 		self.clean(self.staging_path)
+		
+		put('Scanning libraries...')
+		self.scan_libs()
+		
+		put('Creating output path "' + self.output_path + '"...')
+		self.mkdir(self.output_path)
 		
 		
 	

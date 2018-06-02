@@ -33,9 +33,6 @@ class HAULBuilder_html(HAULBuilder):
 		htmlFilenameFull = os.path.abspath(os.path.join(self.output_path, htmlFilename))
 		
 		
-		#@TODO: Use module.imports!
-		libs = ['hio']	#['sys', 'hio']
-		self.scan_libs()
 		
 		put('Translating source...')
 		m = self.translate(name=name, source_filename=self.source_filename, dest_filename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
@@ -44,6 +41,12 @@ class HAULBuilder_html(HAULBuilder):
 			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))
 			return False
 		
+		
+		#@TODO: Copy native libs to output_path!
+		
+		#@TODO: Merge native libs into HTML if specified
+		
+		#@TODO: Get this HTML from a dta file in haul3/data/platforms/html/index.html
 		
 		
 		html = '''<!DOCTYPE html>

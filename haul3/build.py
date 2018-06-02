@@ -42,11 +42,11 @@ builder = HAULBuilder_html()
 #	os.path.join(source_path, 'hres_data2.txt'),
 #]
 
-builder.source_path = os.path.abspath('examples')
-builder.libs_path = 'libs'
-builder.data_path = 'data'
-builder.staging_path = 'staging'
-builder.output_path = 'build'
+#builder.source_path = os.path.abspath('examples')
+#builder.libs_path = 'libs'
+#builder.data_path = 'data'
+#builder.staging_path = 'staging'
+#builder.output_path = 'build'
 
 
 builder.add_lib('hio')
@@ -54,12 +54,15 @@ builder.add_lib('hio')
 builder.set_source('examples/hello.py')
 
 #builder.translate()
+#builder.compile()
 #builder.package()
 #builder.test()
+builder.build(perform_test_run=perform_test_run)
+
+üüüüüüüüüüüüüüü I am in the midst of changing the structure
+@TODO: HAULTranslator? Just to "quickly" translate something. Can be re-used by builders!
+
 
 #builder.finish()
-
-
-builder.build(perform_test_run=perform_test_run)
 
 put('build.py ended.')
