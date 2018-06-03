@@ -155,7 +155,9 @@ class HAULWriter_lua(HAULWriter):
 		if (c.controlType == C_IF):
 			j = 0
 			while j < len(c.exprs):
-				if (j > 0): self.write('el')	#elif
+				if (j > 0):
+					self.write_indent(indent)
+					self.write('el')	#elif
 				self.write('if (')
 				
 				self.write_expression(c.exprs[j])
@@ -167,6 +169,7 @@ class HAULWriter_lua(HAULWriter):
 				self.write_indent(indent)
 				self.write('else\n')
 				self.write_block(c.blocks[j], indent+1)
+			
 			self.write_indent(indent)
 			self.write('end\n')
 		

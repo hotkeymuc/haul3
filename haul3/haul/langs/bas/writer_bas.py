@@ -170,7 +170,9 @@ class HAULWriter_bas(HAULWriter):
 		if (c.controlType == C_IF):
 			j = 0
 			while j < len(c.exprs):
-				if (j > 0): self.write('ELSE ')	# "ELSEIF" in OPL
+				if (j > 0):
+					self.write_indent(indent)
+					self.write('ELSE ')	# "ELSEIF" in OPL
 				self.write('IF (')
 				
 				self.write_expression(c.exprs[j])
@@ -185,6 +187,7 @@ class HAULWriter_bas(HAULWriter):
 				self.write('ELSE\n')
 				self.write_block(c.blocks[j], indent+1)
 			
+			self.write_indent(indent)
 			self.write('END IF\n')
 		
 		elif (c.controlType == C_FOR):

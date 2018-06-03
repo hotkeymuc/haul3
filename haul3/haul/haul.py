@@ -112,7 +112,7 @@ class HAULId:
 	#@var data_module HAULModule
 	
 	#@var origin int
-	#@var user str
+	#@var user int
 	
 	#@fun __init__
 	#@arg name str
@@ -129,7 +129,7 @@ class HAULId:
 		self.data_module = None	# HAULModule for K_MODULE
 		
 		self.origin = origin	# For scanning and debugging
-		self.user = None	# User data, can be used e.g. for Assembly to keep track of memory location
+		self.user = 0	# User data, can be used e.g. for Assembly to keep track of memory location
 		
 	
 	def __repr__(self):
