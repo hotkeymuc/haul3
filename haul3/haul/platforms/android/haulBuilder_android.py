@@ -36,25 +36,30 @@ EMU_CMD = os.path.abspath(os.path.join(ANDROID_SDK_DIR, 'emulator', 'emulator'))
 
 class HAULBuilder_android(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='java', platform='android')
+		HAULBuilder.__init__(self, platform='android', lang='java')
+		
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_java))
+		
 	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+	def build(self, project):
 		
-		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		HAULBuilder.build(self, project=project)
 		
+		name = self.project.name
 		
-		name = name_by_filename(source_filename)
+		#@TODO: MAke package name customizable!
+		
 		appNamespace = 'wtf.haul'
 		appId = appNamespace + '.' + name
 		appVersion = '0.0.1'
 		appActivityId = 'wtf.haul.HaulActivity'	#appId + '.MainActivity'
 		
-		dataLibsPath = os.path.join(data_path, 'platforms', 'android', 'libs')
-		dataResPath = os.path.join(data_path, 'platforms', 'android', 'res')
+		dataLibsPath = os.path.join(self.data_path, 'platforms', 'android', 'libs')
+		dataResPath = os.path.join(self.data_path, 'platforms', 'android', 'res')
 		
-		resPath = os.path.join(staging_path, 'res')
-		srcPath = os.path.join(staging_path, 'src')
-		classPath = os.path.join(staging_path, 'build')
+		resPath = os.path.join(self.staging_path, 'res')
+		srcPath = os.path.join(self.staging_path, 'src')
+		classPath = os.path.join(self.staging_path, 'build')
 		
 		
 		#javaFilename = name.capitalize() + '.java'
@@ -70,33 +75,32 @@ class HAULBuilder_android(HAULBuilder):
 		haulInfoFilename = os.path.join(packageSrcPath, 'HaulInfo.java')
 		haulInfoClassFilename = os.path.join(packageClassPath, 'HaulInfo.class')
 		
-		manifestFilename = os.path.join(staging_path, 'AndroidManifest.xml')
-		dexFilename = os.path.join(staging_path, 'classes.dex')
-		keystoreFilename = os.path.join(staging_path, 'appkey.keystore')
-		keystoresource_filename = os.path.join(staging_path, 'appkey.keystore.input')
+		manifestFilename = os.path.join(self.staging_path, 'AndroidManifest.xml')
+		dexFilename = os.path.join(self.staging_path, 'classes.dex')
+		keystoreFilename = os.path.join(self.staging_path, 'appkey.keystore')
+		keystoresource_filename = os.path.join(self.staging_path, 'appkey.keystore.input')
 		
-		apkFilenameRaw = os.path.join(staging_path,  appId + '_' + appVersion + '_raw.apk')
-		apkFilenameSigned = os.path.join(staging_path,  appId + '_' + appVersion + '_signed.apk')
-		apkFilenameAligned = os.path.join(staging_path,  appId + '_' + appVersion + '_aligned.apk')
+		apkFilenameRaw = os.path.join(self.staging_path,  appId + '_' + appVersion + '_raw.apk')
+		apkFilenameSigned = os.path.join(self.staging_path,  appId + '_' + appVersion + '_signed.apk')
+		apkFilenameAligned = os.path.join(self.staging_path,  appId + '_' + appVersion + '_aligned.apk')
 		#apkFilenameFinal = os.path.join(output_path,  appId + '_' + appVersion + '.apk')
-		apkFilenameFinal = os.path.join(output_path,  name + '.apk')
+		apkFilenameFinal = os.path.join(self.output_path,  name + '.apk')
 		
 		
 		put('Cleaning staging paths...')
-		#self.clean(staging_path)
 		self.clean(srcPath)
 		self.clean(classPath)
 		self.mkdir(os.path.join(srcPath, 'wtf'))
 		self.mkdir(os.path.join(srcPath, 'wtf', 'haul'))
 		
 		
-		#@TODO: Use module.imports!
-		libs = ['hio']	#['sys', 'hio']
 		
+		put('Preparing paths...')
+		for s in self.project.sources:
+			s.dest_filename = packageSrcPath + '/' + s.name + '.java'
 		
-		
-		put('Translating source...')
-		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=javaFilenameFull, DestWriterClass=HAULWriter_java)
+		put('Translating sources to Java...')
+		self.translate_project(output_path=packageSrcPath)
 		
 		if not os.path.isfile(javaFilenameFull):
 			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))
@@ -108,10 +112,10 @@ class HAULBuilder_android(HAULBuilder):
 		
 		put('Copying libraries...')
 		srcFiles = []
-		for l in libs:
-			f = os.path.join(srcPath, 'wtf', 'haul', l + '.java')
-			#self.copy('haul/langs/java/lib/' + l + '.java', f)
-			self.copy(os.path.join(dataLibsPath, l + '.java'), f)
+		for s in self.project.libs:
+			lib_filename_data = dataLibsPath + '/' + s.name + '.java'
+			f = os.path.join(srcPath, 'wtf', 'haul', s.name + '.java')
+			self.copy(lib_filename_data, f)
 			srcFiles.append(f)
 		
 		srcFiles.append(javaFilenameFull)
@@ -169,7 +173,7 @@ public class HaulInfo {
 		cmd += ' -d "%s"' % (classPath)
 		#cmd += ' "%s"' % (os.path.join(srcPath, '*'))
 		cmd += ' %s' % (' '.join(srcFiles))
-		#cmd += ' "%s"' % (os.path.join(staging_path, '*.java'))
+		#cmd += ' "%s"' % (os.path.join(self.staging_path, '*.java'))
 		r = self.command(cmd)
 		#put(r)
 		
@@ -242,7 +246,7 @@ public class HaulInfo {
 		cmd += ' -S "%s"' % (resPath)
 		cmd += ' -I "%s"' % (ANDROID_JAR)
 		cmd += ' -F "%s"' % (apkFilenameRaw)
-		cmd += ' "%s"' % (staging_path)
+		cmd += ' "%s"' % (self.staging_path)
 		r = self.command(cmd)
 		#put(r)
 		
@@ -337,7 +341,7 @@ public class HaulInfo {
 		
 		
 		# Test
-		if perform_test_run:
+		if (self.project.run_test == True):
 			
 			devName = self.obtainAdbDevice()
 			
