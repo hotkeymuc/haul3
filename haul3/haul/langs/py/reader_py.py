@@ -492,7 +492,7 @@ class HAULReader_py(HAULReader):
 			t2 = self.peek_next()
 			
 			#@TODO: Handle multiple brackets, like test[4][3](123)[2,2]()
-			if (checkCall == True) and (t2.data == '('):
+			if ((t2 != None) and (checkCall == True) and (t2.data == '(')):
 				# Call!
 				put_debug('call...')
 				# Skip bracket

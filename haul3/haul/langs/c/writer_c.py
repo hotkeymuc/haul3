@@ -156,6 +156,8 @@ class HAULWriter_c(HAULWriter):
 		
 		if self.dialect == DIALECT_ARDUINO:
 			self.write(GLUE_ARDUINO_PRE);
+		elif self.dialect == DIALECT_Z88DK:
+			self.write('#define VGL\n')
 		
 		if (len(m.imports) > 0):
 			self.write('\n')
@@ -201,7 +203,7 @@ class HAULWriter_c(HAULWriter):
 		if self.dialect == DIALECT_GBDK:
 			self.write('void main_internal() {\n')
 		elif self.dialect == DIALECT_Z88DK:
-			self.write('main() {\n')
+			self.write('void main(void) {\n')
 		elif self.dialect == DIALECT_ARDUINO:
 			#self.write('int main() {\n')
 			self.write('void _main() {\n')
@@ -489,7 +491,7 @@ class HAULWriter_c(HAULWriter):
 		elif (v.type == T_BOOLEAN):
 			if (v.data_bool): self.write('true')
 			else: self.write('false')
-		elif (v.type == T_INT):
+		elif (v.type == T_INTEGER):
 			self.write(str(v.data_int))
 		elif (v.type == T_FLOAT):
 			self.write(str(v.data_float))
