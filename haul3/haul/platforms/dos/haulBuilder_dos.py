@@ -12,18 +12,22 @@ from haul.langs.pas.haulWriter_pas import *
 
 class HAULBuilder_dos(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='pas', platform='dos')
+		HAULBuilder.__init__(self, platform='dos', lang='pas')
+		
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_pas, dialect=DIALECT_TURBO))
 	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+	def build(self, project):
 		
-		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		HAULBuilder.build(self, project=project)
 		
-		name = name_by_filename(source_filename)
-		stagingPath = os.path.realpath(staging_path)
+		name = self.project.name
 		
-		libsPath = os.path.join(data_path, 'platforms', 'dos', 'libs')
-		vm_path = os.path.join(data_path, 'platforms', 'dos', 'vm')
-		qemu_path = os.path.join(data_path, '../tools/qemu')	#@FIXME
+		
+		stagingPath = os.path.realpath(self.staging_path)
+		
+		libsPath = os.path.join(self.data_path, 'platforms', 'dos', 'libs')
+		vm_path = os.path.join(self.data_path, 'platforms', 'dos', 'vm')
+		qemu_path = os.path.abspath(os.path.join(self.data_path, '../tools/qemu'))	#@FIXME
 		
 		pasFilename = name[0:8] + '.pas'
 		outputFilename = name[0:8] + '.exe'
@@ -31,20 +35,21 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		put('Staging to "%s"...' % (stagingPath))
 		
-		put('Cleaning staging path...')
-		self.clean(stagingPath)
+		
+		put('Preparing path names...')
+		for s in self.project.sources:
+			s.dest_filename = stagingPath + '/' + s.name[0:8] + '.pas'
+		for s in self.project.libs:
+			s.dest_filename = stagingPath + '/' + s.name[0:8] + '.pas'
+		
 		
 		put('Copying libraries...')
-		#self.copy('haul/platforms/dos/lib/hio.pas', stagingPath + '/hio.pas')
-		
-		#@TODO: Use module.imports!
-		libs = ['sys', 'hio']
-		for l in libs:
-			self.copy(os.path.join(libsPath, l + '.pas'), os.path.join(stagingPath, l + '.pas'))
+		for s in self.project.libs:
+			self.copy(os.path.join(libsPath, s.name + '.pas'), os.path.join(stagingPath, s.name + '.pas'))
 		
 		
-		put('Translating source...')
-		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=pasFilenameFull, DestWriterClass=HAULWriter_pas, dialect=DIALECT_TURBO)
+		put('Translating source to TP...')
+		self.translate_project(output_path=stagingPath)
 		
 		if not os.path.isfile(pasFilenameFull):
 			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))
@@ -108,7 +113,8 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		# Compile all files
 		pasFiles = []
-		for l in libs:
+		for l in self.project.libs:
+			l = s.name
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + l + '.pas ' + DOS_TEMP_DIR + CRLF
 			pasFiles.append(DOS_TEMP_DIR + '\\' + l + '.pas')
 		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + pasFilename + ' ' + DOS_TEMP_DIR + CRLF
@@ -135,7 +141,7 @@ class HAULBuilder_dos(HAULBuilder):
 		autoexec += 'ECHO ----------------------------------------' + CRLF
 		
 		
-		if perform_test_run:
+		if (self.project.run_test == True):
 			# Test result
 			autoexec += 'CLS' + CRLF
 			autoexec += 'ECHO Testing "' + DOS_OUT_FILE + '"...' + CRLF
@@ -197,7 +203,7 @@ class HAULBuilder_dos(HAULBuilder):
 		if (self.exists(stagingPath + '/' + outputFilename)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(stagingPath + '/' + outputFilename, output_path + '/' + outputFilename)
+			self.copy(stagingPath + '/' + outputFilename, self.output_path + '/' + outputFilename)
 		else:
 			put('Build seems to have failed, since there is no output file "' + (stagingPath + '/' + outputFilename) + '".')
 		

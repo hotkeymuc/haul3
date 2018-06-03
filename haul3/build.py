@@ -35,8 +35,8 @@ p.run_test = False
 
 
 #builder = HAULBuilder_android()
-builder = HAULBuilder_arduino()
-#builder = HAULBuilder_dos()
+#builder = HAULBuilder_arduino()
+builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
 #builder = HAULBuilder_html()
 #builder = HAULBuilder_java()

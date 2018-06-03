@@ -95,7 +95,7 @@ class HAULBuilder_android(HAULBuilder):
 		
 		
 		
-		put('Preparing paths...')
+		put('Preparing path names...')
 		for s in self.project.sources:
 			s.dest_filename = packageSrcPath + '/' + s.name + '.java'
 		
