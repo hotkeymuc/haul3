@@ -22,29 +22,33 @@ JAR_CMD = os.path.abspath(os.path.join(JRE_DIR, 'jar'))
 
 class HAULBuilder_java(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='java', platform='java')
+		HAULBuilder.__init__(self, platform='java', lang='java')
+		
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_java))
+		
 	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+	def build(self, project):
 		
-		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		HAULBuilder.build(self, project=project)
 		
-		name = name_by_filename(source_filename)
+		name = self.project.name
+		
 		appNamespace = 'wtf.haul'	#'de.bernhardslawik.haul'
 		appId = appNamespace + '.' + name
 		
-		libsPath = os.path.join(data_path, 'langs/java/libs')
+		libsPath = os.path.join(self.data_path, 'langs/java/libs')
 		
-		srcPath = os.path.join(staging_path, 'src')
+		srcPath = os.path.join(self.staging_path, 'src')
 		javaFilename = name + '.java'
 		javaFilenameFull = os.path.join(srcPath, javaFilename)
 		
-		classPath = os.path.join(staging_path, 'build')
+		classPath = os.path.join(self.staging_path, 'build')
 		classFilename = name + '.class'
 		classFilenameFull = os.path.join(classPath, 'wtf', 'haul', classFilename)
 		
 		jarFilename = name + '.jar'
-		jarFilenameFull = os.path.join(staging_path, jarFilename)
-		jarFilenameFinal = os.path.join(output_path, jarFilename)
+		jarFilenameFull = os.path.join(self.staging_path, jarFilename)
+		jarFilenameFinal = os.path.join(self.output_path, jarFilename)
 		
 		
 		put('Cleaning staging paths...')
@@ -52,17 +56,18 @@ class HAULBuilder_java(HAULBuilder):
 		self.clean(classPath)
 		
 		
+		"""
 		if (resources != None):
 			#@TODO: Testing: Build a py file with resource data, then translate it to target language
 			put('Bundling resources...')
-			resPyFilenameFull = os.path.join(staging_path, 'hresdata.py')
+			resPyFilenameFull = os.path.join(self.staging_path, 'hresdata.py')
 			resFilenameFull = os.path.join(srcPath, 'hresdata.java')
 			self.bundle(resources=resources, dest_filename=resPyFilenameFull)
 			m = self.translate(name='hresdata', source_filename=resPyFilenameFull, SourceReaderClass=HAULReader_py, dest_filename=resFilenameFull, DestWriterClass=HAULWriter_java)
+		"""
 		
-		
-		put('Translating source...')
-		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=javaFilenameFull, DestWriterClass=HAULWriter_java)
+		put('Translating sources to Java...')
+		self.translate_project(output_path=srcPath)
 		
 		if not os.path.isfile(javaFilenameFull):
 			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))
@@ -71,12 +76,11 @@ class HAULBuilder_java(HAULBuilder):
 		
 		#@TODO: Use module.imports!
 		put('Staging source files...')
-		libs = ['hio']	#['sys', 'hio']
 		
 		srcFiles = []
-		for l in libs:
-			f_in = os.path.abspath(os.path.join(libsPath, l + '.java'))
-			f_out = os.path.abspath(os.path.join(srcPath, l + '.java'))
+		for s in self.project.libs:
+			f_in = libsPath + '/' + s.name + '.java'
+			f_out = os.path.abspath(os.path.join(srcPath, s.name + '.java'))
 			self.copy(f_in, f_out)
 			srcFiles.append(f_out)
 		
@@ -84,14 +88,14 @@ class HAULBuilder_java(HAULBuilder):
 		
 		
 		put('Compiling Java classes...')
-		#cmd = JRE_DIR + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (staging_path, staging_path, output_path, javaFilenameFull)
+		#cmd = JRE_DIR + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (self.staging_path, staging_path, output_path, javaFilenameFull)
 		cmd = JAVAC_CMD
 		cmd += ' -classpath "%s"' % (classPath)
 		cmd += ' -sourcepath "%s"' % (srcPath)
 		cmd += ' -d "%s"' % (classPath)
 		cmd += ' %s' % (' '.join(srcFiles))
 		#cmd += ' "%s"' % (javaFilenameFull)
-		#cmd += ' "%s"' % (os.path.join(staging_path, '*.java'))
+		#cmd += ' "%s"' % (os.path.join(self.staging_path, '*.java'))
 		r = self.command(cmd)
 		
 		# Check if successfull
@@ -119,7 +123,7 @@ class HAULBuilder_java(HAULBuilder):
 		
 		
 		# Test
-		if perform_test_run:
+		if (self.project.run_test == True):
 		
 			put('Test: Launching...')
 			#self.command(JRE_DIR + '/java -classpath "%s" %s' % (classPath, name))
