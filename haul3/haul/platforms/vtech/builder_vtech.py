@@ -14,18 +14,12 @@ def put(txt):
 	print('HAULBuilder_vtech:\t' + str(txt))
 
 
-Z88DK_VGL_MODEL = '4000'
-MESS_DIR = 'Z:\\Apps\\_emu\\MESSUI-0.181'
-MESS_ROM_DIR = 'Z:\\Apps\\_emu\\_roms'
-#MESS_SYS = 'gl1000'
-#MESS_SYS = 'gl2000'
-MESS_SYS = 'gl4000'
-#MESS_SYS = 'gl4004'
-
 class HAULBuilder_vtech(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, platform='vtech', lang='c')
+		
 		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_c, dialect=DIALECT_Z88DK))
+		
 	
 	def build(self, project):
 		
@@ -33,34 +27,36 @@ class HAULBuilder_vtech(HAULBuilder):
 		
 		name = self.project.name
 		
-		tools_path = os.path.abspath(os.path.join(self.data_path, '..', 'tools'))
+		vgl_model = '2000'
 		
-		#z88dk_path = os.path.abspath(os.path.join(tools_path, 'platforms', 'z80', 'z88dk'))
-		#z88dk_lib_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'vtech', 'lib'))
+		#@TODO: Allow other Z88DK targets!
+		#@Actually, turn this into builder_z80!
+		z88dk_target = 'vgl'
+		z88dk_subtype = vgl_model + '_rom_autostart'
+		mess_sys = 'gl' + vgl_model
 		
-		z88dk_path = os.path.abspath('Z:/Data/_code/_cWorkspace/z88dk.git')
+		
+		#z88dk_path = os.path.abspath('Z:/Data/_code/_cWorkspace/z88dk.git')
+		z88dk_path = self.get_path('Z88DK_PATH', os.path.abspath(os.path.join(self.tools_path, 'platforms', 'z80', 'z88dk')))
+		put('Using Z88DK in "{}"'.format(z88dk_path))
+		
 		z88dk_lib_path = os.path.abspath(z88dk_path + '/lib')
 		
-		
-		vm_path = os.path.join(self.data_path, 'platforms', 'vtech', 'vm')
-		#mess_path = os.path.join(tools_path, 'mess')
-		mess_path = MESS_DIR
 		libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'vtech', 'libs'))
+		start_path = os.getcwd()
 		
-		startPath = os.getcwd()
+		c_filename = name + '.c'
+		c_filename_full = os.path.abspath(os.path.join(self.staging_path, c_filename))
 		
-		cFilename = name + '.c'
-		cFilenameStaging = os.path.abspath(os.path.join(self.staging_path, cFilename))
+		bin_name = name + '_z80_' + z88dk_target + z88dk_subtype
+		bin_filename = bin_name + '.bin'
+		bin_filename_full = os.path.abspath(os.path.join(self.staging_path, bin_filename))
 		
-		binName = name + '_z80_vtech'
-		binFilename = binName + '.bin'
-		binFilenameStaging = os.path.abspath(os.path.join(self.staging_path, binFilename))
+		self.rm_if_exists(bin_filename_full)
 		
 		
-		self.rm_if_exists(binFilenameStaging)
-		
-		put('Copying essentials...')
-		essentials = ['vtech', ]
+		#put('Copying essentials...')
+		#essentials = ['vtech']
 		
 		put('Copying libraries...')
 		for s in self.project.libs:
@@ -72,8 +68,8 @@ class HAULBuilder_vtech(HAULBuilder):
 		m = self.translate_project(output_path=self.staging_path)
 		
 		
-		if not os.path.isfile(cFilenameStaging):
-			put('Main C file "%s" was not created! Aborting.' % (cFilenameStaging))
+		if not os.path.isfile(c_filename_full):
+			raise HAULBuildError('Main C file "{}" was not created!'.format(c_filename_full))
 			return False
 		
 		
@@ -81,27 +77,26 @@ class HAULBuilder_vtech(HAULBuilder):
 		put('Compiling using Z88DK...')
 		
 		# Set environment
-		
 		my_env = os.environ.copy()
 		my_env['PATH'] = os.environ['PATH'] + ';' + os.path.join(z88dk_path, 'bin')
-		# Normally these files reside inside the z88dk, but we hijack them and use our minimal local version
+		# Normally these files reside inside the z88dk, but we canhijack them and use our minimal local version
 		my_env['OZFILES'] = z88dk_lib_path
 		my_env['ZCCCFG'] = os.path.abspath(z88dk_lib_path + '/config')
 		
 		
-		### Use SDCC compiler (can not handle inline #asm/#endasm in C!)
+		### Using SDCC compiler (can not handle inline #asm/#endasm in C!)
 		#SET ZCCCMD=zcc +vgl -vn -clib=sdcc_iy -SO3 --max-allocs-per-node200000 %PROGNAME%.c -o %PROGNAME% -create-app
 		#SET ZCCCMD=zcc +vgl -v -clib=sdcc_iy -SO3 --max-allocs-per-node200000 %PROGNAME%.c -o %PROGNAME% -create-app
 		
-		### Use SCCZ80 compiler
+		### Using SCCZ80 compiler
 		#SET ZCCCMD=zcc +vgl -vn -clib=new %VGLOPTS% %SRCPATH%%PROGNAME%.c -o %PROGNAME% -create-app
 		
 		cmd = os.path.join(z88dk_path, 'bin', 'zcc')
 		cmd = 'zcc'
-		cmd += ' +vgl'
+		cmd += ' +' + z88dk_target
 		cmd += ' -vn'
 		cmd += ' -clib=new'
-		cmd += ' -subtype=' + Z88DK_VGL_MODEL + '_rom_autostart'
+		cmd += ' -subtype=' + z88dk_subtype
 		
 		#cmd += ' -I' + os.path.abspath(libs_path)
 		#cmd += ' -I' + os.path.abspath(os.path.join(z88dk_path, 'include'))
@@ -113,38 +108,44 @@ class HAULBuilder_vtech(HAULBuilder):
 		#cmd += ' -l' + 'z88_clib'
 		#cmd += ' -l' + 'z88_math'
 		
-		cmd += ' ' + cFilename
-		cmd += ' -o ' + binName
+		cmd += ' ' + c_filename
+		cmd += ' -o ' + bin_name
 		cmd += ' -create-app'
 		
 		
 		self.chdir(self.staging_path)	# Change to staging dir (some configs are created during build)
 		r = self.command(cmd, env=my_env)
-		self.chdir(startPath)	# Change back
+		self.chdir(start_path)	# Change back
 		
 		#@TODO: IF ERRORLEVEL 1 GOTO:ERROR
 		
-		
-		if not os.path.isfile(binFilenameStaging):
+		if not os.path.isfile(bin_filename_full):
 			put(r)
-			put('BIN file "%s" was not created! Aborting.' % (binFilenameStaging))
+			raise HAULBuildError('BIN file "{}" was not created!'.format(bin_filename_full))
 			return False
 		
 		
-		put('Copying bin file "%s" to output directory...' % (binFilename))
-		self.copy(binFilenameStaging, os.path.join(self.output_path, binFilename))
+		put('Copying bin file "%s" to output directory...' % (bin_filename))
+		self.copy(bin_filename_full, os.path.join(self.output_path, bin_filename))
 		
 		
 		# Test
 		if (self.project.run_test == True):
+			
+			#mess_path = 'Z:\\Apps\\_emu\\MESSUI-0.181'
+			mess_path = self.get_path('MESS_PATH', os.path.abspath(os.path.join(self.tools_path, 'mess')))
+			
+			#mess_rom_path = 'Z:\\Apps\\_emu\\_roms'
+			mess_rom_path = self.get_path('MESS_ROM_PATH', os.path.abspath(os.path.join(self.data_path, 'mess_roms')))
+			
 			put('Launching MESS emulator...')
 			
 			#"%MESSPATH%\mess.exe" -rompath "%ROMPATH%" %EMUSYS% -cart "%PROGNAME%.bin" -window -nomax -nofilter -sleep -volume -10 -skip_gameinfo -speed 2.00
 			
-			cmd = '"%s"' % os.path.join(MESS_DIR, 'mess.exe')
-			cmd += ' -rompath "%s"' % (MESS_ROM_DIR)
-			cmd += ' %s' % (MESS_SYS)
-			cmd += ' -cart "%s"' % (os.path.abspath(os.path.join(self.output_path, binFilename)))
+			cmd = '"%s"' % os.path.join(mess_path, 'mess.exe')
+			cmd += ' -rompath "%s"' % (mess_rom_path)
+			cmd += ' %s' % (mess_sys)
+			cmd += ' -cart "%s"' % (os.path.abspath(os.path.join(self.output_path, bin_filename)))
 			cmd += ' -window'
 			cmd += ' -nomax'
 			cmd += ' -nofilter'
@@ -156,10 +157,10 @@ class HAULBuilder_vtech(HAULBuilder):
 			
 			self.chdir(self.staging_path)	# Change to staging dir (MESS creates some messy files wherever it is called)
 			r = self.command(cmd)
-			self.chdir(startPath)	# Change back
+			self.chdir(start_path)	# Change back
 			
 			#@TODO: Delete the config file that MESS is creating (CFG)
 		
 		put('Done.')
-		
+		return True
 		

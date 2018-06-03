@@ -15,25 +15,6 @@ def put(txt):
 	print('HAULBuilder_android:\t' + str(txt))
 
 
-HAULBUILDER_ANDROID_DIR = os.path.dirname(__file__)
-JRE_DIR = os.path.abspath('Z:/Apps/_code/AndroidStudio/jre')
-ANDROID_SDK_DIR = os.path.abspath('Z:/Data/_code/_sdk/adt-bundle-windows-x86-20130522/sdk')
-AVD_NAME = 'Nexus_5X_API_25_x86'	# Which AVD device to use for emulator testing
-
-JAVA_CMD = os.path.abspath(os.path.join(JRE_DIR, 'bin', 'java'))
-JAVAC_CMD = os.path.abspath(os.path.join(JRE_DIR, 'bin', 'javac'))
-KEYTOOL_CMD = os.path.abspath(os.path.join(JRE_DIR, 'bin', 'keytool'))
-JARSIGNER_CMD = os.path.abspath(os.path.join(JRE_DIR, 'bin', 'jarsigner'))
-JAVA_RUNTIME_JAR = os.path.abspath(os.path.join(JRE_DIR, 'lib', 'rt.jar'))
-
-ANDROID_ADB_CMD = os.path.abspath(os.path.join(ANDROID_SDK_DIR, 'platform-tools', 'adb'))
-ANDROID_JAR = os.path.abspath(os.path.join(ANDROID_SDK_DIR, 'platforms', 'android-25', 'android.jar'))
-ANDROID_BUILD_TOOLS_DIR = os.path.abspath(os.path.join(ANDROID_SDK_DIR, 'build-tools', '25.0.0'))
-ANDROID_AAPT_CMD = os.path.abspath(os.path.join(ANDROID_BUILD_TOOLS_DIR, 'aapt'))
-ANDROID_ZIPALIGN_CMD = os.path.abspath(os.path.join(ANDROID_BUILD_TOOLS_DIR, 'zipalign'))
-ANDROID_DEX_JAR = os.path.abspath(os.path.join(ANDROID_BUILD_TOOLS_DIR, 'lib', 'dx.jar'))
-EMU_CMD = os.path.abspath(os.path.join(ANDROID_SDK_DIR, 'emulator', 'emulator'))
-
 class HAULBuilder_android(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, platform='android', lang='java')
@@ -50,60 +31,84 @@ class HAULBuilder_android(HAULBuilder):
 		#@TODO: MAke package name customizable!
 		
 		appNamespace = 'wtf.haul'
-		appId = appNamespace + '.' + name
-		appVersion = '0.0.1'
-		appActivityId = 'wtf.haul.HaulActivity'	#appId + '.MainActivity'
+		android_app_id = appNamespace + '.' + name
+		android_app_version = '0.0.1'
+		app_activity_id = 'wtf.haul.HaulActivity'	#android_app_id + '.MainActivity'
 		
-		dataLibsPath = os.path.join(self.data_path, 'platforms', 'android', 'libs')
-		dataResPath = os.path.join(self.data_path, 'platforms', 'android', 'res')
+		data_libs_path = os.path.join(self.data_path, 'platforms', 'android', 'libs')
+		data_res_path = os.path.join(self.data_path, 'platforms', 'android', 'res')
 		
-		resPath = os.path.join(self.staging_path, 'res')
-		srcPath = os.path.join(self.staging_path, 'src')
-		classPath = os.path.join(self.staging_path, 'build')
-		
-		
-		#javaFilename = name.capitalize() + '.java'
-		javaFilename = name + '.java'
-		#classFilename = name.capitalize() + '.class'
-		classFilename = name + '.class'
-		packageSrcPath = os.path.join(srcPath, 'wtf', 'haul')
-		packageClassPath = os.path.join(classPath, 'wtf', 'haul')
+		res_path = os.path.abspath(os.path.join(self.staging_path, 'res'))
+		src_path = os.path.abspath(os.path.join(self.staging_path, 'src'))
+		class_path = os.path.abspath(os.path.join(self.staging_path, 'build'))
 		
 		
-		javaFilenameFull = os.path.join(packageSrcPath, javaFilename)
-		classFilenameFull = os.path.join(packageClassPath, classFilename)
-		haulInfoFilename = os.path.join(packageSrcPath, 'HaulInfo.java')
-		haulInfoClassFilename = os.path.join(packageClassPath, 'HaulInfo.class')
+		#java_filename = name.capitalize() + '.java'
+		java_filename = name + '.java'
+		#class_filename = name.capitalize() + '.class'
+		class_filename = name + '.class'
+		package_src_path = os.path.join(src_path, 'wtf', 'haul')
+		package_class_path = os.path.join(class_path, 'wtf', 'haul')
 		
-		manifestFilename = os.path.join(self.staging_path, 'AndroidManifest.xml')
-		dexFilename = os.path.join(self.staging_path, 'classes.dex')
-		keystoreFilename = os.path.join(self.staging_path, 'appkey.keystore')
-		keystoresource_filename = os.path.join(self.staging_path, 'appkey.keystore.input')
 		
-		apkFilenameRaw = os.path.join(self.staging_path,  appId + '_' + appVersion + '_raw.apk')
-		apkFilenameSigned = os.path.join(self.staging_path,  appId + '_' + appVersion + '_signed.apk')
-		apkFilenameAligned = os.path.join(self.staging_path,  appId + '_' + appVersion + '_aligned.apk')
-		#apkFilenameFinal = os.path.join(output_path,  appId + '_' + appVersion + '.apk')
-		apkFilenameFinal = os.path.join(self.output_path,  name + '.apk')
+		java_filename_full = os.path.join(package_src_path, java_filename)
+		class_filename_full = os.path.join(package_class_path, class_filename)
+		haul_info_filename = os.path.join(package_src_path, 'HaulInfo.java')
+		haul_info_class_filename = os.path.join(package_class_path, 'HaulInfo.class')
+		
+		manifest_filename_full = os.path.join(self.staging_path, 'AndroidManifest.xml')
+		dex_filename_full = os.path.join(self.staging_path, 'classes.dex')
+		keystore_filename = os.path.join(self.staging_path, 'appkey.keystore')
+		keystore_source_filename = os.path.join(self.staging_path, 'appkey.keystore.input')
+		
+		apk_filename_raw = os.path.join(self.staging_path,  android_app_id + '_' + android_app_version + '_raw.apk')
+		apk_filename_signed = os.path.join(self.staging_path,  android_app_id + '_' + android_app_version + '_signed.apk')
+		apk_filename_aligned = os.path.join(self.staging_path,  android_app_id + '_' + android_app_version + '_aligned.apk')
+		#apk_filename_final = os.path.join(output_path,  android_app_id + '_' + android_app_version + '.apk')
+		apk_filename_final = os.path.join(self.output_path,  name + '.apk')
+		
+		
+		#jre_path = os.path.abspath('Z:/Apps/_code/AndroidStudio/jre')
+		jre_path = self.get_path('JRE_PATH', os.path.abspath(os.path.join(self.tools_path, 'jre')))
+		
+		JAVA_CMD = os.path.abspath(os.path.join(jre_path, 'bin', 'java'))
+		JAVAC_CMD = os.path.abspath(os.path.join(jre_path, 'bin', 'javac'))
+		KEYTOOL_CMD = os.path.abspath(os.path.join(jre_path, 'bin', 'keytool'))
+		JARSIGNER_CMD = os.path.abspath(os.path.join(jre_path, 'bin', 'jarsigner'))
+		JAVA_RUNTIME_JAR = os.path.abspath(os.path.join(jre_path, 'lib', 'rt.jar'))
+		
+		#android_sdk_path = os.path.abspath('Z:/Data/_code/_sdk/adt-bundle-windows-x86-20130522/sdk')
+		#android_sdk_path = self.get_path('ANDROID_SDK_PATH')
+		android_sdk_path = self.get_path('ANDROID_SDK_ROOT', os.path.abspath(os.path.join(self.tools_path, 'android')))
+		ANDROID_ADB_CMD = os.path.abspath(os.path.join(android_sdk_path, 'platform-tools', 'adb'))
+		ANDROID_JAR = os.path.abspath(os.path.join(android_sdk_path, 'platforms', 'android-25', 'android.jar'))
+		ANDROID_BUILD_TOOLS_DIR = os.path.abspath(os.path.join(android_sdk_path, 'build-tools', '25.0.0'))
+		ANDROID_AAPT_CMD = os.path.abspath(os.path.join(ANDROID_BUILD_TOOLS_DIR, 'aapt'))
+		ANDROID_ZIPALIGN_CMD = os.path.abspath(os.path.join(ANDROID_BUILD_TOOLS_DIR, 'zipalign'))
+		ANDROID_DEX_JAR = os.path.abspath(os.path.join(ANDROID_BUILD_TOOLS_DIR, 'lib', 'dx.jar'))
+		
+		EMU_CMD = os.path.abspath(os.path.join(android_sdk_path, 'emulator', 'emulator'))
+		AVD_NAME = 'Nexus_5X_API_25_x86'	# Which AVD device to use for emulator testing
+		
 		
 		
 		put('Cleaning staging paths...')
-		self.clean(srcPath)
-		self.clean(classPath)
-		self.mkdir(os.path.join(srcPath, 'wtf'))
-		self.mkdir(os.path.join(srcPath, 'wtf', 'haul'))
+		self.clean(src_path)
+		self.clean(class_path)
+		self.mkdir(os.path.join(src_path, 'wtf'))
+		self.mkdir(os.path.join(src_path, 'wtf', 'haul'))
 		
 		
 		
 		put('Preparing path names...')
 		for s in self.project.sources:
-			s.dest_filename = packageSrcPath + '/' + s.name + '.java'
+			s.dest_filename = package_src_path + '/' + s.name + '.java'
 		
 		put('Translating sources to Java...')
-		self.translate_project(output_path=packageSrcPath)
+		self.translate_project(output_path=package_src_path)
 		
-		if not os.path.isfile(javaFilenameFull):
-			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))
+		if not os.path.isfile(java_filename_full):
+			raise HAULBuildError('Main Java file "{}" was not created!'.format(java_filename_full))
 			return False
 		
 		
@@ -111,14 +116,14 @@ class HAULBuilder_android(HAULBuilder):
 		
 		
 		put('Copying libraries...')
-		srcFiles = []
+		src_files = []
 		for s in self.project.libs:
-			lib_filename_data = dataLibsPath + '/' + s.name + '.java'
-			f = os.path.join(srcPath, 'wtf', 'haul', s.name + '.java')
+			lib_filename_data = data_libs_path + '/' + s.name + '.java'
+			f = os.path.join(src_path, 'wtf', 'haul', s.name + '.java')
 			self.copy(lib_filename_data, f)
-			srcFiles.append(f)
+			src_files.append(f)
 		
-		srcFiles.append(javaFilenameFull)
+		src_files.append(java_filename_full)
 		
 		
 		put('Creating haulInfo...')
@@ -129,35 +134,34 @@ class HAULBuilder_android(HAULBuilder):
 public class HaulInfo {
 	public static final %s MainClass = new %s();
 }
-''' % (appId, name, name)
-# % (appId, name.capitalize(), name.capitalize())
-		self.touch(haulInfoFilename, haulInfo)
-		srcFiles.append(haulInfoFilename)
+''' % (android_app_id, name, name)
+# % (android_app_id, name.capitalize(), name.capitalize())
+		self.touch(haul_info_filename, haulInfo)
+		src_files.append(haul_info_filename)
 		
-		if not os.path.isfile(haulInfoFilename):
-			put('haulInfo file "%s" was not created! Aborting.' % (haulInfoFilename))
+		if not os.path.isfile(haul_info_filename):
+			raise HAULBuildError('haul_info file "{}" was not created!'.format(haul_info_filename))
 			return False
 		
 		
-		
 		put('Copying activities...')
-		f = os.path.join(srcPath, 'wtf', 'haul', 'HaulActivity.java')
-		self.copy(os.path.join(dataResPath, 'HaulActivity.java'), f)
-		srcFiles.append(f)
+		f = os.path.join(src_path, 'wtf', 'haul', 'HaulActivity.java')
+		self.copy(os.path.join(data_res_path, 'HaulActivity.java'), f)
+		src_files.append(f)
 		
 		
 		
 		put('Preparing resources..')
-		self.clean(resPath)
+		self.clean(res_path)
 		
-		self.mkdir(os.path.join(resPath, 'drawable'))
-		self.copy(os.path.join(dataResPath, 'icon_64x64.png'), os.path.join(resPath, 'drawable', 'icon.png'))
+		self.mkdir(os.path.join(res_path, 'drawable'))
+		self.copy(os.path.join(data_res_path, 'icon_64x64.png'), os.path.join(res_path, 'drawable', 'icon.png'))
 		
-		self.mkdir(os.path.join(resPath, 'values'))
+		self.mkdir(os.path.join(res_path, 'values'))
 		stringsXml = '''<resources>
     <string name="app_name">%s</string>
 </resources>''' % (name)
-		self.touch(os.path.join(resPath, 'values', 'strings.xml'), stringsXml)
+		self.touch(os.path.join(res_path, 'values', 'strings.xml'), stringsXml)
 		
 		
 		
@@ -165,43 +169,43 @@ public class HaulInfo {
 		# http://geosoft.no/development/android.html
 		cmd = JAVAC_CMD
 		#cmd += ' -verbose'
-		cmd += ' -classpath ".";"%s";"%s";"%s"' % (srcPath, classPath, ANDROID_JAR)
-		cmd += ' -bootclasspath "%s"' % (JAVA_RUNTIME_JAR)
-		cmd += ' -sourcepath "%s"' % (srcPath)	#(staging_path)
+		cmd += ' -classpath ".";"{}";"{}";"{}"'.format(src_path, class_path, ANDROID_JAR)
+		cmd += ' -bootclasspath "{}"'.format(JAVA_RUNTIME_JAR)
+		cmd += ' -sourcepath "{}"'.format(src_path)	#(staging_path)
 		cmd += ' -source 1.7'	# Must target 1.7 or below?! Or else "Unsupported class file version 52.0"
 		cmd += ' -target 1.7'	# Must target 1.7 or below?! Or else "Unsupported class file version 52.0"
-		cmd += ' -d "%s"' % (classPath)
-		#cmd += ' "%s"' % (os.path.join(srcPath, '*'))
-		cmd += ' %s' % (' '.join(srcFiles))
-		#cmd += ' "%s"' % (os.path.join(self.staging_path, '*.java'))
+		cmd += ' -d "{}"'.format(class_path)
+		#cmd += ' "{}"'.format(os.path.join(src_path, '*'))
+		cmd += ' {}'.format(' '.join(src_files))
+		#cmd += ' "{}"'.format(os.path.join(self.staging_path, '*.java'))
 		r = self.command(cmd)
 		#put(r)
 		
-		if not os.path.isfile(classFilenameFull):
+		if not os.path.isfile(class_filename_full):
 			put(r)
-			put('Main class file "%s" was not created! Aborting.' % (classFilenameFull))
+			raise HAULBuildError('Main class file "{}" was not created!'.format(class_filename_full))
 			return False
 		
-		if not os.path.isfile(haulInfoClassFilename):
+		if not os.path.isfile(haul_info_class_filename):
 			put(r)
-			put('HAUL info class file "%s" was not created! Aborting.' % (haulInfoClassFilename))
+			raise HAULBuildError('HAUL info class file "{}" was not created!'.format(haul_info_class_filename))
 			return False
 		
 		
 		
 		put('Compiling to DEX...')
-		cmd = JAVA_CMD + ' -jar "%s"' % (ANDROID_DEX_JAR)
+		cmd = JAVA_CMD + ' -jar "{}"'.format(ANDROID_DEX_JAR)
 		#cmd += 'com.android.dex.Dex'
 		cmd += ' --dex'
 		#cmd += ' --verbose'
-		cmd += ' --output="%s"' % (dexFilename)
-		cmd += ' "%s"' % (classPath)
+		cmd += ' --output="{}"'.format(dex_filename_full)
+		cmd += ' "{}"'.format(class_path)
 		r = self.command(cmd)
 		#put(r)
 		
-		if not os.path.isfile(dexFilename):
+		if not os.path.isfile(dex_filename_full):
 			put(r)
-			put('DEX classes file "%s" was not created! Aborting.' % (dexFilename))
+			raise HAULBuildError('DEX classes file "{}" was not created!'.format(dex_filename_full))
 			return False
 		
 		
@@ -227,12 +231,12 @@ public class HaulInfo {
 		</activity>
 	</application>
 </manifest>
-''' % (appId, appVersion, name, appActivityId, name)
+''' % (android_app_id, android_app_version, name, app_activity_id, name)
 		# "@string/app_name"
-		self.touch(manifestFilename, m)
+		self.touch(manifest_filename_full, m)
 		
-		if not os.path.isfile(manifestFilename):
-			put('Manifest file "%s" was not created! Aborting.' % (manifestFilename))
+		if not os.path.isfile(manifest_filename_full):
+			raise HAULBuildError('Manifest file "{}" was not created!'.format(manifest_filename_full))
 			return False
 		
 		
@@ -242,62 +246,62 @@ public class HaulInfo {
 		cmd += ' package'
 		cmd += ' -v'
 		cmd += ' -f'
-		#cmd += ' -M "%s"' % (manifestFilename)	# Only specify if it is not the root one
-		cmd += ' -S "%s"' % (resPath)
+		#cmd += ' -M "%s"' % (manifest_filename_full)	# Only specify if it is not the root one
+		cmd += ' -S "%s"' % (res_path)
 		cmd += ' -I "%s"' % (ANDROID_JAR)
-		cmd += ' -F "%s"' % (apkFilenameRaw)
+		cmd += ' -F "%s"' % (apk_filename_raw)
 		cmd += ' "%s"' % (self.staging_path)
 		r = self.command(cmd)
 		#put(r)
 		
-		if not os.path.isfile(apkFilenameRaw):
+		if not os.path.isfile(apk_filename_raw):
 			put(r)
-			put('APK file "%s" was not created! Aborting.' % (apkFilenameRaw))
+			raise HAULBuildError('APK file "{}" was not created!'.format(apk_filename_raw))
 			return False
 		
 		
 		
-		put('Generating keystore "%s"...' % (keystoreFilename))
-		keystorePassword = '123456'	#'haul_123456_keystore'
-		keyFullName = 'HAUL Builder'
-		keyOrgUnitName = 'HAUL'
-		keyOrgName = 'HotKey'
-		keyCityName = 'WTF'
-		keyStateName = 'WTF'
-		keyCountry = 'de'
-		keyAffirmative = 'ja'	# yes	#@FIXME: This depends on the language of the JRE keytool... Argh!
-		keyName = 'haul_key_' + name
-		keyPassword = '123456'	#'654321haul_key'
+		put('Generating keystore "%s"...' % (keystore_filename))
+		keystore_password = '123456'	#'haul_123456_keystore'
+		key_fullname = 'HAUL Builder'
+		key_org_unit_name = 'HAUL'
+		key_org_name = 'HotKey'
+		key_city_name = 'WTF'
+		key_state_name = 'WTF'
+		key_country = 'de'
+		key_affirmative = 'ja'	# yes	#@FIXME: This depends on the language of the JRE keytool... Argh!
+		key_name = 'haul_key_' + name
+		key_password = '123456'	#'654321haul_key'
 		ENTER = '\n'
 		
-		keystoreInput = keystorePassword + ENTER
-		keystoreInput += keystorePassword + ENTER
-		keystoreInput += keyFullName + ENTER
-		keystoreInput += keyOrgUnitName + ENTER
-		keystoreInput += keyOrgName + ENTER
-		keystoreInput += keyCityName + ENTER
-		keystoreInput += keyStateName + ENTER
-		keystoreInput += keyCountry + ENTER
-		keystoreInput += keyAffirmative + ENTER
-		keystoreInput += keyPassword + ENTER
-		keystoreInput += ENTER
-		self.touch(keystoresource_filename, keystoreInput)
+		keystore_input = keystore_password + ENTER
+		keystore_input += keystore_password + ENTER
+		keystore_input += key_fullname + ENTER
+		keystore_input += key_org_unit_name + ENTER
+		keystore_input += key_org_name + ENTER
+		keystore_input += key_city_name + ENTER
+		keystore_input += key_state_name + ENTER
+		keystore_input += key_country + ENTER
+		keystore_input += key_affirmative + ENTER
+		keystore_input += key_password + ENTER
+		keystore_input += ENTER
+		self.touch(keystore_source_filename, keystore_input)
 		
 		cmd = KEYTOOL_CMD
 		cmd += ' -genkey '
 		cmd += ' -v'
-		cmd += ' -keystore "%s"' % (keystoreFilename)
-		cmd += ' -alias %s' % (keyName)
+		cmd += ' -keystore "%s"' % (keystore_filename)
+		cmd += ' -alias %s' % (key_name)
 		cmd += ' -keyalg RSA'
 		cmd += ' -keysize 2048'
 		cmd += ' -validity 10000'
-		cmd += ' <' + keystoresource_filename
+		cmd += ' <' + keystore_source_filename
 		r = self.command(cmd)
 		#put(r)
 		
-		if not os.path.isfile(keystoreFilename):
+		if not os.path.isfile(keystore_filename):
 			put(r)
-			put('Keystore file "%s" was not created! Aborting.' % (keystoreFilename))
+			raise HAULBuildError('Keystore file "{}" was not created!'.format(keystore_filename))
 			return False
 		
 		
@@ -306,18 +310,18 @@ public class HaulInfo {
 		
 		cmd = JARSIGNER_CMD
 		cmd += ' -verbose'
-		cmd += ' -keystore "%s"' % (keystoreFilename)
-		cmd += ' -storepass %s' % (keystorePassword)
-		cmd += ' -keypass %s' % (keyPassword)
-		cmd += ' -signedjar "%s"' % (apkFilenameSigned)
-		cmd += ' "%s"' % (apkFilenameRaw)
-		cmd += ' %s' % (keyName)
+		cmd += ' -keystore "%s"' % (keystore_filename)
+		cmd += ' -storepass %s' % (keystore_password)
+		cmd += ' -keypass %s' % (key_password)
+		cmd += ' -signedjar "%s"' % (apk_filename_signed)
+		cmd += ' "%s"' % (apk_filename_raw)
+		cmd += ' %s' % (key_name)
 		r = self.command(cmd)
 		#put(r)
 		
-		if not os.path.isfile(apkFilenameSigned):
+		if not os.path.isfile(apk_filename_signed):
 			put(r)
-			put('Signed APK file "%s" was not created! Aborting.' % (apkFilenameSigned))
+			raise HAULBuildError('Signed APK file "{}" was not created!'.format(apk_filename_signed))
 			return False
 		
 		
@@ -325,19 +329,19 @@ public class HaulInfo {
 		put('Aligning APK file...')
 		cmd = ANDROID_ZIPALIGN_CMD
 		cmd += ' -v 4'
-		cmd += ' "%s"' % (apkFilenameSigned)
-		cmd += ' "%s"' % (apkFilenameAligned)
+		cmd += ' "%s"' % (apk_filename_signed)
+		cmd += ' "%s"' % (apk_filename_aligned)
 		r = self.command(cmd)
 		#put(r)
 		
-		if not os.path.isfile(apkFilenameAligned):
+		if not os.path.isfile(apk_filename_aligned):
 			put(r)
-			put('Aligned APK file "%s" was not created! Aborting.' % (apkFilenameAligned))
+			raise HAULBuildError('Aligned APK file "{}" was not created!'.format(apk_filename_aligned))
 			return False
 		
 		
-		put('Copying file to output directory "%s"...' % (apkFilenameFinal))
-		self.copy(apkFilenameAligned, apkFilenameFinal)
+		put('Copying file to output directory "%s"...' % (apk_filename_final))
+		self.copy(apk_filename_aligned, apk_filename_final)
 		
 		
 		# Test
@@ -346,31 +350,31 @@ public class HaulInfo {
 			devName = self.obtainAdbDevice()
 			
 			
-			put('Uninstalling old APK "%s" using ADB...' % (appId))
+			put('Uninstalling old APK "%s" using ADB...' % (android_app_id))
 			cmd = ANDROID_ADB_CMD
 			cmd += ' uninstall'
-			cmd += ' %s' % (appId)
+			cmd += ' %s' % (android_app_id)
 			r = self.command(cmd)
 			put(r)
 			#@FIXME This can throw an exception if it wasn't installed before (which is not an error at all)
 			
 			
-			put('Installing "%s" to device "%s" using ADB...' % (appId, devName))
+			put('Installing "%s" to device "%s" using ADB...' % (android_app_id, devName))
 			cmd = ANDROID_ADB_CMD
 			cmd += ' install'
 			#cmd += ' -t'	# Allow test
 			cmd += ' -r'	# Overwrite
 			#cmd += ' -g'	# Grant all runtime permissions
-			cmd += ' %s' % (apkFilenameAligned)
+			cmd += ' %s' % (apk_filename_aligned)
 			r = self.command(cmd)
 			put(r)
 			
 			
-			put('Running "%s"...' % (appId))
+			put('Running "%s"...' % (android_app_id))
 			cmd = ANDROID_ADB_CMD
 			cmd += ' shell'
 			cmd += ' am start'
-			cmd += ' -n %s/%s' % (appId, appActivityId)
+			cmd += ' -n %s/%s' % (android_app_id, app_activity_id)
 			r = self.command(cmd)
 			put(r)
 			
@@ -378,7 +382,7 @@ public class HaulInfo {
 			
 		
 		put('Done.')
-		
+		return True
 	
 	
 	def obtainAdbDevice(self):
@@ -391,8 +395,8 @@ public class HaulInfo {
 		
 		put('Launching AVD "%s"...' % (AVD_NAME))
 		
-		os.environ['ANDROID_HOME'] = ANDROID_SDK_DIR
-		os.environ['ANDROID_SDK_ROOT'] = ANDROID_SDK_DIR
+		os.environ['ANDROID_HOME'] = android_sdk_path
+		os.environ['ANDROID_SDK_ROOT'] = android_sdk_path
 		
 		# https://developer.android.com/studio/run/emulator-commandline.html
 		cmd = EMU_CMD

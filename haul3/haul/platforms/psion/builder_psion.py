@@ -30,11 +30,9 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		name = self.project.name
 		
-		libs_path = os.path.join(self.data_path, 'platforms', 'psion', 'libs')
-		vm_path = os.path.join(self.data_path, 'platforms', 'psion', 'vm')
-		tools_path = os.path.join(self.data_path, '..', 'tools')
-		qemu_path = os.path.join(tools_path, 'qemu')
-		
+		data_libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'psion', 'libs'))
+		vm_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'psion', 'vm'))
+		qemu_path = self.get_path('QEMU_PATH', os.path.abspath(os.path.join(self.tools_path, 'qemu')))
 		
 		
 		#@FIXME: Bootable packs can be created using BLDPACK. But for some reason it then does not include all binaries!
@@ -43,13 +41,12 @@ class HAULBuilder_psion(HAULBuilder):
 		lcd_lines = 2	# 2 for CM/XP, 4 for LZ etc.
 		
 		
-		staging_path = os.path.abspath(self.staging_path)
 		
 		name8 = name[0:8].upper()
-		oplFilename = name8 + '.OPL'
+		opl_filename = name8 + '.OPL'
 		#ob3Filename = name8 + '.ob3'
-		outputFilename = name8 + '.OPK'
-		oplFilenameFull = os.path.abspath(os.path.join(staging_path, oplFilename))
+		opl_filename_full = os.path.abspath(os.path.join(self.staging_path, opl_filename))
+		opk_filename = name8 + '.OPK'
 		
 		
 		put('Preparing path names...')
@@ -60,11 +57,11 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		put('Copying libraries...')
 		for s in self.project.libs:
-			self.copy(os.path.join(libs_path, s.name + '.opl'), os.path.join(self.staging_path, s.name[0:8].upper() + '.OPL'))
+			self.copy(os.path.join(data_libs_path, s.name + '.opl'), os.path.join(self.staging_path, s.name[0:8].upper() + '.OPL'))
 		
 		
 		put('Translating sources to OPL3...')
-		#m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
+		#m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=opl_filename_full, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
 		m = self.translate_project(output_path=self.staging_path)
 		
 		
@@ -78,14 +75,14 @@ class HAULBuilder_psion(HAULBuilder):
 			#@TODO: Ensure that this name is unique! Or just give random name (lame)
 			
 			funcFilename = funcName8 + '.OPL'
-			funcFilenameFull = os.path.join(staging_path, funcFilename)
+			funcFilenameFull = os.path.abspath(os.path.join(self.staging_path, funcFilename))
 			
 			streamOut = StringWriter()
 			writer = HAULWriter_opl(streamOut, dialect=DIALECT_OPL3)
 			m = writer.writeFunc(f)	# That's where the magic happens!
 			
 			put('Writing function "%s" to "%s"...' % (f.id.name, funcFilenameFull))
-			writeFile(funcFilenameFull, streamOut.r)
+			write_file(funcFilenameFull, streamOut.r)
 			self.copy(funcFilenameFull, funcFilenameFull+'.bak')	# Backup (compiler deletes it?!)
 			
 			# Add to compile files
@@ -103,30 +100,30 @@ class HAULBuilder_psion(HAULBuilder):
 		oplDummySource += 'PRINT"Hello from HAUL"' + NL
 		oplDummySource += 'BEEP 250,440' + NL
 		oplDummySource += 'PAUSE 40' + NL
-		self.touch(oplFilenameFull, oplDummySource)
+		self.touch(opl_filename_full, oplDummySource)
 		"""
 		
 		# Check if translation worked
-		if not os.path.isfile(oplFilenameFull):
-			put('Main OPL file "%s" was not created! Aborting.' % (oplFilenameFull))
+		if not os.path.isfile(opl_filename_full):
+			raise HAULBuildError('Main OPL file "%s" was not created!'.format(opl_filename_full))
 			return False
 			
 		
-		self.copy(oplFilenameFull, oplFilenameFull+'.bak')	# Backup main file for testing (source file gets deleted somehow...)
+		self.copy(opl_filename_full, opl_filename_full + '.bak')	# Backup main file for testing (source file gets deleted somehow...)
 		
 		
 		put('Preparing VM automation...')
 		disk_sys = os.path.join(vm_path, 'sys_msdos622.disk')
 		disk_compiler = os.path.join(vm_path, 'app_devkit.disk')
 		disk_empty = os.path.join(vm_path, 'empty.disk')
-		disk_temp = os.path.join(staging_path, 'tmp.disk')
+		disk_temp = os.path.abspath(os.path.join(self.staging_path, 'tmp.disk'))
 		
 		# Create/clear temp scratch disk
 		self.copy(disk_empty, disk_temp)
-		buildlogFile = os.path.join(staging_path, 'build.log')
-		#self.touch(buildlogFile, '# Build log')
-		self.rm_if_exists(buildlogFile)
-		self.rm_if_exists(os.path.join(staging_path, outputFilename))
+		build_log_file = os.path.abspath(os.path.join(self.staging_path, 'build.log'))
+		#self.touch(build_log_file, '# Build log')
+		self.rm_if_exists(build_log_file)
+		self.rm_if_exists(os.path.abspath(os.path.join(self.staging_path, opk_filename)))
 		
 		
 		DOS_SYS_DIR = 'C:'
@@ -159,8 +156,8 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		autoexec += 'ECHO Staging...' + CRLF
 		#autoexec += 'COPY ' + DOS_STAGING_DIR + '\*.opl ' + DOS_TEMP_DIR + CRLF
-		DOS_IN_FILE = DOS_TEMP_DIR + '\\' + oplFilename
-		DOS_OUT_FILE = DOS_TEMP_DIR + '\\' + outputFilename
+		DOS_IN_FILE = DOS_TEMP_DIR + '\\' + opl_filename
+		DOS_OUT_FILE = DOS_TEMP_DIR + '\\' + opk_filename
 		
 		
 		autoexec += 'ECHO Build log >' + DOS_LOG_FILE + CRLF
@@ -178,9 +175,9 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		"""
-		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + oplFilename + ' ' + DOS_TEMP_DIR + CRLF
-		#oplFiles.append(DOS_TEMP_DIR + '\\' + oplFilename)
-		autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + oplFilename + '>' + sourceListFilename + CRLF
+		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + opl_filename + ' ' + DOS_TEMP_DIR + CRLF
+		#oplFiles.append(DOS_TEMP_DIR + '\\' + opl_filename)
+		autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + opl_filename + '>' + sourceListFilename + CRLF
 		
 		for l in libs:
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + l + '.OPL ' + DOS_TEMP_DIR + CRLF
@@ -363,7 +360,7 @@ class HAULBuilder_psion(HAULBuilder):
 		autoexec += ':EOF' + CRLF
 		
 		
-		self.touch(os.path.join(staging_path, 'AUTOEXEC.BAT'), autoexec)
+		self.touch(os.path.abspath(os.path.join(self.staging_path, 'AUTOEXEC.BAT')), autoexec)
 		
 		
 		put('Compiling using QEMU on MS-DOS 6.22 and PSION Developer Kit...')
@@ -376,7 +373,7 @@ class HAULBuilder_psion(HAULBuilder):
 		cmd += ' -hda "' + disk_sys + '"'	# C:
 		cmd += ' -hdb "' + disk_compiler + '"'	# D:
 		cmd += ' -hdc "' + disk_temp + '"'	# E:
-		cmd += ' -hdd "fat:rw:/' + staging_path + '"'	# F:
+		cmd += ' -hdd "fat:rw:/' + self.staging_path + '"'	# F:
 		cmd += ' -soundhw pcspk'
 		#cmd += ' ' + os.path.realpath(output_path + '/' + cFilename)
 		#cmd += ' ' + os.path.realpath(staging_path + '/' + cFilename)
@@ -385,18 +382,22 @@ class HAULBuilder_psion(HAULBuilder):
 		r = self.command(cmd)
 		put('Returned "' + str(r) + '"')
 		
-		if (self.exists(buildlogFile)):
-			buildLog = self.type(buildlogFile)
+		if (self.exists(build_log_file)):
+			buildLog = self.type(build_log_file)
 			put('Build log: "' + buildLog + '"')
 		else:
 			put('No build log was created. Oh-oh!')
 		
-		
 		# Check if successfull
-		if (self.exists(self.staging_path + '/' + outputFilename)):
+		if (self.exists(self.staging_path + '/' + opk_filename)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(self.staging_path + '/' + outputFilename, self.output_path + '/' + outputFilename)
+			self.copy(self.staging_path + '/' + opk_filename, self.output_path + '/' + opk_filename)
+		
 		else:
-			put('Build seems to have failed, since there is no output file "' + (self.staging_path + '/' + outputFilename) + '".')
+			raise HAULBuildError('Build seems to have failed, since there is no output file "{}".'.format(self.staging_path + '/' + opk_filename))
+			return False
+		
+		put('Done.')
+		return True
 		

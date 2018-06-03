@@ -23,52 +23,50 @@ class HAULBuilder_dos(HAULBuilder):
 		name = self.project.name
 		
 		
-		stagingPath = os.path.realpath(self.staging_path)
+		data_libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'dos', 'libs'))
+		vm_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'dos', 'vm'))
+		qemu_path = self.get_path('QEMU_PATH', os.path.abspath(os.path.join(self.tools_path, 'qemu')))
 		
-		libsPath = os.path.join(self.data_path, 'platforms', 'dos', 'libs')
-		vm_path = os.path.join(self.data_path, 'platforms', 'dos', 'vm')
-		qemu_path = os.path.abspath(os.path.join(self.data_path, '../tools/qemu'))	#@FIXME
 		
-		pasFilename = name[0:8] + '.pas'
-		outputFilename = name[0:8] + '.exe'
-		pasFilenameFull = os.path.join(stagingPath, pasFilename)
+		pas_filename = name[0:8] + '.pas'
+		exe_filename = name[0:8] + '.exe'
+		pas_filename_full = os.path.join(self.staging_path, pas_filename)
 		
-		put('Staging to "%s"...' % (stagingPath))
+		put('Staging to "%s"...' % (self.staging_path))
 		
 		
 		put('Preparing path names...')
 		for s in self.project.sources:
-			s.dest_filename = stagingPath + '/' + s.name[0:8] + '.pas'
+			s.dest_filename = self.staging_path + '/' + s.name[0:8] + '.pas'
 		for s in self.project.libs:
-			s.dest_filename = stagingPath + '/' + s.name[0:8] + '.pas'
+			s.dest_filename = self.staging_path + '/' + s.name[0:8] + '.pas'
 		
 		
 		put('Copying libraries...')
 		for s in self.project.libs:
-			self.copy(os.path.join(libsPath, s.name + '.pas'), os.path.join(stagingPath, s.name + '.pas'))
+			self.copy(os.path.join(data_libs_path, s.name + '.pas'), os.path.join(self.staging_path, s.name + '.pas'))
 		
 		
 		put('Translating source to TP...')
-		self.translate_project(output_path=stagingPath)
+		self.translate_project(output_path=self.staging_path)
 		
-		if not os.path.isfile(pasFilenameFull):
-			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))
+		if not os.path.isfile(pas_filename_full):
+			raise HULBuildError('Main Pascal file "{}" was not created!'.format(pas_filename_full))
 			return False
 			
-		
 		
 		put('Preparing VM automation...')
 		disk_sys = os.path.join(vm_path, 'sys_msdos622.disk')
 		disk_compiler = os.path.join(vm_path, 'app_tp70.disk')
 		disk_empty = os.path.join(vm_path, 'empty.disk')
-		disk_temp = os.path.join(stagingPath, 'tmp.disk')
+		disk_temp = os.path.join(self.staging_path, 'tmp.disk')
 		
 		# Create/clear temp scratch disk
 		self.copy(disk_empty, disk_temp)
-		buildlogFile = os.path.join(stagingPath, 'build.log')
+		buildlogFile = os.path.join(self.staging_path, 'build.log')
 		#self.touch(buildlogFile, '# Build log')
 		self.rm_if_exists(buildlogFile)
-		self.rm_if_exists(os.path.join(stagingPath, outputFilename))
+		self.rm_if_exists(os.path.join(self.staging_path, exe_filename))
 		
 		
 		DOS_SYS_DIR = 'C:'
@@ -103,8 +101,8 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		autoexec += 'ECHO Staging...' + CRLF
 		#autoexec += 'COPY ' + DOS_STAGING_DIR + '\*.pas ' + DOS_TEMP_DIR + CRLF
-		DOS_IN_FILE = DOS_TEMP_DIR + '\\' + pasFilename
-		DOS_OUT_FILE = DOS_TEMP_DIR + '\\' + outputFilename
+		DOS_IN_FILE = DOS_TEMP_DIR + '\\' + pas_filename
+		DOS_OUT_FILE = DOS_TEMP_DIR + '\\' + exe_filename
 		
 		
 		autoexec += 'ECHO Build log >' + DOS_LOG_FILE + CRLF
@@ -117,8 +115,8 @@ class HAULBuilder_dos(HAULBuilder):
 			l = s.name
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + l + '.pas ' + DOS_TEMP_DIR + CRLF
 			pasFiles.append(DOS_TEMP_DIR + '\\' + l + '.pas')
-		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + pasFilename + ' ' + DOS_TEMP_DIR + CRLF
-		pasFiles.append(DOS_TEMP_DIR + '\\' + pasFilename)
+		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + pas_filename + ' ' + DOS_TEMP_DIR + CRLF
+		pasFiles.append(DOS_TEMP_DIR + '\\' + pas_filename)
 		
 		
 		autoexec += 'ECHO ----------------------------------------' + CRLF
@@ -175,7 +173,7 @@ class HAULBuilder_dos(HAULBuilder):
 		autoexec += ':EOF' + CRLF
 		
 		
-		self.touch(os.path.join(stagingPath, 'AUTOEXEC.BAT'), autoexec)
+		self.touch(os.path.join(self.staging_path, 'AUTOEXEC.BAT'), autoexec)
 		
 		
 		put('Compiling using QEMU on MS-DOS 6.22 and Turbo Pascal 7.0...')
@@ -187,10 +185,10 @@ class HAULBuilder_dos(HAULBuilder):
 		cmd += ' -hda "' + disk_sys + '"'	# C:
 		cmd += ' -hdb "' + disk_compiler + '"'	# D:
 		cmd += ' -hdc "' + disk_temp + '"'	# E:
-		cmd += ' -hdd "fat:rw:/' + stagingPath + '"'	# F:
+		cmd += ' -hdd "fat:rw:/' + self.staging_path + '"'	# F:
 		cmd += ' -soundhw pcspk'
 		#cmd += ' ' + os.path.realpath(outputPath + '/' + cFilename)
-		#cmd += ' ' + os.path.realpath(stagingPath + '/' + cFilename)
+		#cmd += ' ' + os.path.realpath(self.staging_path + '/' + cFilename)
 		
 		
 		r = self.command(cmd)
@@ -200,10 +198,14 @@ class HAULBuilder_dos(HAULBuilder):
 		put('Build log: "' + buildLog + '"')
 		
 		# Check if successfull
-		if (self.exists(stagingPath + '/' + outputFilename)):
+		if (self.exists(self.staging_path + '/' + exe_filename)):
 			put('Build seems successfull.')
+			
 			put('Copying to build directory...')
-			self.copy(stagingPath + '/' + outputFilename, self.output_path + '/' + outputFilename)
+			self.copy(self.staging_path + '/' + exe_filename, self.output_path + '/' + exe_filename)
 		else:
-			put('Build seems to have failed, since there is no output file "' + (stagingPath + '/' + outputFilename) + '".')
+			raise HULBuildError('Build seems to have failed, since there is no output file "{}".'.format(self.staging_path + '/' + exe_filename))
+			return False
+		
+		return True
 		

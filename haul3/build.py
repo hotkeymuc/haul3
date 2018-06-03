@@ -34,15 +34,30 @@ p.run_test = True
 
 
 
+
+## Missing libs in ./libs/hio.py!!!
+
+#os.environ['QEMU_PATH']  = '';
+#os.environ['JRE_PATH']  = '';
+#os.environ['ANDROID_SDK_ROOT']  = '';
+#os.environ['ARDUINO_PATH'] = 'C:/Apps/_code/Arduino';
+#os.environ['Z88DK_PATH'] = 'C:/Apps/_code/z88dk.git';
+#os.environ['MESS_PATH'] = '';
+#os.environ['MESS_ROM_PATH'] = '';
+#os.environ['GBDK_PATH'] = '';
+#os.environ['GBG_PATH'] = '';
+#os.environ['PALM_SDK_PATH'] = '';
+#os.environ['POSE_PATH'] = '';
+
 #builder = HAULBuilder_android()
 #builder = HAULBuilder_arduino()
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
-#builder = HAULBuilder_html()
+builder = HAULBuilder_html()	## Missing libs in data/platform/html/libs/hio.js!!
 #builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
-builder = HAULBuilder_vtech()
+#builder = HAULBuilder_vtech()
 #builder = HAULBuilder_webos()
 
 

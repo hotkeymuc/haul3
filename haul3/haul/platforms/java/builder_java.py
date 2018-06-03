@@ -14,12 +14,6 @@ def put(txt):
 	print('HAULBuilder_java:\t' + str(txt))
 
 
-HAULBUILDER_JAVA_DIR = os.path.dirname(__file__)
-JRE_DIR = os.path.abspath('Z:/Apps/_code/AndroidStudio/jre/bin')
-JAVA_CMD = os.path.abspath(os.path.join(JRE_DIR, 'java'))
-JAVAC_CMD = os.path.abspath(os.path.join(JRE_DIR, 'javac'))
-JAR_CMD = os.path.abspath(os.path.join(JRE_DIR, 'jar'))
-
 class HAULBuilder_java(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, platform='java', lang='java')
@@ -33,27 +27,35 @@ class HAULBuilder_java(HAULBuilder):
 		
 		name = self.project.name
 		
-		appNamespace = 'wtf.haul'	#'de.bernhardslawik.haul'
-		appId = appNamespace + '.' + name
 		
-		libsPath = os.path.join(self.data_path, 'langs/java/libs')
+		app_package = 'wtf.haul'	#'de.bernhardslawik.haul'
+		app_id = app_package + '.' + name
 		
-		srcPath = os.path.join(self.staging_path, 'src')
-		javaFilename = name + '.java'
-		javaFilenameFull = os.path.join(srcPath, javaFilename)
+		src_path = os.path.abspath(os.path.join(self.staging_path, 'src'))
+		java_filename = name + '.java'
+		java_filename_full = os.path.join(src_path, java_filename)
 		
-		classPath = os.path.join(self.staging_path, 'build')
-		classFilename = name + '.class'
-		classFilenameFull = os.path.join(classPath, 'wtf', 'haul', classFilename)
+		class_path = os.path.abspath(os.path.join(self.staging_path, 'build'))
+		class_filename = name + '.class'
+		class_filename_full = os.path.join(class_path, 'wtf', 'haul', class_filename)
 		
-		jarFilename = name + '.jar'
-		jarFilenameFull = os.path.join(self.staging_path, jarFilename)
-		jarFilenameFinal = os.path.join(self.output_path, jarFilename)
+		jar_filename = name + '.jar'
+		jar_filename_full = os.path.abspath(os.path.join(self.staging_path, jar_filename))
+		jar_filename_final = os.path.abspath(os.path.join(self.output_path, jar_filename))
+		
+		data_libs_path = os.path.abspath(os.path.join(self.data_path, 'langs', 'java', 'libs'))
+		
+		
+		#jre_path = os.path.abspath('Z:/Apps/_code/AndroidStudio/jre/bin')
+		jre_path = self.get_path('JRE_PATH', os.path.abspath(os.path.join(self.tools_path, 'jre')))
+		JAVA_CMD = os.path.abspath(os.path.join(jre_path, 'java'))
+		JAVAC_CMD = os.path.abspath(os.path.join(jre_path, 'javac'))
+		JAR_CMD = os.path.abspath(os.path.join(jre_path, 'jar'))
 		
 		
 		put('Cleaning staging paths...')
-		self.clean(srcPath)
-		self.clean(classPath)
+		self.clean(src_path)
+		self.clean(class_path)
 		
 		
 		"""
@@ -61,75 +63,75 @@ class HAULBuilder_java(HAULBuilder):
 			#@TODO: Testing: Build a py file with resource data, then translate it to target language
 			put('Bundling resources...')
 			resPyFilenameFull = os.path.join(self.staging_path, 'hresdata.py')
-			resFilenameFull = os.path.join(srcPath, 'hresdata.java')
+			resFilenameFull = os.path.join(src_path, 'hresdata.java')
 			self.bundle(resources=resources, dest_filename=resPyFilenameFull)
 			m = self.translate(name='hresdata', source_filename=resPyFilenameFull, SourceReaderClass=HAULReader_py, dest_filename=resFilenameFull, DestWriterClass=HAULWriter_java)
 		"""
 		
 		put('Translating sources to Java...')
-		self.translate_project(output_path=srcPath)
+		self.translate_project(output_path=src_path)
 		
-		if not os.path.isfile(javaFilenameFull):
-			put('Main Java file "%s" was not created! Aborting.' % (javaFilenameFull))
+		if not os.path.isfile(java_filename_full):
+			put('Main Java file "%s" was not created! Aborting.' % (java_filename_full))
 			return False
 		
 		
 		#@TODO: Use module.imports!
 		put('Staging source files...')
 		
-		srcFiles = []
+		src_files = []
 		for s in self.project.libs:
-			f_in = libsPath + '/' + s.name + '.java'
-			f_out = os.path.abspath(os.path.join(srcPath, s.name + '.java'))
+			f_in = data_libs_path + '/' + s.name + '.java'
+			f_out = os.path.abspath(os.path.join(src_path, s.name + '.java'))
 			self.copy(f_in, f_out)
-			srcFiles.append(f_out)
+			src_files.append(f_out)
 		
-		srcFiles.append(javaFilenameFull)
+		src_files.append(java_filename_full)
 		
 		
 		put('Compiling Java classes...')
-		#cmd = JRE_DIR + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (self.staging_path, staging_path, output_path, javaFilenameFull)
+		#cmd = jre_path + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (self.staging_path, staging_path, output_path, java_filename_full)
 		cmd = JAVAC_CMD
-		cmd += ' -classpath "%s"' % (classPath)
-		cmd += ' -sourcepath "%s"' % (srcPath)
-		cmd += ' -d "%s"' % (classPath)
-		cmd += ' %s' % (' '.join(srcFiles))
-		#cmd += ' "%s"' % (javaFilenameFull)
+		cmd += ' -classpath "%s"' % (class_path)
+		cmd += ' -sourcepath "%s"' % (src_path)
+		cmd += ' -d "%s"' % (class_path)
+		cmd += ' %s' % (' '.join(src_files))
+		#cmd += ' "%s"' % (java_filename_full)
 		#cmd += ' "%s"' % (os.path.join(self.staging_path, '*.java'))
 		r = self.command(cmd)
 		
 		# Check if successfull
-		if not os.path.isfile(classFilenameFull):
+		if not os.path.isfile(class_filename_full):
 			put(r)
-			put('Class file "%s" was not created! Aborting.' % (classFilenameFull))
+			put('Class file "%s" was not created! Aborting.' % (class_filename_full))
 			return False
 		
 		
-		put('Creating JAR "%s"...' % (jarFilename))
+		put('Creating JAR "%s"...' % (jar_filename))
 		cmd = JAR_CMD
 		cmd += ' cvf'
-		cmd += ' "%s"' % (jarFilenameFull)
-		#cmd += ' "%s"' % (classPath)
-		cmd += ' -C "%s" .' % (classPath)
+		cmd += ' "%s"' % (jar_filename_full)
+		#cmd += ' "%s"' % (class_path)
+		cmd += ' -C "%s" .' % (class_path)
 		r = self.command(cmd)
 		
-		if not os.path.isfile(jarFilenameFull):
+		if not os.path.isfile(jar_filename_full):
 			put(r)
-			put('JAR file "%s" was not created! Aborting.' % (jarFilenameFull))
+			put('JAR file "%s" was not created! Aborting.' % (jar_filename_full))
 			return False
 		
-		put('Copying end result to "%s"...' % (jarFilenameFinal))
-		self.copy(jarFilenameFull, jarFilenameFinal)
+		put('Copying end result to "%s"...' % (jar_filename_final))
+		self.copy(jar_filename_full, jar_filename_final)
 		
 		
 		# Test
 		if (self.project.run_test == True):
 		
 			put('Test: Launching...')
-			#self.command(JRE_DIR + '/java -classpath "%s" %s' % (classPath, name))
+			#self.command(jre_path + '/java -classpath "%s" %s' % (class_path, name))
 			cmd = JAVA_CMD
-			#cmd += ' -classpath "%s" %s' % (classPath, appId)
-			cmd += ' -classpath "%s" %s' % (jarFilenameFull, appId)
+			#cmd += ' -classpath "%s" %s' % (class_path, app_id)
+			cmd += ' -classpath "%s" %s' % (jar_filename_full, app_id)
 			r = self.command(cmd)
 			put(r)
 		

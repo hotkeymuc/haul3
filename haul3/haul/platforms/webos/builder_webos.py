@@ -14,11 +14,6 @@ def put(txt):
 	print('HAULBuilder_webos:\t' + str(txt))
 
 
-PALM_SDK_DIR = 'Z:\\Apps\\_code\\HP_webOS'
-#HAULBUILDER_WEBOS_DIR = os.path.dirname(__file__)
-#VM_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'vm')
-#QEMU_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'qemu')
-
 class HAULBuilder_webos(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, lang='js', platform='webos')
@@ -33,22 +28,26 @@ class HAULBuilder_webos(HAULBuilder):
 		
 		startPath = os.getcwd()
 		
-		tools_path = os.path.join(self.data_path, '..', 'tools')
-		libs_path = os.path.join(self.data_path, 'platforms', 'webos', 'libs')
-		res_path = os.path.join(self.data_path, 'platforms', 'webos', 'res')
-		#gbdk_path = os.path.join(tools_path, 'platforms', 'gameboy', 'gbdk')
-		#bgb_path = os.path.join(tools_path, 'platforms', 'gameboy', 'bgb')
+		libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'webos', 'libs'))
+		res_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'webos', 'res'))
 		
 		
-		jsFilename = name + '.js'
-		jsFilenameFull = os.path.join(self.staging_path, jsFilename)
+		js_filename = name + '.js'
+		js_filename_full = os.path.join(self.staging_path, js_filename)
+		
+		
+		#VM_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'vm')
+		#QEMU_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'qemu')
+		
+		#palm_sdk_path = 'Z:\\Apps\\_code\\HP_webOS'
+		palm_sdk_path = self.get_path('PALM_SDK_PATH', os.path.abspath(os.path.join(self.tools_path, 'palm-sdk')))
 		
 		
 		put('Translating sources to JavaScript...')
 		self.translate_project(output_path=self.staging_path)
 		
-		if not os.path.isfile(jsFilenameFull):
-			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))
+		if not os.path.isfile(js_filename_full):
+			raise HAULBuildError('Main JavaScript file "{}" was not created!'.format(js_filename_full))
 			return False
 		
 		
@@ -74,11 +73,11 @@ MainAssistant.prototype = {
 		
 		
 		put('Staging webOS app...')
-		appNamespace = 'wtf.haul'	#'de.bernhardslawik.haul'
-		appId = appNamespace + '.' + name
+		app_package = 'wtf.haul'	#'de.bernhardslawik.haul'
+		app_id = app_package + '.' + name
 		
 		appInfo = {
-			'id': appId,
+			'id': app_id,
 			'version': '0.0.1',
 			'vendor': 'Bernhard Slawik',
 			'type': 'web',
@@ -87,8 +86,8 @@ MainAssistant.prototype = {
 			'icon': 'icon_64x64.png'
 		}
 		
-		appInfo_json = json.dumps(appInfo, indent=4)
-		write_file(self.staging_path + '/appinfo.json', appInfo_json)
+		app_info_json = json.dumps(appInfo, indent=4)
+		write_file(self.staging_path + '/appinfo.json', app_info_json)
 		
 		self.copy(os.path.join(res_path, 'icon_64x64.png'), os.path.join(self.staging_path, 'icon_64x64.png'))
 		self.copy(os.path.join(res_path, 'index.html'), os.path.join(self.staging_path, 'index.html'))
@@ -128,15 +127,15 @@ MainAssistant.prototype = {
 		
 		
 		# Package
-		ipkFilename = appInfo['id'] + '_' + appInfo['version'] + '_all.ipk'
-		ipkFilenameFull = os.path.abspath(os.path.join(self.output_path, ipkFilename))
+		ipk_filename = appInfo['id'] + '_' + appInfo['version'] + '_all.ipk'
+		ipk_filename_full = os.path.abspath(os.path.join(self.output_path, ipk_filename))
 		
 		put('Packaging using "palm-package"...')
 		r = self.command('palm-package "%s" --outdir="%s"' % (self.staging_path, self.output_path))
 		
-		if not os.path.isfile(ipkFilenameFull):
+		if not os.path.isfile(ipk_filename_full):
 			put(r)
-			put('Packaged IPK file "%s" was not created! Aborting.' % (ipkFilenameFull))
+			raise HAULBuildError('Packaged IPK file "{}" was not created!'.format(ipk_filename_full))
 			return False
 		
 		
@@ -144,11 +143,11 @@ MainAssistant.prototype = {
 		# Test
 		if (self.project.run_test == True):
 			put('Test: Installing using "palm-install"')
-			self.command('palm-install "%s"' % (ipkFilenameFull))
+			self.command('palm-install "%s"' % (ipk_filename_full))
 			
 			put('Test: Launching using "palm-launch"')
-			self.command('palm-launch %s' % (appId))
+			self.command('palm-launch %s' % (app_id))
 		
 		put('Done.')
-		
+		return True
 		

@@ -32,7 +32,7 @@ But after a while I found that to be just too cheesy. Also, "HAL" [is also somet
 
 With version 3 I changed to "HAUL" which should create the mental image of *hauling blocks of code to a different place*.
 
-While the language of the old versions were "average" by design, meaning that the language reflects the average functionality of all languages they can translate to, this is not true with version 3 any more.
+While the language of the old versions was "average" by design, meaning that the language reflects the average functionality of all languages they can translate to, this is not true with version 3 any more.
 So I changed it to "amphibious", which stems from the two-fold nature of the source code being a runnable program and a blueprint at the same time. Also, it sounds nice and wacky.
 
 ## History

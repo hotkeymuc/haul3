@@ -30,22 +30,21 @@ class HAULBuilder_palmos(HAULBuilder):
 		name = self.project.name
 		
 		libs_path = os.path.join(self.data_path, 'platforms', 'palmos', 'libs')
-		tools_path = os.path.join(self.data_path, '..', 'tools')
-		pose_path = os.path.join(tools_path, 'platforms', 'palmos', 'pose')
+		pose_path = self.get_path('POSE_PATH', os.path.abspath(os.path.join(self.tools_path, 'platforms', 'palmos', 'pose')))
 		
 		put('Copying libraries...')
 		
-		pasFilename = name + '.pas'
-		exeFilename = name + '.exe'
+		pas_filename = name + '.pas'
+		exe_filename = name + '.exe'
 		
-		pasFilenameFull = os.path.join(self.staging_path, pasFilename)
+		pas_filename_full = os.path.join(self.staging_path, pas_filename)
 		
 		
 		put('Translating source to PP...')
 		self.translate_project(output_path=self.staging_path)
 		
-		if not os.path.isfile(pasFilenameFull):
-			put('Main Pascal file "%s" was not created! Aborting.' % (pasFilenameFull))
+		if not os.path.isfile(pas_filename_full):
+			raise HULBuildError('Main Pascal file "{}" was not created!'.format(pas_filename_full))
 			return False
 		
 		
@@ -63,13 +62,13 @@ class HAULBuilder_palmos(HAULBuilder):
 		put('Converting pas files to PDBs...')
 		
 		for s in sources:
-			pasFilename = self.staging_path + '/' + s + '.pas'
+			pas_filename = self.staging_path + '/' + s + '.pas'
 			
 			vfsFilename = s + '.pas'
 			pdbFilename = self.staging_path + '/' + vfsFilename + '.pdb'
 			
-			put('Converting "%s" to "%s"...' % (pasFilename, pdbFilename))
-			data = self.type(pasFilename)
+			put('Converting "%s" to "%s"...' % (pas_filename, pdbFilename))
+			data = self.type(pas_filename)
 			
 			pdb = PDBFile()
 			pdb.set_vfs(name=vfsFilename, data=data)
@@ -78,10 +77,10 @@ class HAULBuilder_palmos(HAULBuilder):
 		
 		# Compile it using PP on POSE Emulator
 		
-		emuFilename = os.path.join(pose_path, 'Emulator_Bound.exe')
+		pose_cmd = os.path.join(pose_path, 'Emulator_Bound.exe')
 		
-		put('Starting emulator "%s"...' % (emuFilename))
-		app = Application().start(emuFilename)
+		put('Starting emulator "%s"...' % (pose_cmd))
+		app = Application().start(pose_cmd)
 		
 		win = app.top_window()
 		win.DrawOutline()
@@ -94,11 +93,11 @@ class HAULBuilder_palmos(HAULBuilder):
 		### Clean emulator
 		put('Cleaning source...')
 		for s in sources:
-			pasFilename = s + '.pas'
-			win.TypeKeys('del{SPACE}%s{ENTER}' % (pasFilename))
+			pas_filename = s + '.pas'
+			win.TypeKeys('del{SPACE}%s{ENTER}' % (pas_filename))
 		
 		put('Cleaning binary...')
-		win.TypeKeys('del{SPACE}%s{ENTER}' % (exeFilename))
+		win.TypeKeys('del{SPACE}%s{ENTER}' % (exe_filename))
 		win.TypeKeys('{ENTER}')
 		
 		
@@ -106,30 +105,30 @@ class HAULBuilder_palmos(HAULBuilder):
 		put('Importing into emulator...')
 		for s in sources:
 			time.sleep(0.2)
-			pasFilename = s + '.pas'
-			pasPdbFilename = pasFilename + '.pdb'
-			pasPdbFilenameAbsolute = os.path.abspath(os.path.join(self.staging_path, pasPdbFilename))
+			pas_filename = s + '.pas'
+			pas_pdb_filename = pas_filename + '.pdb'
+			pas_pdb_filename_full = os.path.abspath(os.path.join(self.staging_path, pas_pdb_filename))
 			
-			put('Importing "%s" ("%s") into Emulator...' % (pasFilename, pasPdbFilenameAbsolute))
+			put('Importing "%s" ("%s") into Emulator...' % (pas_filename, pas_pdb_filename_full))
 			win.RightClickInput()
 			app.PopupMenu.MenuItem('Install Application/Database -> Other').ClickInput()
 			
 			time.sleep(0.2)
 			
 			winOpen = app.top_window()
-			winOpen.TypeKeys('%s{ENTER}' % (pasPdbFilenameAbsolute))
+			winOpen.TypeKeys('%s{ENTER}' % (pas_pdb_filename_full))
 			
 			
 		
 		time.sleep(0.2)
 		
 		### Invoke compiler
-		pasFilename = name + '.pas'
-		exeFilename = name + '.exe'
-		put('Compiling "%s" to "%s"...' % (pasFilename, exeFilename))
+		pas_filename = name + '.pas'
+		exe_filename = name + '.exe'
+		put('Compiling "%s" to "%s"...' % (pas_filename, exe_filename))
 		
 		time.sleep(0.5)
-		win.TypeKeys('pp.exe{SPACE}%s{ENTER}' % (pasFilename))
+		win.TypeKeys('pp.exe{SPACE}%s{ENTER}' % (pas_filename))
 		# Compiling...
 		time.sleep(2)
 		# OK
@@ -139,12 +138,12 @@ class HAULBuilder_palmos(HAULBuilder):
 		
 		### Exfiltrate
 		put('Cleaning host...')
-		exePrcFilename = exeFilename + '.prc'
-		exePrcFilenameAbsolute = os.path.abspath(os.path.join(self.staging_path, exePrcFilename))
-		if os.path.isfile(exePrcFilenameAbsolute):
-			os.remove(exePrcFilenameAbsolute)
+		exe_prc_filename = exe_filename + '.prc'
+		exe_prc_filename_full = os.path.abspath(os.path.join(self.staging_path, exe_prc_filename))
+		if os.path.isfile(exe_prc_filename_full):
+			os.remove(exe_prc_filename_full)
 		
-		put('Exporting "%s" back to host...' % (exeFilename))
+		put('Exporting "%s" back to host...' % (exe_filename))
 		win.RightClickInput()
 		app.PopupMenu.MenuItem('Export Database').ClickInput()
 		winList = app.top_window()
@@ -153,26 +152,26 @@ class HAULBuilder_palmos(HAULBuilder):
 		list = winList.ListBox
 		#put(list.ItemTexts())
 		try:
-			list.Select(exeFilename, True)
+			list.Select(exe_filename, True)
 			winList.OK.ClickInput()
 		except Exception as e:
-			put('Output file "' + exeFilename + '" was not created! Aborting...')
+			raise HULBuildError('Output file "{}" was not created on emulator!'.format(exe_filename))
 			return False
 		
 		time.sleep(0.1)
 		winOpen = app.top_window()
-		winOpen.TypeKeys('%s{ENTER}' % (exePrcFilenameAbsolute))
+		winOpen.TypeKeys('%s{ENTER}' % (exe_prc_filename_full))
 		
 		time.sleep(1)
-		put('Copying "%s" to output directory...' % (exePrcFilename))
-		self.copy(exePrcFilenameAbsolute, self.output_path + '/' + exePrcFilename)
+		put('Copying "%s" to output directory...' % (exe_prc_filename))
+		self.copy(exe_prc_filename_full, self.output_path + '/' + exe_prc_filename)
 		
 		
 		if (self.project.run_test == True):
 			### Test
-			put('Testing final binary "%s"...' % (exeFilename))
+			put('Testing final binary "%s"...' % (exe_filename))
 			time.sleep(0.1)
-			win.TypeKeys('%s{ENTER}' % (exeFilename))
+			win.TypeKeys('%s{ENTER}' % (exe_filename))
 			# Running
 			put('Running... Close emulator manually when you are done.')
 			
@@ -196,4 +195,5 @@ class HAULBuilder_palmos(HAULBuilder):
 			put('Killing emulator...')
 			app.kill()
 		
+		return True
 		

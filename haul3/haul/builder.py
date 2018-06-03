@@ -13,6 +13,9 @@ def put(t):
 	print('HAULBuilder:\t' + str(t))
 
 
+class HAULBuildError(Exception):
+	pass
+
 class HAULSource:
 	def __init__(self, name, stream, uri=None):
 		self.name = name
@@ -71,6 +74,7 @@ class HAULBuilder:
 		self.data_path = 'data'
 		self.staging_path = 'staging'
 		self.output_path = 'build'
+		self.tools_path = 'tools'
 		
 	
 	### File system abstraction
@@ -131,9 +135,17 @@ class HAULBuilder:
 		else:
 			return subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, env=env).stdout.read()
 	
-	
-	
-	
+	def get_path(self, name, default):
+		r = None
+		
+		if (name in os.environ):
+			r = os.environ[name]
+		
+		if ((r == None) or (self.exists_dir(r) == False)):
+			raise HAULBuildError('Set {} to a valid path. Tried "{}", but did not exist.'.format(name, default))
+			return None
+		
+		return r
 	
 	
 	### User interface
