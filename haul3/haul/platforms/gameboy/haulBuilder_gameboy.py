@@ -22,47 +22,51 @@ def put(txt):
 
 class HAULBuilder_gameboy(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='c', platform='gameboy')
-	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+		HAULBuilder.__init__(self, platform='gameboy', lang='c')
 		
-		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_c, dialect=DIALECT_GBDK))
+		
+	
+	def build(self, project):
+		
+		HAULBuilder.build(self, project=project)
+		
+		name = self.project.name
 		
 		
 		startPath = os.getcwd()
 		
-		#@TODO: Use module.imports!
-		libs = ['hio']	#['sys', 'hio']
-		
-		tools_path = os.path.join(data_path, '..', 'tools')
-		libs_path = os.path.join(data_path, 'platforms', 'gameboy', 'libs')
+		tools_path = os.path.join(self.data_path, '..', 'tools')
+		libs_path = os.path.join(self.data_path, 'platforms', 'gameboy', 'libs')
 		gbdk_path = os.path.join(tools_path, 'platforms', 'gameboy', 'gbdk')
 		bgb_path = os.path.join(tools_path, 'platforms', 'gameboy', 'bgb')
 		
-		name = name_by_filename(source_filename)
 		cFilename = name + '.c'
-		cFilenameStaging = os.path.abspath(os.path.join(staging_path, cFilename))
+		cFilenameStaging = os.path.abspath(os.path.join(self.staging_path, cFilename))
 		
 		oFilename = name + '.o'
-		oFilenameStaging = os.path.abspath(os.path.join(staging_path, oFilename))
+		oFilenameStaging = os.path.abspath(os.path.join(self.staging_path, oFilename))
 		
 		gbFilename = name + '.gb'
-		gbFilenameStaging = os.path.abspath(os.path.join(staging_path, gbFilename))
+		gbFilenameStaging = os.path.abspath(os.path.join(self.staging_path, gbFilename))
 		
 		self.rm_if_exists(oFilenameStaging)
 		self.rm_if_exists(gbFilenameStaging)
 		
-		
-		
 		put('Translating source...')
-		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=cFilenameStaging, DestWriterClass=HAULWriter_c, dialect=DIALECT_GBDK)
+		#m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=cFilenameStaging, DestWriterClass=HAULWriter_c, dialect=DIALECT_GBDK)
+		self.translate_project(output_path=self.staging_path)
 		
 		if not os.path.isfile(cFilenameStaging):
 			put('Main C file "%s" was not created! Aborting.' % (cFilenameStaging))
 			return False
 		
 		
-		#self.copy(os.path.join(libs_path, 'hio.h'), os.path.join(staging_path, 'hio.h'))
+		#self.copy(os.path.join(libs_path, 'hio.h'), os.path.join(self.staging_path, 'hio.h'))
+		put('Copying libraries...')
+		for s in self.project.libs:
+			self.copy(libs_path + '/' + s.name + '.h', self.staging_path + '/' + s.name + '.h')
+		
 		
 		# Prepare environment
 		my_env = os.environ.copy()
@@ -95,6 +99,8 @@ class HAULBuilder_gameboy(HAULBuilder):
 			return False
 		
 		
+		#@TODO: Add libs!
+		
 		put('Compiling GB using GBDK...')
 		cmd = os.path.join(gbdk_path, 'bin', 'lcc')
 		cmd += ' -Wa-l'
@@ -118,11 +124,11 @@ class HAULBuilder_gameboy(HAULBuilder):
 		
 		
 		put('Copying GB file "%s" to output directory...' % (gbFilename))
-		self.copy(gbFilenameStaging, os.path.join(output_path, gbFilename))
+		self.copy(gbFilenameStaging, os.path.join(self.output_path, gbFilename))
 		
 		
 		# Test
-		if perform_test_run:
+		if (self.project.run_test == True):
 			put('Launching BGB emulator...')
 			
 			cmd = '"%s"' % os.path.join(bgb_path, 'bgb.exe')
