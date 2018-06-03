@@ -156,7 +156,9 @@ class HAULWriter_vbs(HAULWriter):
 		if (c.controlType == C_IF):
 			j = 0
 			while j < len(c.exprs):
-				if (j > 0): self.write('ELSE ')	#elif
+				if (j > 0):
+					self.write_indent(indent)
+					self.write('ELSE ')	#elif
 				self.write('IF (')
 				
 				self.write_expression(c.exprs[j])
@@ -168,6 +170,7 @@ class HAULWriter_vbs(HAULWriter):
 				self.write_indent(indent)
 				self.write('ELSE\n')
 				self.write_block(c.blocks[j], indent+1)
+			self.write_indent(indent)
 			self.write('END IF\n')
 		
 		elif (c.controlType == C_FOR):
@@ -263,10 +266,19 @@ class HAULWriter_vbs(HAULWriter):
 			if (level > 0): self.write(')')
 			
 	def write_value(self, v):
-		if (type(v.data) == str):
-			self.write('"' + v.data + '"')	#@TODO: Escaping!
+		if (v.type == T_STRING):
+			self.write('"' + v.data_str.replace('"', '"+CHR$(34)+"') + '"')	#@TODO: Escaping!
+		elif (v.type == T_INTEGER):
+			self.write(str(v.data_int))
+		elif (v.type == T_FLOAT):
+			self.write(str(v.data_float))
+		elif (v.type == T_BOOLEAN):
+			if (v.data_bool == True):
+				self.write('TRUE')
+			else:
+				self.write('FALSE')
 		else:
-			self.write(str(v))	#.data
+			self.write('[type=' + v.type + '?]')
 	
 	def write_type(self, v):
 		if (v == T_INTEGER):	v = 'INTEGER';

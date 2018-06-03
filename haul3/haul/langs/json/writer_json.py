@@ -267,10 +267,21 @@ class HAULWriter_json(HAULWriter):
 		#self.write_indent(indent)
 		self.write('}')
 		
-	def write_value(self, v, indent=0):
-		if (type(v.data) == str):
-			self.write("'" + v.data + "'")	#@FIXME: This lacks propper escaping!
+	def write_value(self, v, indent):
+		if (v.type == T_STRING):
+			self.write('"' + v.data_str.replace('"', '\\"') + '"')	#@TODO: Escaping!
+		elif (v.type == T_INTEGER):
+			self.write(str(v.data_int))
+		elif (v.type == T_FLOAT):
+			self.write(str(v.data_float))
+		elif (v.type == T_BOOLEAN):
+			if (v.data_bool == True):
+				self.write('true')
+			else:
+				self.write('false')
 		else:
-			self.write(str(v))	#.data
+			#self.write('[type=' + v.type + '?]')
+			self.write('undefined')
+	
 
 

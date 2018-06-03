@@ -133,13 +133,13 @@ except HAULParseError as e:
 
 from haul.haul import HAULTranslator
 
-t = HAULTranslator(HAULReader_py, HAULWriter_py)
+t = HAULTranslator(HAULReader_py, HAULWriter_bas)
 
 try:
 	#t.process_lib('haul.utils', FileReader('haul/utils.py'))
 	t.process_lib('hio', FileReader('libs/hio.py'))
 	
-	t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.py'))
+	t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.bas'))
 	#t.translate('small', FileReader('examples/small.py'), FileWriter('build/small.py'))
 	
 except HAULParseError as e:

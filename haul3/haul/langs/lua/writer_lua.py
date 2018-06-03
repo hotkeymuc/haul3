@@ -251,10 +251,19 @@ class HAULWriter_lua(HAULWriter):
 			if (level > 0): self.write(')')
 			
 	def write_value(self, v):
-		if (type(v.data) == str):
-			self.write("'" + v.data + "'")	#@TODO: Escaping!
+		if (v.type == T_STRING):
+			self.write('"' + v.data_str.replace('"', '\\"') + '"')	#@TODO: Escaping!
+		elif (v.type == T_INTEGER):
+			self.write(str(v.data_int))
+		elif (v.type == T_FLOAT):
+			self.write(str(v.data_float))
+		elif (v.type == T_BOOLEAN):
+			if (v.data_bool == True):
+				self.write('true')
+			else:
+				self.write('false')
 		else:
-			self.write(str(v))	#.data
+			self.write('[type=' + v.type + '?]')
 			
 	def write_var(self, v):
 		self.write(v.name)
