@@ -42,8 +42,8 @@ p.run_test = True
 #builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
-builder = HAULBuilder_vtech()
-#builder = HAULBuilder_webos()
+#builder = HAULBuilder_vtech()
+builder = HAULBuilder_webos()
 
 
 builder.build(p)
