@@ -6,10 +6,12 @@ from hio import *
 #from sys import *
 
 
-#@fun interpret int
+#@fun parse int
 #@arg cmd str
-def interpret(cmd):
-	put('interpret: "' + cmd + '"')
+def parse(cmd):
+	put_('parse: "')
+	put_(cmd)
+	put('"')
 	
 	if (cmd == 'help'):
 		put('This is help dummy.')
@@ -41,9 +43,9 @@ cmd = ''
 running = True
 
 while (running):
-	put_direct(PROMPT)
+	put_(PROMPT)
 	cmd = fetch()
-	interpret(cmd)
+	parse(cmd)
 	if (cmd == 'exit'): running = False
 
 put('End of shellmini')

@@ -396,7 +396,7 @@ class HAULWriter_js(HAULWriter):
 		elif (v.type == T_FLOAT):
 			self.write(str(v.data_float))
 		elif (v.type == T_BOOLEAN):
-			if (v.data.data_bool == True):
+			if (v.data_bool == True):
 				self.write('true')
 			else:
 				self.write('false')
@@ -404,7 +404,12 @@ class HAULWriter_js(HAULWriter):
 			self.write('[type=' + v.type + '?]')
 			
 	def write_var(self, v, isClass=False):
-		self.write(v.name)
+		# Write out known values
+		if (v == I_BOOL_TRUE): self.write_value(v.data_value)
+		elif (v == I_BOOL_FALSE): self.write_value(v.data_value)
+		elif (v == I_NOTHING): self.write_value(v.data_value)
+		else:
+			self.write(v.name)
 		
 		#self.write('[' + v.id.namespace.name + ':' + v.id.name + ']')
 

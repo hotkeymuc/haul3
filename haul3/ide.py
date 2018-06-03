@@ -12,19 +12,19 @@ import time
 
 from haul.utils import *
 
-from haul.langs.py.haulReader_py import *
+from haul.langs.py.reader_py import *
 
-from haul.langs.asm.haulWriter_asm import *
-from haul.langs.bas.haulWriter_bas import *
-from haul.langs.c.haulWriter_c import *
-from haul.langs.java.haulWriter_java import *
-from haul.langs.js.haulWriter_js import *
-from haul.langs.json.haulWriter_json import *
-from haul.langs.lua.haulWriter_lua import *
-from haul.langs.opl.haulWriter_opl import *
-from haul.langs.pas.haulWriter_pas import *
-from haul.langs.py.haulWriter_py import *
-from haul.langs.vbs.haulWriter_vbs import *
+from haul.langs.asm.writer_asm import *
+from haul.langs.bas.writer_bas import *
+from haul.langs.c.writer_c import *
+from haul.langs.java.writer_java import *
+from haul.langs.js.writer_js import *
+from haul.langs.json.writer_json import *
+from haul.langs.lua.writer_lua import *
+from haul.langs.opl.writer_opl import *
+from haul.langs.pas.writer_pas import *
+from haul.langs.py.writer_py import *
+from haul.langs.vbs.writer_vbs import *
 
 LANGS = [
 	HAULWriter_asm,
@@ -46,7 +46,9 @@ def put(txt):
 
 
 
-STARTUP_FILE = 'examples/small.py'
+#STARTUP_FILE = 'examples/hello.py'
+#STARTUP_FILE = 'examples/small.py'
+STARTUP_FILE = 'examples/shellmini.py'
 
 
 if wx.Platform == '__WXMSW__':
@@ -736,26 +738,33 @@ class MainFrame(wx.Frame):
 		self.translate()
 	
 	def translate(self):
-		inputFilename = self.filename
+		input_filename = self.filename
 		text = self.editor1.get_data().encode('ascii','ignore')
 		
-		streamIn = StringReader(text)
-		reader = HAULReader_py(stream=streamIn, filename=inputFilename)
+		stream_in = StringReader(text)
 		
+		stream_out = StringWriter()
+		
+		"""
 		# Read it
-		#m = reader.readModule()
-		
+		reader = HAULReader_py(stream=stream_in, filename=input_filename)
 		
 		# Translate it
-		streamOut = StringWriter()
-		writer = self.WriterClass(streamOut)
+		writer = self.WriterClass(stream_out)
 		
 		monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
 		reader.seek(0)
+		"""
 		
 		put('Translating using {}...'.format(str(self.WriterClass)))
 		try:
-			self.module = writer.stream(reader, monolithic=monolithic)	# That's where the magic happens!
+			#self.module = writer.stream(reader, namespace=ns, monolithic=monolithic)	# That's where the magic happens!
+			
+			# Translate it
+			t = HAULTranslator(HAULReader_py, self.WriterClass)
+			t.process_lib('hio', FileReader('libs/hio.py'))
+			self.module = t.translate(name=input_filename, stream_in=stream_in, stream_out=stream_out)
+			
 		except HAULParseError as e:
 			put('Parse error: ' + e.message + ' in ' + str(e.token))
 			self.editor1.show_error(e.message, e.token.originByte)
@@ -764,7 +773,7 @@ class MainFrame(wx.Frame):
 			self.tree.render(self.module)
 			
 		
-		self.editor2.set_data(streamOut.r)
+		self.editor2.set_data(stream_out.r)
 		
 		
 

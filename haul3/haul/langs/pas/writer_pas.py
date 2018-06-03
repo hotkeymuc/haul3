@@ -370,7 +370,7 @@ class HAULWriter_pas(HAULWriter):
 			#@TODO: Escaping!
 			t = v.data_str
 			t = t.replace('\\', '\\\\')
-			t = t.replace('"', '\\"')
+			#t = t.replace('"', '\\"')
 			t = t.replace('\r', '\\r')
 			t = t.replace('\n', '\\n')
 			t = t.replace('\'', '\\\'')

@@ -508,11 +508,12 @@ class HAULWriter_java(HAULWriter):
 			self.write('[type=' + str(v.type) + ']')
 			
 	def write_var(self, v, isClass=False, namespace=None):
-		#@FIXME: Translation! V_TRUE or something
-		#if (v.data == '#true'): self.write('true')
-		#elif (v.data == '#false'): self.write('false')
-		#else:
-		self.write(v.name)
+		# Write out known values
+		if (v == I_BOOL_TRUE): self.write_value(v.data_value)
+		elif (v == I_BOOL_FALSE): self.write_value(v.data_value)
+		elif (v == I_NOTHING): self.write_value(v.data_value)
+		else:
+			self.write(v.name)
 		
 		#self.write('[' + v.id.namespace.name + ':' + v.id.name + ']')
 	def write_type(self, t):

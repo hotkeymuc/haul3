@@ -33,7 +33,7 @@ class HAULBuilder_gameboy(HAULBuilder):
 		
 		gbdk_path = self.get_path('GBDK_PATH', os.path.join(self.tools_path, 'platforms', 'gameboy', 'gbdk'))
 		
-		libs_path = os.path.join(self.data_path, 'platforms', 'gameboy', 'libs')
+		libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'gameboy', 'libs'))
 		
 		c_filename = name + '.c'
 		c_filename_full = os.path.abspath(os.path.join(self.staging_path, c_filename))
@@ -74,7 +74,7 @@ class HAULBuilder_gameboy(HAULBuilder):
 		# Compilation
 		put('Compiling using GBDK...')
 		
-		cmd = os.path.join(gbdk_path, 'bin', 'lcc')
+		cmd = os.path.abspath(os.path.join(gbdk_path, 'bin', 'lcc'))
 		cmd += ' -Wa-l'
 		cmd += ' -Wl-m'
 		cmd += ' -Wl-j'
@@ -97,7 +97,7 @@ class HAULBuilder_gameboy(HAULBuilder):
 		#@TODO: Add libs!
 		
 		put('Compiling GB using GBDK...')
-		cmd = os.path.join(gbdk_path, 'bin', 'lcc')
+		cmd = os.path.abspath(os.path.join(gbdk_path, 'bin', 'lcc'))
 		cmd += ' -Wa-l'
 		cmd += ' -Wl-m'
 		cmd += ' -Wl-j'

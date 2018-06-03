@@ -742,10 +742,10 @@ ns.add_id('xrange', kind=K_FUNCTION, data_type=T_INTEGER)
 
 
 #T_NONE = '#none'
-ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=HAULValue(type=T_NOTHING))
-ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=True))
-ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=False))
-ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
+I_NOTHING = ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=HAULValue(type=T_NOTHING))
+I_BOOL_TRUE = ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=True))
+I_BOOL_FALSE = ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=False))
+I_EXCEPTION = ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 
 
 # Internal array functions
@@ -870,7 +870,8 @@ class HAULReader:
 		return self.stream.eof()
 	
 	def loc(self):
-		return self.ofs_get
+		#return self.ofs_get
+		return self.ofs
 	
 	def seek(self, ofs):
 		self.stream.seek(ofs)

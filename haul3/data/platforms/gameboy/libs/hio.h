@@ -38,16 +38,6 @@ char *fetch() {
 	//return &fetch_buf[0];
 }
 
-void shout(char *txt) {
-	font_set(shout_font);
-	printf("! ");
-	printf(txt);
-	printf(" !\n");
-	
-	beep();
-	
-	font_set(put_font);
-}
 
 
 void beep() {
@@ -72,6 +62,18 @@ void beep() {
 	// Mute channel 1 (there are other ways to do this)
 	NR12_REG = 0;
 	NR14_REG = 0x80;
+}
+
+
+void shout(char *txt) {
+	font_set(shout_font);
+	printf("! ");
+	printf(txt);
+	printf(" !\n");
+	
+	beep();
+	
+	font_set(put_font);
 }
 
 
@@ -120,7 +122,7 @@ void main(void) {
 	
 	beep();
 	
-	cls();
+	//cls();
 	font_set(put_font);
 	//shout("HAUL for GameBoy");
 	

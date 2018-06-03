@@ -59,6 +59,10 @@ class StringReader:
 		self.ofs = 0
 		self.len = len(data)
 	
+	#@fun close
+	def close(self):
+		pass
+	
 	#@fun eof bool
 	def eof(self):
 		return (self.ofs >= self.len)
@@ -87,6 +91,10 @@ class StringWriter:
 	def __init__(self):
 		self.r = ''
 		self.size = 0
+	
+	#@fun close
+	def close(self):
+		pass
 	
 	#@fun put
 	#@arg data str

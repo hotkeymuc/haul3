@@ -16,24 +16,7 @@ from haul.platforms.webos.builder_webos import *
 
 
 
-#source_filename = 'hello.py'
-#source_filename = 'small.py'
-#source_filename = 'shellmini.py'
-#source_filename = 'hres_test.py'
-#source_filename = 'hio_test.py'
-
-p = HAULProject('small')
-p.sources_path = 'examples'
-p.libs_path = 'libs'
-
-p.add_lib('hio')
-p.add_source('small')
-#p.add_resource(...)
-
-p.run_test = True
-
-
-
+### Set up external tool paths
 os.environ['QEMU_PATH']  = 'Z:/Apps/_emu/qemu';
 
 #os.environ['JRE_PATH']  = 'C:/Program Files/Java/jre1.8.0_151'
@@ -59,16 +42,35 @@ os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
 #os.environ['PalmSDK'] = '';
 
 
+### Create project
+example_name = 'hello'
+#example_name = 'small'
+#example_name = 'shellmini'
+#example_name = 'hres_test'
+#example_name = 'hio_test'
 
+p = HAULProject(example_name)
+p.sources_path = 'examples'
+p.libs_path = 'libs'
+
+p.add_lib('hio')
+p.add_source(example_name)
+#p.add_resource(...)
+
+p.run_test = True
+
+
+
+### Do the building
 #builder = HAULBuilder_android()
 #builder = HAULBuilder_arduino()
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
-builder = HAULBuilder_html()
+#builder = HAULBuilder_html()
 #builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
-#builder = HAULBuilder_vtech()
+builder = HAULBuilder_vtech()
 #builder = HAULBuilder_webos()
 
 

@@ -489,7 +489,7 @@ class HAULWriter_c(HAULWriter):
 			t = t.replace('"', '\\"')
 			t = t.replace('\r', '\\r')
 			t = t.replace('\n', '\\n')
-			t = t.replace('\'', '\\\'')
+			#t = t.replace('\'', '\\\'')
 			self.write('"' + t + '"')
 		elif (v.type == T_BOOLEAN):
 			if (v.data_bool): self.write('true')
@@ -502,6 +502,7 @@ class HAULWriter_c(HAULWriter):
 			self.write('[type=' + str(v.type) + ']')
 		
 	def write_var(self, v, isClass=False):
+		#@TODO: Filter out internal ids, like I_BOOL_TRUE, I_BOOL_FALSE
 		self.write(v.name)
 		
 		#self.write('[' + v.id.namespace.name + ':' + v.id.name + ']')
