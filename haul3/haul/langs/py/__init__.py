@@ -1,4 +1,4 @@
 __all__ = [
-	'haulReader_py',
-	'haulWriter_py'
+	'reader_py',
+	'writer_py'
 ]

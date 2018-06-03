@@ -1,3 +1,3 @@
 __all__ = [
-	'haulBuilder_dos',
+	'builder_dos',
 ]

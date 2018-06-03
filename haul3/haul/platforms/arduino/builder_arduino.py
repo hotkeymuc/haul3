@@ -5,8 +5,8 @@
 from haul.utils import *
 from haul.builder import *
 
-from haul.langs.py.haulReader_py import *
-from haul.langs.c.haulWriter_c import *
+from haul.langs.py.reader_py import *
+from haul.langs.c.writer_c import *
 
 
 

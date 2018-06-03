@@ -5,8 +5,8 @@
 from haul.utils import *
 from haul.builder import *
 
-from haul.langs.py.haulReader_py import *
-from haul.langs.pas.haulWriter_pas import *
+from haul.langs.py.reader_py import *
+from haul.langs.pas.writer_pas import *
 
 from pdb import PDBFile
 

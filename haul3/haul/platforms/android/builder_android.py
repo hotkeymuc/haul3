@@ -5,8 +5,8 @@
 from haul.utils import *
 from haul.builder import *
 
-from haul.langs.py.haulReader_py import *
-from haul.langs.java.haulWriter_java import *
+from haul.langs.py.reader_py import *
+from haul.langs.java.writer_java import *
 
 import time	# For waiting in between emu polls
 

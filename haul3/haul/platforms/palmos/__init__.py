@@ -1,3 +1,3 @@
 __all__ = [
-	'haulBuilder_palmos',
+	'builder_palmos',
 ]

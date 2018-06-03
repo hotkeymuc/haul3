@@ -12,8 +12,8 @@ Builder for PSION (CM/XP)
 from haul.utils import *
 from haul.builder import *
 
-from haul.langs.py.haulReader_py import *
-from haul.langs.opl.haulWriter_opl import *
+from haul.langs.py.reader_py import *
+from haul.langs.opl.writer_opl import *
 
 
 
@@ -393,10 +393,10 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		# Check if successfull
-		if (self.exists(staging_path + '/' + outputFilename)):
+		if (self.exists(self.staging_path + '/' + outputFilename)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(staging_path + '/' + outputFilename, output_path + '/' + outputFilename)
+			self.copy(self.staging_path + '/' + outputFilename, self.output_path + '/' + outputFilename)
 		else:
-			put('Build seems to have failed, since there is no output file "' + (staging_path + '/' + outputFilename) + '".')
+			put('Build seems to have failed, since there is no output file "' + (self.staging_path + '/' + outputFilename) + '".')
 		

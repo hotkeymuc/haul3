@@ -1,3 +1,3 @@
 __all__ = [
-	'haulWriter_lua'
+	'writer_lua'
 ]

@@ -7,7 +7,7 @@ import shutil
 import subprocess	# for running commands
 
 from utils import *
-from langs.py.haulReader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
+from langs.py.reader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
 
 def put(t):
 	print('HAULBuilder:\t' + str(t))

@@ -13,19 +13,19 @@ import os
 
 from haul.utils import *
 
-from haul.langs.py.haulReader_py import *
+from haul.langs.py.reader_py import *
 
-from haul.langs.asm.haulWriter_asm import *
-from haul.langs.bas.haulWriter_bas import *
-from haul.langs.c.haulWriter_c import *
-from haul.langs.java.haulWriter_java import *
-from haul.langs.js.haulWriter_js import *
-from haul.langs.json.haulWriter_json import *
-from haul.langs.lua.haulWriter_lua import *
-from haul.langs.opl.haulWriter_opl import *
-from haul.langs.pas.haulWriter_pas import *
-from haul.langs.py.haulWriter_py import *
-from haul.langs.vbs.haulWriter_vbs import *
+from haul.langs.asm.writer_asm import *
+from haul.langs.bas.writer_bas import *
+from haul.langs.c.writer_c import *
+from haul.langs.java.writer_java import *
+from haul.langs.js.writer_js import *
+from haul.langs.json.writer_json import *
+from haul.langs.lua.writer_lua import *
+from haul.langs.opl.writer_opl import *
+from haul.langs.pas.writer_pas import *
+from haul.langs.py.writer_py import *
+from haul.langs.vbs.writer_vbs import *
 
 
 def put(t):
@@ -87,7 +87,7 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 
 source_root_path = '.'
 package_path = 'haul/langs/py'
-source_filename = 'haulReader_py.py'
+source_filename = 'reader_py.py'
 libs = ['haul/haul.py', 'haul/utils.py']
 output_path = 'build'
 
