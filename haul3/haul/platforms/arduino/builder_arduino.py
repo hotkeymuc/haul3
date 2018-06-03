@@ -8,7 +8,30 @@ from haul.builder import *
 from haul.langs.py.reader_py import *
 from haul.langs.c.writer_c import *
 
-
+EMULARE_BOARD_TEMPLATE = '''<board>
+  <doc-version>0.1</doc-version>
+  <components>
+    <component>
+      <name>ATMega 1</name>
+      <dll>components\ATMega.dll</dll>
+      <title>ATMega</title>
+      <version>1.0.0.0</version>
+      <specific>
+        <ATMega>
+          <Program>Z:\Apps\_emu\ArduinoEmu\emulare_1.9\examples\Communication\ASCIITable.cpp.hex</Program>
+          <SerialPort>
+          </SerialPort>
+        </ATMega>
+      </specific>
+      <position>
+        <x>0</x>
+        <y>0</y>
+      </position>
+    </component>
+  </components>
+  <wires />
+</board>
+'''
 
 class HAULBuilder_arduino(HAULBuilder):
 	def __init__(self):
@@ -97,8 +120,9 @@ class HAULBuilder_arduino(HAULBuilder):
 		
 		# Check if successfull
 		if (self.exists(staging_path_2 + '/' + hexFilename1)):
-			put('Build seems successfull.')
-			put('Copying to build directory...')
+			put('Compilation seems successfull.')
+			
+			put('Copying to output directory...')
 			self.copy(staging_path_2 + '/' + hexFilename1, self.output_path + '/' + hexFilename_final1)
 			self.copy(staging_path_2 + '/' + hexFilename2, self.output_path + '/' + hexFilename_final2)
 		
@@ -108,13 +132,20 @@ class HAULBuilder_arduino(HAULBuilder):
 			
 		
 		if (self.project.run_test == True):
-			#@TODO: Run Emulare on it!
+			# Run Emulare
+			emulare_path = self.get_path('EMULARE_PATH', os.path.abspath(os.path.join(self.tools_path, 'platforms', 'arduino', 'emulare')))
 			
-			#@TODO: Or upload it using avrdude
+			
+			put('Emulating using Emulare...')
+			# Emulare 1.9 does not have command line arguments for loading a file.
+			# But it will load the last opened board!
+			cmd = os.path.join(emulare_path, 'emulare.exe')
+			self.command(cmd)
+			
+			#@TODO: Upload it using avrdude and virtual com0com port
 			
 			pass
 		
 		put('Done.')
 		return True
 		
-

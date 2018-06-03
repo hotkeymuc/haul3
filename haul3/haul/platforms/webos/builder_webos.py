@@ -40,7 +40,8 @@ class HAULBuilder_webos(HAULBuilder):
 		#QEMU_DIR = os.path.join(HAULBUILDER_DOS_DIR, 'qemu')
 		
 		#palm_sdk_path = 'Z:\\Apps\\_code\\HP_webOS'
-		palm_sdk_path = self.get_path('PALM_SDK_PATH', os.path.abspath(os.path.join(self.tools_path, 'palm-sdk')))
+		#palm_sdk_path = self.get_path('PALM_SDK_PATH', os.path.abspath(os.path.join(self.tools_path, 'palm-sdk')))
+		palm_sdk_path = self.get_path('PalmSDK', os.path.abspath(os.path.join(self.tools_path, 'palm-sdk')))
 		
 		
 		put('Translating sources to JavaScript...')
@@ -131,7 +132,8 @@ MainAssistant.prototype = {
 		ipk_filename_full = os.path.abspath(os.path.join(self.output_path, ipk_filename))
 		
 		put('Packaging using "palm-package"...')
-		r = self.command('palm-package "%s" --outdir="%s"' % (self.staging_path, self.output_path))
+		cmd = os.path.join(palm_sdk_path, 'bin', 'palm-package') + ' "{}" --outdir="{}"'.format(self.staging_path, self.output_path)
+		r = self.command(cmd)
 		
 		if not os.path.isfile(ipk_filename_full):
 			put(r)
@@ -139,14 +141,16 @@ MainAssistant.prototype = {
 			return False
 		
 		
-		
 		# Test
 		if (self.project.run_test == True):
 			put('Test: Installing using "palm-install"')
-			self.command('palm-install "%s"' % (ipk_filename_full))
+			cmd = os.path.join(palm_sdk_path, 'bin', 'palm-install') + ' "{}"'.format(ipk_filename_full)
+			r = self.command(cmd)
+			#@TODO: Check return value
 			
 			put('Test: Launching using "palm-launch"')
-			self.command('palm-launch %s' % (app_id))
+			cmd = os.path.join(palm_sdk_path, 'bin', 'palm-launch') + ' {}'.format(app_id)
+			r = self.command(cmd)
 		
 		put('Done.')
 		return True

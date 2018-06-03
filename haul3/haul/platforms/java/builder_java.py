@@ -48,9 +48,9 @@ class HAULBuilder_java(HAULBuilder):
 		
 		#jre_path = os.path.abspath('Z:/Apps/_code/AndroidStudio/jre/bin')
 		jre_path = self.get_path('JRE_PATH', os.path.abspath(os.path.join(self.tools_path, 'jre')))
-		JAVA_CMD = os.path.abspath(os.path.join(jre_path, 'java'))
-		JAVAC_CMD = os.path.abspath(os.path.join(jre_path, 'javac'))
-		JAR_CMD = os.path.abspath(os.path.join(jre_path, 'jar'))
+		java_cmd = os.path.abspath(os.path.join(jre_path, 'bin', 'java'))
+		javac_cmd = os.path.abspath(os.path.join(jre_path, 'bin', 'javac'))
+		jar_cmd = os.path.abspath(os.path.join(jre_path, 'bin', 'jar'))
 		
 		
 		put('Cleaning staging paths...')
@@ -72,7 +72,7 @@ class HAULBuilder_java(HAULBuilder):
 		self.translate_project(output_path=src_path)
 		
 		if not os.path.isfile(java_filename_full):
-			put('Main Java file "%s" was not created! Aborting.' % (java_filename_full))
+			raise HAULBuildError('Main Java file "{}" was not created!'.format(java_filename_full))
 			return False
 		
 		
@@ -91,7 +91,7 @@ class HAULBuilder_java(HAULBuilder):
 		
 		put('Compiling Java classes...')
 		#cmd = jre_path + '/javac -classpath "%s" -sourcepath "%s" -d "%s" "%s"' % (self.staging_path, staging_path, output_path, java_filename_full)
-		cmd = JAVAC_CMD
+		cmd = javac_cmd
 		cmd += ' -classpath "%s"' % (class_path)
 		cmd += ' -sourcepath "%s"' % (src_path)
 		cmd += ' -d "%s"' % (class_path)
@@ -103,12 +103,12 @@ class HAULBuilder_java(HAULBuilder):
 		# Check if successfull
 		if not os.path.isfile(class_filename_full):
 			put(r)
-			put('Class file "%s" was not created! Aborting.' % (class_filename_full))
+			raise HAULBuildError('Class file "{}" was not created!'.format(class_filename_full))
 			return False
 		
 		
 		put('Creating JAR "%s"...' % (jar_filename))
-		cmd = JAR_CMD
+		cmd = jar_cmd
 		cmd += ' cvf'
 		cmd += ' "%s"' % (jar_filename_full)
 		#cmd += ' "%s"' % (class_path)
@@ -117,7 +117,7 @@ class HAULBuilder_java(HAULBuilder):
 		
 		if not os.path.isfile(jar_filename_full):
 			put(r)
-			put('JAR file "%s" was not created! Aborting.' % (jar_filename_full))
+			raise HAULBuildError('JAR file "{}" was not created!'.format(jar_filename_full))
 			return False
 		
 		put('Copying end result to "%s"...' % (jar_filename_final))
@@ -127,9 +127,9 @@ class HAULBuilder_java(HAULBuilder):
 		# Test
 		if (self.project.run_test == True):
 		
-			put('Test: Launching...')
+			put('Test: Launching JAR...')
 			#self.command(jre_path + '/java -classpath "%s" %s' % (class_path, name))
-			cmd = JAVA_CMD
+			cmd = java_cmd
 			#cmd += ' -classpath "%s" %s' % (class_path, app_id)
 			cmd += ' -classpath "%s" %s' % (jar_filename_full, app_id)
 			r = self.command(cmd)
@@ -137,4 +137,5 @@ class HAULBuilder_java(HAULBuilder):
 		
 		
 		put('Done.')
+		return True
 		

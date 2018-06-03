@@ -373,10 +373,8 @@ class HAULBuilder_psion(HAULBuilder):
 		cmd += ' -hda "' + disk_sys + '"'	# C:
 		cmd += ' -hdb "' + disk_compiler + '"'	# D:
 		cmd += ' -hdc "' + disk_temp + '"'	# E:
-		cmd += ' -hdd "fat:rw:/' + self.staging_path + '"'	# F:
+		cmd += ' -hdd "fat:rw:/' + os.path.abspath(self.staging_path) + '"'	# F:
 		cmd += ' -soundhw pcspk'
-		#cmd += ' ' + os.path.realpath(output_path + '/' + cFilename)
-		#cmd += ' ' + os.path.realpath(staging_path + '/' + cFilename)
 		
 		
 		r = self.command(cmd)

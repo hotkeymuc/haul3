@@ -5,6 +5,6 @@ from hio import put
 put('Hello World!')
 put('This is HAUL3.')
 
-while (1 == 1):
-	pass
-	
+#while (1 == 1):
+#	pass
+

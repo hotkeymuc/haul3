@@ -27,7 +27,7 @@ class HAULBuilder_vtech(HAULBuilder):
 		
 		name = self.project.name
 		
-		vgl_model = '2000'
+		vgl_model = '4000'
 		
 		#@TODO: Allow other Z88DK targets!
 		#@Actually, turn this into builder_z80!

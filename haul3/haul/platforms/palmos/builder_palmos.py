@@ -169,7 +169,7 @@ class HAULBuilder_palmos(HAULBuilder):
 		
 		if (self.project.run_test == True):
 			### Test
-			put('Testing final binary "%s"...' % (exe_filename))
+			put('Testing binary "%s" on emulator...' % (exe_filename))
 			time.sleep(0.1)
 			win.TypeKeys('%s{ENTER}' % (exe_filename))
 			# Running
@@ -195,5 +195,6 @@ class HAULBuilder_palmos(HAULBuilder):
 			put('Killing emulator...')
 			app.kill()
 		
+		put('Done.')
 		return True
 		

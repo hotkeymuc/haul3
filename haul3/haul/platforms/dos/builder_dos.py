@@ -30,7 +30,8 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		pas_filename = name[0:8] + '.pas'
 		exe_filename = name[0:8] + '.exe'
-		pas_filename_full = os.path.join(self.staging_path, pas_filename)
+		pas_filename_full = os.path.abspath(os.path.join(self.staging_path, pas_filename))
+		exe_filename_full = os.path.abspath(os.path.join(self.staging_path, exe_filename))
 		
 		put('Staging to "%s"...' % (self.staging_path))
 		
@@ -51,7 +52,7 @@ class HAULBuilder_dos(HAULBuilder):
 		self.translate_project(output_path=self.staging_path)
 		
 		if not os.path.isfile(pas_filename_full):
-			raise HULBuildError('Main Pascal file "{}" was not created!'.format(pas_filename_full))
+			raise HAULBuildError('Main Pascal file "{}" was not created!'.format(pas_filename_full))
 			return False
 			
 		
@@ -63,10 +64,9 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		# Create/clear temp scratch disk
 		self.copy(disk_empty, disk_temp)
-		buildlogFile = os.path.join(self.staging_path, 'build.log')
-		#self.touch(buildlogFile, '# Build log')
-		self.rm_if_exists(buildlogFile)
-		self.rm_if_exists(os.path.join(self.staging_path, exe_filename))
+		build_log_filename = os.path.abspath(os.path.join(self.staging_path, 'build.log'))
+		self.rm_if_exists(build_log_filename)
+		self.rm_if_exists(os.path.abspath(os.path.join(self.staging_path, exe_filename)))
 		
 		
 		DOS_SYS_DIR = 'C:'
@@ -110,17 +110,17 @@ class HAULBuilder_dos(HAULBuilder):
 		autoexec += 'CD ' + DOS_COMPILER_DIR + CRLF
 		
 		# Compile all files
-		pasFiles = []
+		pas_files = []
 		for l in self.project.libs:
 			l = s.name
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + l + '.pas ' + DOS_TEMP_DIR + CRLF
-			pasFiles.append(DOS_TEMP_DIR + '\\' + l + '.pas')
+			pas_files.append(DOS_TEMP_DIR + '\\' + l + '.pas')
 		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + pas_filename + ' ' + DOS_TEMP_DIR + CRLF
-		pasFiles.append(DOS_TEMP_DIR + '\\' + pas_filename)
+		pas_files.append(DOS_TEMP_DIR + '\\' + pas_filename)
 		
 		
 		autoexec += 'ECHO ----------------------------------------' + CRLF
-		for p in pasFiles:
+		for p in pas_files:
 			TP_CMD = TP_BIN_PATH + '\\TPC ' + p + ' -U' + TP_UNITS_PATH + ' -U' + DOS_TEMP_DIR + ' ' + TP_ARGS
 			autoexec += 'ECHO Executing "' + TP_CMD + '"...' + CRLF
 			autoexec += 'ECHO ' + TP_CMD + ' >>' + DOS_LOG_FILE + CRLF
@@ -185,7 +185,7 @@ class HAULBuilder_dos(HAULBuilder):
 		cmd += ' -hda "' + disk_sys + '"'	# C:
 		cmd += ' -hdb "' + disk_compiler + '"'	# D:
 		cmd += ' -hdc "' + disk_temp + '"'	# E:
-		cmd += ' -hdd "fat:rw:/' + self.staging_path + '"'	# F:
+		cmd += ' -hdd "fat:rw:/' + os.path.abspath(self.staging_path) + '"'	# F:
 		cmd += ' -soundhw pcspk'
 		#cmd += ' ' + os.path.realpath(outputPath + '/' + cFilename)
 		#cmd += ' ' + os.path.realpath(self.staging_path + '/' + cFilename)
@@ -194,17 +194,20 @@ class HAULBuilder_dos(HAULBuilder):
 		r = self.command(cmd)
 		put('Returned "' + str(r) + '"')
 		
-		buildLog = self.type(buildlogFile)
-		put('Build log: "' + buildLog + '"')
+		if (self.exists(build_log_filename)):
+			build_log_text = self.type(build_log_filename)
+			put('Build log: "' + build_log_text + '"')
+		else:
+			put('No build log was created! Uh-oh!')
 		
 		# Check if successfull
-		if (self.exists(self.staging_path + '/' + exe_filename)):
-			put('Build seems successfull.')
+		if (self.exists(exe_filename_full)):
+			put('Compilation seems successfull.')
 			
-			put('Copying to build directory...')
-			self.copy(self.staging_path + '/' + exe_filename, self.output_path + '/' + exe_filename)
+			put('Copying to output directory...')
+			self.copy(exe_filename_full, self.output_path + '/' + exe_filename)
 		else:
-			raise HULBuildError('Build seems to have failed, since there is no output file "{}".'.format(self.staging_path + '/' + exe_filename))
+			raise HAULBuildError('Build seems to have failed, since there is no output file "{}".'.format(exe_filename_full))
 			return False
 		
 		return True

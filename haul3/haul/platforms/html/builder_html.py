@@ -36,7 +36,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 </head>
 <body>
 	<h1>{0}</h1>
-	<div id="hioOut"></div>
+	<pre id="hioOut"></pre>
 	<input type="text" id="hioIn" /><button onclick="hioIn_enter();">OK</button>
 	<small>HAUL3</small>
 </body>

@@ -34,31 +34,40 @@ p.run_test = True
 
 
 
+os.environ['QEMU_PATH']  = 'Z:/Apps/_emu/qemu';
 
-## Missing libs in ./libs/hio.py!!!
+#os.environ['JRE_PATH']  = 'C:/Program Files/Java/jre1.8.0_151'
+#os.environ['JRE_PATH']  = 'C:/Program Files/Java/jdk1.7.0_75'
+os.environ['JRE_PATH']  = 'Z:/Apps/_code/AndroidStudio/jre'
 
-#os.environ['QEMU_PATH']  = '';
-#os.environ['JRE_PATH']  = '';
-#os.environ['ANDROID_SDK_ROOT']  = '';
+#os.environ['ANDROID_SDK_HOME']  = 'Z:/Data/_code/_sdk/adt-bundle-windows-x86-20130522/sdk';
+
 #os.environ['ARDUINO_PATH'] = 'C:/Apps/_code/Arduino';
+os.environ['ARDUINO_PATH'] = 'Z:/Apps/_code/Arduino';
+os.environ['EMULARE_PATH'] = 'Z:/Apps/_emu/ArduinoEmu/emulare_1.9';
+
 #os.environ['Z88DK_PATH'] = 'C:/Apps/_code/z88dk.git';
-#os.environ['MESS_PATH'] = '';
-#os.environ['MESS_ROM_PATH'] = '';
-#os.environ['GBDK_PATH'] = '';
-#os.environ['GBG_PATH'] = '';
-#os.environ['PALM_SDK_PATH'] = '';
-#os.environ['POSE_PATH'] = '';
+os.environ['Z88DK_PATH'] = 'Z:/Data/_code/_cWorkspace/z88dk.git';
+os.environ['MESS_PATH'] = 'Z:/Apps/_emu/MESSUI-0.190';
+os.environ['MESS_ROM_PATH'] = 'Z:/Apps/_emu/_roms';
+
+os.environ['GBDK_PATH'] = os.path.abspath('tools/platforms/gameboy/gbdk');
+os.environ['BGB_PATH'] = os.path.abspath('tools/platforms/gameboy/bgb');
+
+#os.environ['PalmSDK'] = '';
+os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
+
 
 #builder = HAULBuilder_android()
 #builder = HAULBuilder_arduino()
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
-builder = HAULBuilder_html()	## Missing libs in data/platform/html/libs/hio.js!!
+#builder = HAULBuilder_html()
 #builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
 #builder = HAULBuilder_vtech()
-#builder = HAULBuilder_webos()
+builder = HAULBuilder_webos()
 
 
 builder.build(p)

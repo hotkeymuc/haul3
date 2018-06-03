@@ -79,7 +79,7 @@ class HAULBuilder_android(HAULBuilder):
 		
 		#android_sdk_path = os.path.abspath('Z:/Data/_code/_sdk/adt-bundle-windows-x86-20130522/sdk')
 		#android_sdk_path = self.get_path('ANDROID_SDK_PATH')
-		android_sdk_path = self.get_path('ANDROID_SDK_ROOT', os.path.abspath(os.path.join(self.tools_path, 'android')))
+		android_sdk_path = self.get_path('ANDROID_SDK_HOME', os.path.abspath(os.path.join(self.tools_path, 'android')))
 		ANDROID_ADB_CMD = os.path.abspath(os.path.join(android_sdk_path, 'platform-tools', 'adb'))
 		ANDROID_JAR = os.path.abspath(os.path.join(android_sdk_path, 'platforms', 'android-25', 'android.jar'))
 		ANDROID_BUILD_TOOLS_DIR = os.path.abspath(os.path.join(android_sdk_path, 'build-tools', '25.0.0'))
@@ -167,7 +167,7 @@ public class HaulInfo {
 		
 		put('Compiling to Java Class...')
 		# http://geosoft.no/development/android.html
-		cmd = JAVAC_CMD
+		cmd = '"' + JAVAC_CMD + '"'
 		#cmd += ' -verbose'
 		cmd += ' -classpath ".";"{}";"{}";"{}"'.format(src_path, class_path, ANDROID_JAR)
 		cmd += ' -bootclasspath "{}"'.format(JAVA_RUNTIME_JAR)
