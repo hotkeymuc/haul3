@@ -8,9 +8,45 @@ import subprocess	# for running commands
 
 from utils import *
 from langs.py.haulReader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
+from translator import *
 
 def put(t):
 	print('HAULBuilder:\t' + str(t))
+
+
+class HAULSource:
+	def __init__(self, name, stream, uri=None):
+		self.name = name
+		self.stream = stream
+		self.uri = None
+	
+
+class HAULProject:
+	def __init__(self):
+		self.sources = []
+		
+		self.libs = []
+		self.libs_path = 'libs'
+		
+	
+	def add_source_file(self, filename, name=None):
+		if (name == None):
+			# Guess name from filename if omitted
+			name = name_by_filename(filename)
+		
+		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
+		self.sources.append(source)
+		
+	
+	def add_lib(self, name, filename=None):
+		if (filename == None):
+			# Guess default lib filename if omitted
+			filename = self.libs_path + '/' + name + '.py'
+		
+		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
+		self.libs.append(source)
+		
+	
 
 class HAULBuilder:
 	"Provides the functionality to build a HAUL file for another platform. Like make etc."

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 
-
-#from utils import *
 from haul import *
 
 
@@ -20,6 +16,9 @@ class HAULTranslator:
 		self.WriterClass = WriterClass
 		self.dialect = dialect
 		self.libs = []
+		
+		# For the sake of compilation we could also clone the HAUL_ROOT_NAMESPACE and write directly to it
+		#self.namespace = HAUL_ROOT_NAMESPACE.clone()
 		self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
 		
 	
