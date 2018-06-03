@@ -2,6 +2,9 @@
 function put(data)
 	print(data)
 end
+function put_(data)
+	print(data)
+end
 
 function shout(data)
 	print('!! '..data)

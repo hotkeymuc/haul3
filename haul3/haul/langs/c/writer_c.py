@@ -46,11 +46,9 @@ DIALECT_GBDK = 3
 
 
 GLUE_ARDUINO_PRE = '''
-//### Arduino glue code (pre) from haulWriter_c. Should go to platforms/arduino
-#define print(t)	Serial.println(t)
-#define str(i)	i
-
+//### Arduino glue code (pre) from writer_c
 '''
+
 GLUE_ARDUINO_POST = '''
 //### Arduino glue code (post)
 void setup() {
@@ -85,7 +83,10 @@ class HAULWriter_c(HAULWriter):
 		
 	def write_comment(self, t):
 		"Add a comment to the file"
-		self.stream_out.put('// ' + t + '\n')
+		if ('\n' in t):
+			self.stream_out.put('/* ' + t + ' */\n')
+		else:
+			self.stream_out.put('// ' + t + '\n')
 		
 	def write_namespace(self, ns, indent=0):
 		if (ns and len(ns.ids) > 0):
@@ -171,7 +172,9 @@ class HAULWriter_c(HAULWriter):
 				elif self.dialect == DIALECT_ARDUINO:
 					self.write('#include "')
 					self.write(str(im))
-					self.write('.c"\n')
+					#self.write('.c"\n')
+					self.write('.h"\n')
+					
 				elif self.dialect == DIALECT_Z88DK:
 					self.write('#include "')
 					self.write(str(im))

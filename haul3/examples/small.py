@@ -31,10 +31,10 @@ def bar(f1):
 
 """
 class MyClass:
-	#@var name String
+	#@var name str
 	
 	#@fun setName
-	#@arg n String
+	#@arg n str
 	def setName(self, n):
 		self.name = n
 """
@@ -49,7 +49,7 @@ put(int_str(2))
 put(int_str(3))
 
 """
-#@var cl MyClass
+# @ var cl MyClass
 cl = MyClass()
 cl.name = "some name"
 """
@@ -70,38 +70,38 @@ c = (a + b)
 if (c > 6) and (c <= 10): x = 1
 
 a = 1
-put_direct('a:=1=')
+put_('a:=1=')
 put(int_str(a))
 
 a = -1
-put_direct('a:=-1=')
+put_('a:=-1=')
 put(int_str(a))
 
 
 a = 127
-put_direct('a:=127=')
+put_('a:=127=')
 put(int_str(a))
 
 a = 128
-put_direct('a:=128=')
+put_('a:=128=')
 put(int_str(a))
 
 
 a = 255
-put_direct('a:=255=')
+put_('a:=255=')
 put(int_str(a))
 
 a = 256
-put_direct('a:=256=')
+put_('a:=256=')
 put(int_str(a))
 
 a = 32767
-put_direct('a:=32767=')
+put_('a:=32767=')
 put(int_str(a))
 
 ## This is "out of range" for TurboPascal (DOS)
 #a = 32768
-#put_direct('a:=32768=')
+#put_('a:=32768=')
 #put(int_str(a))
 
 
@@ -109,12 +109,11 @@ foo(123, 3)
 
 bar(1234)
 
-"""
+
 #@var s str
-put_direct('Enter something: ')
+put_('Enter something!')
 s = fetch()
 shout(s)
-"""
 
 shout('small.py end.')
 #return 0

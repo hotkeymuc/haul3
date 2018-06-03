@@ -66,7 +66,11 @@ class HAULWriter_js(HAULWriter):
 		
 	def write_comment(self, t):
 		"Add a comment to the file"
-		self.stream_out.put('// ' + t + '\n')
+		if ('\n' in t):
+			self.stream_out.put('/* ' + t + '*/\n')
+		else:
+			self.stream_out.put('// ' + t + '\n')
+			
 		
 	def write_indent(self, num):
 		r = ''

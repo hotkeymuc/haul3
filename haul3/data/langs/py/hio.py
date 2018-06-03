@@ -6,14 +6,14 @@ def put(data):
 	#sys.stdout.write(data)
 	print(data)
 
-def put_direct(data):
+def put_(data):
 	#sys.stdout.write(data)
 	print(data),
 
 def shout(data):
 	print('!! ' + str(data))
 
-def get():
+def fetch():
 	# PY3
 	#return input()
 	

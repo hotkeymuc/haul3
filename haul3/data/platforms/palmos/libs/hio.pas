@@ -6,7 +6,7 @@ procedure put(data:string);
 begin
 	writeln(data);
 end;
-procedure put_direct(data:string);
+procedure put_(data:string);
 begin
 	write(data);
 end;
@@ -34,6 +34,8 @@ begin
 	StrIToA(s,i);
 	int_str:=s+chr(0);
 end;
+
+
 
 function str_int(s:string):integer;
 begin

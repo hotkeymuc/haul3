@@ -5,7 +5,7 @@ Unit hio;
 Interface
 
 Procedure put(data:String);
-Procedure put_direct(data:String);
+Procedure put_(data:String);
 Procedure shout(data:String);
 Function fetch:String;
 
@@ -18,7 +18,7 @@ Procedure put(data:String);
 Begin
 	WriteLn(data);
 End;
-Procedure put_direct(data:String);
+Procedure put_(data:String);
 Begin
 	Write(data);
 End;

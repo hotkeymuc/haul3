@@ -7,6 +7,7 @@ import shutil
 import subprocess	# for running commands
 
 from utils import *
+from haul import HAULParseError
 from langs.py.reader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
 
 def put(t):
@@ -20,7 +21,7 @@ class HAULSource:
 	def __init__(self, name, stream, uri=None):
 		self.name = name
 		self.stream = stream
-		self.uri = None
+		self.uri = uri
 		self.dest_filename = None
 	
 
@@ -175,23 +176,28 @@ class HAULBuilder:
 		
 		put('Translating source(s)...')
 		for s in self.project.sources:
-			if (stream_out_single == None):
-				# Each file to own output file
-				if (s.dest_filename == None):
-					# Assume default names
-					s.dest_filename = output_path + '/' + s.name + '.' + dest_extension
-					put('Assigned output filename "{}"'.format(s.dest_filename))
-				
-				stream_out = FileWriter(s.dest_filename)
-				m = self.translator.translate(s.name, s.stream, stream_out, close_stream=True)
-			else:
-				# All files into one stream
-				m = self.translator.translate(s.name, s.stream, stream_out_single, close_stream=False)
-				
-			
+			try:
+				if (stream_out_single == None):
+					# Each file to own output file
+					if (s.dest_filename == None):
+						# Assume default names
+						s.dest_filename = output_path + '/' + s.name + '.' + dest_extension
+						put('Assigned output filename "{}"'.format(s.dest_filename))
+					
+					stream_out = FileWriter(s.dest_filename)
+					m = self.translator.translate(s.name, s.stream, stream_out, close_stream=True)
+				else:
+					# All files into one stream
+					m = self.translator.translate(s.name, s.stream, stream_out_single, close_stream=False)
+					
+			except HAULParseError as e:
+				raise HAULBuildError('Cannot translate "{}": {} in {}'.format(s.uri, e.message, str(e.token)))
+				return None
+		
 		# Return last translated module, which is most likely the main module
 		return m
 	
+	"""
 	def translate(self, name, source_filename, dest_filename, DestWriterClass, dialect=None):
 		
 		put('Translating file "' + source_filename + '" to "' + dest_filename + '"...')
@@ -206,7 +212,11 @@ class HAULBuilder:
 			writer = DestWriterClass(stream_out)
 		else:
 			writer = DestWriterClass(stream_out, dialect=dialect)
-		m = writer.stream(reader, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
+		
+		try:
+			m = writer.stream(reader, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
+		except HAULParseError as e:
+			raise
 		
 		put('Writing to "%s"...' % (dest_filename))
 		self.touch(dest_filename, stream_out.r)
@@ -227,6 +237,7 @@ class HAULBuilder:
 			r += '_data[' + str(i) + '] = \'' + t + '\'\n'
 			i += 1
 		self.touch(dest_filename, r)
+	"""
 	
 	def build(self, project):
 		"Actually build a file."

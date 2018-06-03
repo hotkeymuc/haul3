@@ -59,7 +59,7 @@ class Stream:
 
 # Guess the type of a new variable by looking at the return type of the right side
 INFER_TYPE = True
-BLOCKS_HAVE_LOCAL_NAMESPACE = False
+BLOCKS_HAVE_LOCAL_NAMESPACE = True
 
 # Kinds of namespae entries
 K_MODULE = 'mod'
@@ -275,6 +275,15 @@ class HAULNamespace:
 		
 		#raise Exception('HAULNamespace Error: Namespace for id "' + str(name) + '" was not found starting from "' + str(self) + '"!')
 		return None
+	
+	#@fun is_parent_of bool
+	#@arg ns HAULId
+	def has_child(self, i):
+		p = i.namespace
+		while (p != None):
+			if (p == self): return True
+			p = p.parent
+		return False
 	
 	def clear(self):
 		self.ids = []

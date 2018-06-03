@@ -4,7 +4,7 @@ Sub put(data)
 	WScript.echo(data)
 End Sub
 
-Sub put(data)
+Sub put_(data)
 	WScript.echo(data)
 End Sub
 
@@ -13,5 +13,8 @@ Function fetch()
 	fetch = data
 End Function
 
+Function int_str(i)
+	int_str = Val(i)
+End Function
 'a = fetch()
 'put(a)

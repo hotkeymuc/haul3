@@ -11,7 +11,7 @@ var hio = {
 	put: function(txt) {
 		this._putElement.innerText += txt + '\n';
 	},
-	put_direct: function(txt) {
+	put_: function(txt) {
 		this._putElement.innerText += txt;
 	},
 	shout: function(txt) {
@@ -32,8 +32,8 @@ async function _main_async() {
 function put(txt) {
 	hio.put(txt);
 }
-function put_direct(txt) {
-	hio.put_direct(txt);
+function put_(txt) {
+	hio.put_(txt);
 }
 function shout(txt) {
 	alert(txt);
@@ -63,6 +63,7 @@ function hioIn_enter() {
 		_fetchResolve = null;
 	}
 }
+
 function int_str(i) {
 	return ('' + i);
 }

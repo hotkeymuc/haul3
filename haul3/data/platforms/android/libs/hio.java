@@ -39,7 +39,7 @@ class hio {
 		
 		if (_putter != null) _putter.put(data);
 	}
-	public static void put_direct(String data) {
+	public static void put_(String data) {
 		Log.i("haul", data);
 		System.out.print(data);
 		

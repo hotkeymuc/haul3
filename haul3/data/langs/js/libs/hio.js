@@ -1,6 +1,9 @@
 function put(data) {
 	console.log(data);
 }
+function put_(data) {
+	console.log(data);
+}
 
 function fetch() {
 	return prompt('Input');

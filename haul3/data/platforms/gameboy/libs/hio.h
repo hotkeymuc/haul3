@@ -24,7 +24,7 @@ void put(char *text) {
 	printf("\n");
 }
 
-void put_direct(char *text) {
+void put_(char *text) {
 	printf(text);
 }
 
@@ -36,6 +36,17 @@ char *fetch() {
 	//byte l = get_line(fetch_buf)
 	return gets(fetch_buf);
 	//return &fetch_buf[0];
+}
+
+void shout(char *txt) {
+	font_set(shout_font);
+	printf("! ");
+	printf(txt);
+	printf(" !\n");
+	
+	beep();
+	
+	font_set(put_font);
 }
 
 
@@ -61,18 +72,6 @@ void beep() {
 	// Mute channel 1 (there are other ways to do this)
 	NR12_REG = 0;
 	NR14_REG = 0x80;
-}
-
-
-void shout(char *txt) {
-	font_set(shout_font);
-	printf("! ");
-	printf(txt);
-	printf(" !\n");
-	
-	beep();
-	
-	font_set(put_font);
 }
 
 

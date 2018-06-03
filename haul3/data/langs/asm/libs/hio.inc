@@ -2,6 +2,11 @@
 
 ; put
 
+; put_
+
 ; shout
 
 ; fetch
+
+
+; int_str

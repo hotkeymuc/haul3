@@ -1026,8 +1026,8 @@ class HAULReader_py(HAULReader):
 		
 		if (BLOCKS_HAVE_LOCAL_NAMESPACE == True):
 			# Option A: Introduce dedicated namespace for local values
-			b.namespace = namespace.get_or_create_namespace(blockName)
-			ns = b.namespace	# Write all new entries inside this block to the block namespace (better, i.e. for Java)
+			ns  = namespace.get_or_create_namespace(blockName)
+			b.namespace = ns	# Write all new entries inside this block to the block namespace (better, i.e. for Java)
 		else:
 			# Option B: Re-use parent namespace
 			#b.namespace = None
@@ -1086,9 +1086,16 @@ class HAULReader_py(HAULReader):
 					put_debug('read_block():	Comment: "' + str(comment) + '"')
 					b.add_comment(comment)
 			
-			elif (t.type == TOKEN_UNKNOWN) and (t.data[0] == '"'):
-				#@TODO: Handle it properly. Double/triple quotes
-				comment = self.read_line()
+			elif (t.type == TOKEN_UNKNOWN) and ((t.data[0] == '"') or (t.data[0] == "'")):
+				# Block-level string is a block comment
+				#comment = self.read_line()
+				
+				# Treat it as a string expression
+				e = self.read_expression(namespace=ns)
+				if (e.value.type != T_STRING):
+					self.raise_parse_error('Expected comment to be a string value, but got {}'.format(str(e)), t)
+				
+				comment = e.value.data_str
 				put_debug('read_block():	Doc Comment: "' + str(comment) + '"')
 				b.add_comment(comment)
 			

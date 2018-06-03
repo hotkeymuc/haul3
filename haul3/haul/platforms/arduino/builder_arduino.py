@@ -35,7 +35,7 @@ EMULARE_BOARD_TEMPLATE = '''<board>
 
 class HAULBuilder_arduino(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, platform='arduino', lang='c')
+		HAULBuilder.__init__(self, platform='arduino', lang='cpp')
 		
 		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_c, dialect=DIALECT_ARDUINO))
 		
@@ -54,7 +54,7 @@ class HAULBuilder_arduino(HAULBuilder):
 		arduino_cpu = 'atmega328'
 		
 		
-		cFilename = name + '.c'
+		cFilename = name + '.cpp'
 		hexFilename1 = cFilename + '.hex'
 		hexFilename2 = cFilename + '.with_bootloader.hex'
 		hexFilename_final1 = name + '_' + arduino_cpu + '.hex'
@@ -73,8 +73,8 @@ class HAULBuilder_arduino(HAULBuilder):
 		libsPath = os.path.join(self.data_path, 'platforms/arduino/libs')
 		
 		for s in self.project.libs:
-			lib_filename_data = libsPath + '/' + s.name + '.c'
-			self.copy(lib_filename_data, staging_path_1 + '/' + s.name + '.c')
+			lib_filename_data = libsPath + '/' + s.name + '.h'
+			self.copy(lib_filename_data, staging_path_1 + '/' + s.name + '.h')
 		
 		
 		put('Translating sources to C...')

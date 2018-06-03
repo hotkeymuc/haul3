@@ -66,27 +66,28 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		### Split main module into separate files
+		func_libs = []
 		# OPL3 (XP/CM) does not support multiple procs in one file.
 		for f in m.funcs:
 			#put(str(f.id.name) + ':	' + str(f))
 			# Select module name
-			funcName = f.id.name
-			funcName8 = funcName[0:8].upper()
+			func_name = f.id.name
+			func_name8 = func_name[0:8].upper()
 			#@TODO: Ensure that this name is unique! Or just give random name (lame)
 			
-			funcFilename = funcName8 + '.OPL'
-			funcFilenameFull = os.path.abspath(os.path.join(self.staging_path, funcFilename))
+			func_filename = func_name8 + '.OPL'
+			func_filename_full = os.path.abspath(os.path.join(self.staging_path, func_filename))
 			
 			streamOut = StringWriter()
 			writer = HAULWriter_opl(streamOut, dialect=DIALECT_OPL3)
-			m = writer.writeFunc(f)	# That's where the magic happens!
+			m = writer.write_function(f)	# That's where the magic happens!
 			
-			put('Writing function "%s" to "%s"...' % (f.id.name, funcFilenameFull))
-			write_file(funcFilenameFull, streamOut.r)
-			self.copy(funcFilenameFull, funcFilenameFull+'.bak')	# Backup (compiler deletes it?!)
+			put('Writing function "%s" to "%s"...' % (f.id.name, func_filename_full))
+			write_file(func_filename_full, streamOut.r)
+			self.copy(func_filename_full, func_filename_full+'.bak')	# Backup (compiler deletes it?!)
 			
 			# Add to compile files
-			libs.append(funcName8)
+			func_libs.append(func_filename)
 		
 		
 		"""
@@ -171,31 +172,36 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		### List all source files
 		#oplFiles = []
-		sourceListFilename = DOS_TEMP_DIR + '\\' + name8 + '.lst'
+		source_list_filename = DOS_TEMP_DIR + '\\' + name8 + '.lst'
 		
 		
 		"""
 		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + opl_filename + ' ' + DOS_TEMP_DIR + CRLF
 		#oplFiles.append(DOS_TEMP_DIR + '\\' + opl_filename)
-		autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + opl_filename + '>' + sourceListFilename + CRLF
+		autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + opl_filename + '>' + source_list_filename + CRLF
 		
 		for l in libs:
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + l + '.OPL ' + DOS_TEMP_DIR + CRLF
 			#oplFiles.append(DOS_TEMP_DIR + '\\' + l + '.OPL')
-			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + l + '.OPL>>' + sourceListFilename + CRLF
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + l + '.OPL>>' + source_list_filename + CRLF
 		"""
 		
-		autoexec += 'COPY NUL ' + sourceListFilename + CRLF
+		autoexec += 'COPY NUL ' + source_list_filename + CRLF
 		for s in self.project.sources:
 			n = s.name[0:8].upper() + '.OPL'
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
 			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
-			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + sourceListFilename + CRLF
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + source_list_filename + CRLF
 		for s in self.project.libs:
 			n = s.name[0:8].upper() + '.OPL'
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
 			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
-			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + sourceListFilename + CRLF
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + source_list_filename + CRLF
+		
+		for n in func_libs:
+			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
+			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + source_list_filename + CRLF
 		
 		if bootable:
 			# Add BOOT procedure that calls the main file
@@ -204,15 +210,15 @@ class HAULBuilder_psion(HAULBuilder):
 			autoexec += 'ECHO GET>>' + DOS_TEMP_DIR + '\\BOOT.OPL' + CRLF
 			
 			#oplFiles.append(DOS_TEMP_DIR + '\\BOOT.OPL')
-			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\BOOT.OPL>>' + sourceListFilename + CRLF
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\BOOT.OPL>>' + source_list_filename + CRLF
 		
 		
 		#autoexec += 'ECHO ---------- All sources ----------' + CRLF
-		#autoexec += 'TYPE ' + sourceListFilename + CRLF
+		#autoexec += 'TYPE ' + source_list_filename + CRLF
 		#autoexec += 'ECHO --------------------' + CRLF
 		
 		### Compile
-		OPLTRAN_CMD = DEVKIT_PATH + '\\OPLTRAN @' + sourceListFilename
+		OPLTRAN_CMD = DEVKIT_PATH + '\\OPLTRAN @' + source_list_filename
 		OPLTRAN_CMD += ' -t'	# Include source and object
 		if lcd_lines == 2:
 			# Two-line LCD driver
@@ -227,14 +233,14 @@ class HAULBuilder_psion(HAULBuilder):
 		autoexec += 'IF ERRORLEVEL 1 GOTO ERROR' + CRLF
 		
 		### Create pack list (.bld file that tells which records to put in the OPK file)
-		bldName = name8
-		bldFilename = bldName+'.bld'
+		bld_name = name8
+		bld_filename = bld_name+'.bld'
 		
 		# Header line
 		pakSize = 16	# in kB, either 8 or 16
-		#l = '%s %d NOCOPY NOWRITE' % (bldName, pakSize)
-		l = '%s %d' % (bldName, pakSize)
-		autoexec += 'ECHO ' + l + '>' + bldFilename + CRLF
+		#l = '%s %d NOCOPY NOWRITE' % (bld_name, pakSize)
+		l = '%s %d' % (bld_name, pakSize)
+		autoexec += 'ECHO ' + l + '>' + bld_filename + CRLF
 		
 		
 		if bootable:
@@ -242,7 +248,7 @@ class HAULBuilder_psion(HAULBuilder):
 			autoexec += 'COPY ' + DEVKIT_PATH + '\\BOOT.BIN' + ' ' + DOS_TEMP_DIR + CRLF
 			l = 'BOOT BIN'
 			#l += '  !Boot file'
-			autoexec += 'ECHO ' + l + '>>' + bldFilename + CRLF
+			autoexec += 'ECHO ' + l + '>>' + bld_filename + CRLF
 		
 		
 		# Lib files preceed the main file
@@ -252,10 +258,10 @@ class HAULBuilder_psion(HAULBuilder):
 			l += ' OB3'
 			#l = l + ' OB3 ' + l
 			#@FIXME: They must be renamed according to their returnType, e.g. FOO%
-			#l += ' ' + funcName8 + typeIndicator
+			#l += ' ' + func_name8 + typeIndicator
 			#l += ' ' + l.upper() + '  !Function/Lib'
 			#l += '  !Function/Lib'
-			autoexec += 'ECHO ' + l + '>>' + bldFilename + CRLF
+			autoexec += 'ECHO ' + l + '>>' + bld_filename + CRLF
 		
 		
 		# main OB3 file
@@ -264,26 +270,26 @@ class HAULBuilder_psion(HAULBuilder):
 		l += ' OB3'
 		#l += '  !Main module'
 		#if bootable: l += ' BOOT  !Boot file'	# Rename it "BOOT" to be called by BOOT.BIN
-		autoexec += 'ECHO ' + l + '>>' + bldFilename + CRLF
+		autoexec += 'ECHO ' + l + '>>' + bld_filename + CRLF
 		
 		
 		if bootable:
 			l = 'BOOT OB3'
 			#l += '  !Boot file'
 			#l = 'BOOT OPL  !Boot file'	#@FIXME: This lets BLDPACK crash/hang
-			autoexec += 'ECHO ' + l + '>>' + bldFilename + CRLF
+			autoexec += 'ECHO ' + l + '>>' + bld_filename + CRLF
 		
 		# Empty line
-		#autoexec += 'ECHO>>' + bldFilename + CRLF
+		#autoexec += 'ECHO>>' + bld_filename + CRLF
 		
 		
 		### Build pack
 		if bootable:
 			# Using BLDPACK
-			BLD_CMD = DEVKIT_PATH + '\\BLDPACK @' + bldName + ' -map'
+			BLD_CMD = DEVKIT_PATH + '\\BLDPACK @' + bld_name + ' -map'
 		else:
 			# Using MAKEPACK (does not support BIN files, but is good)
-			BLD_CMD = DEVKIT_PATH + '\\MAKEPACK ' + bldFilename
+			BLD_CMD = DEVKIT_PATH + '\\MAKEPACK ' + bld_filename
 		
 		autoexec += 'ECHO Executing "' + BLD_CMD + '"...' + CRLF
 		autoexec += 'ECHO ' + BLD_CMD + ' >>' + DOS_LOG_FILE + CRLF
@@ -388,7 +394,7 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		# Check if successfull
 		if (self.exists(self.staging_path + '/' + opk_filename)):
-			put('Build seems successfull.')
+			put('Compilation seems successfull.')
 			put('Copying to build directory...')
 			self.copy(self.staging_path + '/' + opk_filename, self.output_path + '/' + opk_filename)
 		

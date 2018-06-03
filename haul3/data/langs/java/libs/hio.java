@@ -14,7 +14,7 @@ class hio {
 		System.out.println(data);
 		//System.out.flush();
 	}
-	public static void put_direct(String data) {
+	public static void put_(String data) {
 		System.out.print(data);
 	}
 	public static void shout(String data) {
@@ -26,4 +26,8 @@ class hio {
 		return scan.next();
 	}
 	
+	
+	public static String int_str(int i) {
+		return Integer.toString(i);
+	}
 }

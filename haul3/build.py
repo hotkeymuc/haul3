@@ -22,12 +22,12 @@ from haul.platforms.webos.builder_webos import *
 #source_filename = 'hres_test.py'
 #source_filename = 'hio_test.py'
 
-p = HAULProject('hello')
+p = HAULProject('small')
 p.sources_path = 'examples'
 p.libs_path = 'libs'
 
 p.add_lib('hio')
-p.add_source('hello')
+p.add_source('small')
 #p.add_resource(...)
 
 p.run_test = True
@@ -54,24 +54,25 @@ os.environ['MESS_ROM_PATH'] = 'Z:/Apps/_emu/_roms';
 os.environ['GBDK_PATH'] = os.path.abspath('tools/platforms/gameboy/gbdk');
 os.environ['BGB_PATH'] = os.path.abspath('tools/platforms/gameboy/bgb');
 
-#os.environ['PalmSDK'] = '';
 os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
+
+#os.environ['PalmSDK'] = '';
+
 
 
 #builder = HAULBuilder_android()
 #builder = HAULBuilder_arduino()
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
-#builder = HAULBuilder_html()
+builder = HAULBuilder_html()
 #builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
 #builder = HAULBuilder_vtech()
-builder = HAULBuilder_webos()
+#builder = HAULBuilder_webos()
 
 
 builder.build(p)
-
 #builder.translate()
 #builder.compile()
 #builder.package()
