@@ -16,31 +16,16 @@ ARDUINO_CPU = 'atmega328'
 
 class HAULBuilder_arduino(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='c', platform='arduino')
+		HAULBuilder.__init__(self, platform='arduino', lang='c')
+		
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_c, dialect=DIALECT_ARDUINO))
+		
 	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+	def build(self, project):
 		
-		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		HAULBuilder.build(self, project=project)
 		
-		
-		# staging_path_1 = Emulation of your "sketch" folder. Just blank source, no extras
-		staging_path_1 = os.path.realpath(os.path.join(staging_path, '1'))
-		self.clean(staging_path_1)
-		#staging_path_2 = Temporary build folder with Arduino-altered source files and includes
-		staging_path_2 = os.path.realpath(os.path.join(staging_path, '2'))
-		self.clean(staging_path_2)
-		
-		put('Copying libraries...')
-		libsPath = os.path.join(data_path, 'platforms/arduino/libs')
-		
-		#@TODO: Use module.imports!
-		self.copy(os.path.join(libsPath, 'hio.c'), staging_path_1 + '/hio.c')
-		
-		#self.mkdir(output_path + '/sketch')
-		#self.copy('haul/platforms/arduino/hio.c', output_path + '/sketch/hio.c')
-		
-		
-		name = name_by_filename(source_filename)
+		name = self.project.name
 		
 		cFilename = name + '.c'
 		hexFilename1 = cFilename + '.hex'
@@ -49,8 +34,25 @@ class HAULBuilder_arduino(HAULBuilder):
 		hexFilename_final2 = name + '_' + ARDUINO_CPU + '.with_bootloader.hex'
 		
 		
-		put('Translating source...')
-		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=os.path.join(staging_path_1, cFilename), DestWriterClass=HAULWriter_c, dialect=DIALECT_ARDUINO)
+		# staging_path_1 = Emulation of your "sketch" folder. Just blank source, no extras
+		staging_path_1 = os.path.realpath(os.path.join(self.staging_path, '1'))
+		self.clean(staging_path_1)
+		#staging_path_2 = Temporary build folder with Arduino-altered source files and includes
+		staging_path_2 = os.path.realpath(os.path.join(self.staging_path, '2'))
+		self.clean(staging_path_2)
+		
+		
+		put('Copying libraries...')
+		libsPath = os.path.join(self.data_path, 'platforms/arduino/libs')
+		
+		for s in self.project.libs:
+			lib_filename_data = libsPath + '/' + s.name + '.c'
+			self.copy(lib_filename_data, staging_path_1 + '/' + s.name + '.c')
+		
+		
+		
+		put('Translating sources to C...')
+		self.translate_project(output_path=staging_path_1)
 		
 		if not os.path.isfile(os.path.join(staging_path_1, cFilename)):
 			put('Main C file "%s" was not created! Aborting.' % (os.path.join(staging_path_1, cFilename)))
@@ -73,7 +75,7 @@ class HAULBuilder_arduino(HAULBuilder):
 		cmd += ' -built-in-libraries ' + os.path.realpath(ARDUINO_DIR + '/libraries')
 		#cmd += ' -libraries ' + os.path.realpath(ENV['WORKSPACE_PATH'] + '/libraries')
 		cmd += ' -ide-version=10613'
-		cmd += ' -build-path ' + os.path.realpath(staging_path_2)	#os.path.realpath(output_path)	#ENV['BUILD_PATH']
+		cmd += ' -build-path ' + os.path.realpath(staging_path_2)	#os.path.realpath(self.output_path)	#ENV['BUILD_PATH']
 		cmd += ' -warnings=none'
 		cmd += ' -prefs=build.warn_data_percentage=75'
 		#cmd += ' -prefs=runtime.tools.avrdude.path=' + os.path.realpath(ENV['ARDUINO_PATH'] + '/hardware/tools/avr')
@@ -81,7 +83,7 @@ class HAULBuilder_arduino(HAULBuilder):
 		#cmd += ' -verbose'
 		
 		#cmd += ' ' + os.path.realpath(ENV['SRC_PATH'] + '/' + filename)
-		#cmd += ' ' + os.path.realpath(output_path + '/' + cFilename)
+		#cmd += ' ' + os.path.realpath(self.output_path + '/' + cFilename)
 		#cmd += ' ' + os.path.realpath(stagingPath + '/' + cFilename)
 		cmd += ' ' + os.path.realpath(staging_path_1 + '/' + cFilename)
 		
@@ -94,8 +96,18 @@ class HAULBuilder_arduino(HAULBuilder):
 		if (self.exists(staging_path_2 + '/' + hexFilename1)):
 			put('Build seems successfull.')
 			put('Copying to build directory...')
-			self.copy(staging_path_2 + '/' + hexFilename1, output_path + '/' + hexFilename_final1)
-			self.copy(staging_path_2 + '/' + hexFilename2, output_path + '/' + hexFilename_final2)
+			self.copy(staging_path_2 + '/' + hexFilename1, self.output_path + '/' + hexFilename_final1)
+			self.copy(staging_path_2 + '/' + hexFilename2, self.output_path + '/' + hexFilename_final2)
 		else:
 			put('Build seems to have failed, since there is no output file "' + (staging_path_2 + '/' + hexFilename1) + '".')
+			
+		
+		if (self.project.run_test == True):
+			#@TODO: Run Emulare on it!
+			
+			#@TODO: Or upload it using avrdude
+			
+			pass
+		
+		
 
