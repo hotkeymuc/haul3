@@ -7,17 +7,17 @@ from haul.haul import *
 
 class HAULWriter_json(HAULWriter):
 	"Writes JSON representation"
-	def __init__(self, streamOut):
-		HAULWriter.__init__(self, streamOut)
-		self.defaultExtension = 'json'
+	def __init__(self, stream_out):
+		HAULWriter.__init__(self, stream_out)
+		self.default_extension = 'json'
 		self.write_comment('Translated from HAUL to JSON on ' + str(datetime.datetime.now()))
 		
 	def write_comment(self, t):
 		"Add a comment to the file - NOT for JSON!"
-		#self.streamOut.put('// ' + t + '\n')
+		#self.stream_out.put('// ' + t + '\n')
 		put('NOT adding comment to file: "' + t + '"')
 		
-	def writeIndent(self, num):
+	def write_indent(self, num):
 		r = ''
 		for i in xrange(num):
 			r += '\t'
@@ -37,19 +37,19 @@ class HAULWriter_json(HAULWriter):
 		i = 0
 		for item in arr:
 			if (i > 0): self.write(',' + '\n')
-			self.writeIndent(indent+1)
+			self.write_indent(indent+1)
 			cb(item, indent+1)
 			i += 1
 		
 		self.write('\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write(']')
 	
-	def writeVar(self, v, indent=0):
+	def write_var(self, v, indent=0):
 		#self.write('"' + v.id.name + '"')
 		self.write(v.name)
 	
-	def writeNamespace(self, ns, indent=0):
+	def write_namespace(self, ns, indent=0):
 		self.write('{\n')
 		
 		#self.write('\t/* ' + str(ns) + ' */\n')
@@ -61,7 +61,7 @@ class HAULWriter_json(HAULWriter):
 				self.write('\n')
 			
 			#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data))
-			self.writeIndent(indent+1)
+			self.write_indent(indent+1)
 			self.write(id.name)
 			self.write(': {')
 			self.write('kind: "' + str(id.kind) + '", ')
@@ -70,34 +70,34 @@ class HAULWriter_json(HAULWriter):
 			self.write('}')
 			i += 1
 		if (i > 0): self.write('\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 	
 	def write_function(self, f, indent=0):
 		self.write('{' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		#self.write('"id": "' + f.id.name + '",' + '\n')
 		self.write('"id": ')
 		self.writeId(f.id)
 		self.write(',' + '\n')
 		
 		if (not f.id.data_type == None):
-			self.writeIndent(indent+1)
+			self.write_indent(indent+1)
 			self.write('"type": "' + f.id.data_type + '",' + '\n')
 		
 		if (f.namespace and len(f.namespace.ids) > 0):
-			self.writeIndent(indent+1)
+			self.write_indent(indent+1)
 			self.write('"namespace": ')
-			self.writeNamespace(f.namespace, indent+1)
+			self.write_namespace(f.namespace, indent+1)
 			self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"args": ')
-		self.writeArray(f.args, self.writeVar, indent+1)
+		self.writeArray(f.args, self.write_var, indent+1)
 		self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"block": ')
 		if (f.block):
 			self.write_block(f.block, indent+1)
@@ -105,7 +105,7 @@ class HAULWriter_json(HAULWriter):
 			self.write('null')
 		self.write('\n')
 		
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 		
 	def write_module(self, m, indent=0):
@@ -113,12 +113,12 @@ class HAULWriter_json(HAULWriter):
 		#self.write('\t' + '//Module "' + m.id.name + '"\n')
 		
 		if (m.namespace and len(m.namespace.ids) > 0):
-			self.writeIndent(indent+1)
+			self.write_indent(indent+1)
 			self.write('"namespace": ')
-			self.writeNamespace(m.namespace, indent+1)
+			self.write_namespace(m.namespace, indent+1)
 			self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"imports": [')
 		i = 0
 		for im in m.imports:
@@ -127,17 +127,17 @@ class HAULWriter_json(HAULWriter):
 			i += 1
 		self.write('],' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"classes": ')
 		self.writeArray(m.classes, self.write_class, indent+1)
 		self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"funcs": ')
 		self.writeArray(m.funcs, self.write_function, indent+1)
 		self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"block": ')
 		if (m.block):
 			self.write_block(m.block, indent+1)
@@ -145,14 +145,14 @@ class HAULWriter_json(HAULWriter):
 			self.write('null')
 		self.write('\n')
 		
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}' + '\n')
 		
 	def write_class(self, c, indent=0):
 		#self.write('# Type "' + t.id.name + '"')
 		self.write('{' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"id": ')
 		self.writeId(c.id)
 		self.write(',' + '\n')
@@ -160,17 +160,17 @@ class HAULWriter_json(HAULWriter):
 		#@TODO: Initializer?
 		
 		if (c.namespace and len(c.namespace.ids) > 0):
-			self.writeIndent(indent+1)
+			self.write_indent(indent+1)
 			self.write('"namespace": ')
-			self.writeNamespace(c.namespace, indent+1)
+			self.write_namespace(c.namespace, indent+1)
 			self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"funcs": ')
 		self.writeArray(c.funcs, self.write_function, indent+1)
 		self.write('\n')
 		
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 		
 	def write_block(self, b, indent=0):
@@ -179,95 +179,95 @@ class HAULWriter_json(HAULWriter):
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			if (b.namespace and len(b.namespace.ids) > 0):
-				self.writeIndent(indent+1)
+				self.write_indent(indent+1)
 				self.write('"namespace": ')
-				self.writeNamespace(b.namespace, indent+1)
+				self.write_namespace(b.namespace, indent+1)
 				self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"instrs": ')
-		self.writeArray(b.instrs, self.writeInstr, indent+1)
+		self.writeArray(b.instrs, self.write_instruction, indent+1)
 		
 		self.write('\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 		
-	def writeInstr(self, i, indent):
+	def write_instruction(self, i, indent):
 		self.write('{' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		
 		if (i.control):
 			self.write('"control": ')
-			self.writeControl(i.control, indent+1)
+			self.write_control(i.control, indent+1)
 		if (i.call):
 			self.write('"call": ')
-			self.writeCall(i.call, indent+1)
+			self.write_call(i.call, indent+1)
 		
 		self.write('\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 		
-	def writeControl(self, c, indent=0):
+	def write_control(self, c, indent=0):
 		self.write('{' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		#self.write('"id": "' + c.id.name + '"')
 		self.write('"controlType": ')
 		self.write(c.controlType)
 		self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"exprs": ')
-		self.writeArray(c.exprs, self.writeExpression, indent+1)
+		self.writeArray(c.exprs, self.write_expression, indent+1)
 		self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"blocks": ')
 		self.writeArray(c.blocks, self.write_block, indent+1)
 		self.write('\n')
 		
 		
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 		
-	def writeCall(self, c, indent=0):
+	def write_call(self, c, indent=0):
 		self.write('{' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"id": ')
 		self.writeId(c.id)
 		self.write(',' + '\n')
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('"args": ')
-		self.writeArray(c.args, self.writeExpression, indent+1)
+		self.writeArray(c.args, self.write_expression, indent+1)
 		self.write('\n')
 		
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('}')
 		
-	def writeExpression(self, e, indent=0):
+	def write_expression(self, e, indent=0):
 		#self.write('{' + '\n')
 		self.write('{')
-		#self.writeIndent(indent+1)
+		#self.write_indent(indent+1)
 		
 		if (e.value):
 			self.write('"value": ')
-			self.writeValue(e.value, indent+1)
+			self.write_value(e.value, indent+1)
 		if (e.var):
 			self.write('"var": ')
-			self.writeVar(e.var, indent+1)
+			self.write_var(e.var, indent+1)
 		if (e.call):
 			self.write('"call": ')
-			self.writeCall(e.call, indent+1)
+			self.write_call(e.call, indent+1)
 			self.write('\n')
-			self.writeIndent(indent)
+			self.write_indent(indent)
 		#self.write('\n')
-		#self.writeIndent(indent)
+		#self.write_indent(indent)
 		self.write('}')
 		
-	def writeValue(self, v, indent=0):
+	def write_value(self, v, indent=0):
 		if (type(v.data) == str):
 			self.write("'" + v.data + "'")	#@FIXME: This lacks propper escaping!
 		else:

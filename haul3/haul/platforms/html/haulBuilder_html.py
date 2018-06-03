@@ -19,31 +19,30 @@ BROWSER_CMD = 'cmd /c start'	# Invoke OS browser
 
 class HAULBuilder_html(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='js', platform='html')
+		HAULBuilder.__init__(self, platform='html', lang='js')
+		
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_js, dialect=DIALECT_WRAP_MAIN))
+		
 	
-	def build(self, perform_test_run=False):
-		HAULBuilder.build(self)
+	def build(self, project):
 		
-		name = self.name
+		HAULBuilder.build(self, project=project)
 		
-		jsFilename = name + '.js'
-		jsFilenameFull = os.path.join(self.staging_path, jsFilename)
+		html_filename = self.project.name + '.html'
+		html_filename_full = os.path.abspath(os.path.join(self.output_path, html_filename))
 		
-		htmlFilename = name + '.html'
-		htmlFilenameFull = os.path.abspath(os.path.join(self.output_path, htmlFilename))
+		#single_file = False
 		
+		#if (single_file):
+		put('Translating to JavaScript...')
+		#self.translate_project(output_path=self.staging_path, dest_extension='js')
 		
-		
-		put('Translating source...')
-		m = self.translate(name=name, source_filename=self.source_filename, dest_filename=jsFilenameFull, DestWriterClass=HAULWriter_js, dialect=DIALECT_WRAP_MAIN)
-		
-		if not os.path.isfile(jsFilenameFull):
-			put('Main JavaScript file "%s" was not created! Aborting.' % (jsFilenameFull))
-			return False
-		
+		#stream_out = FileWriter(html_filename
+		self.translate_project()
 		
 		#@TODO: Copy native libs to output_path!
 		
+		put('Creating single HTML file...')
 		#@TODO: Merge native libs into HTML if specified
 		
 		#@TODO: Get this HTML from a dta file in haul3/data/platforms/html/index.html
@@ -52,7 +51,7 @@ class HAULBuilder_html(HAULBuilder):
 		html = '''<!DOCTYPE html>
 <html>
 <head>
-<title>HAUL for HTML</title>
+<title>''' + self.project.name + '''</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
@@ -142,27 +141,34 @@ window.onload = function(e) {
 };
 
 // Translated source goes here:
-''' + self.type(jsFilenameFull) + '''
+'''
+		
+		# Insert source(s)
+		for s in self.project.sources:
+			html = html + self.type(s.dest_filename)
+		
+		html = html + '''
 // End of translated code
 
 </script>
 </head>
 <body>
-	<h1>HAUL for HTML</h1>
+	<h1>''' + self.project.name + '''</h1>
 	<div id="hioOut"></div>
 	<input type="text" id="hioIn" /><button onclick="hioIn_enter();">OK</button>
+	<small>HAUL3</small>
 </body>
 </html>
 '''
-		self.touch(htmlFilenameFull, html)
+		self.touch(html_filename_full, html)
 		
 		
 		# Test
-		if perform_test_run:
+		if self.project.run_test:
 		
 			put('Test: Launching...')
 			cmd = BROWSER_CMD
-			cmd += ' file://%s' % (htmlFilenameFull)
+			cmd += ' file://%s' % (html_filename_full)
 			r = self.command(cmd)
 			put(r)
 		

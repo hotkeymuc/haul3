@@ -130,7 +130,7 @@ class Atom:
 		
 		writer.write('--------------------' + '\n')
 		for s in self.stack:
-			writer.writeIndent(indent)
+			writer.write_indent(indent)
 			writer.write(str(s) + '\n')
 			#r += str(s) + '\n'
 		writer.write('--------------------' + '\n')
@@ -139,9 +139,9 @@ class Atom:
 class HAULWriter_asm(HAULWriter):
 	"Writes some kind of assembly"
 	
-	def __init__(self, streamOut):
-		HAULWriter.__init__(self, streamOut)
-		self.defaultExtension = 'asm'
+	def __init__(self, stream_out):
+		HAULWriter.__init__(self, stream_out)
+		self.default_extension = 'asm'
 		
 		self.heap = []
 		#self.heapSize = 0
@@ -151,7 +151,7 @@ class HAULWriter_asm(HAULWriter):
 		
 	def write_comment(self, t):
 		"Add a comment to the file"
-		self.streamOut.put('; ' + t + '\n')
+		self.stream_out.put('; ' + t + '\n')
 		
 	def addToHeap(self, id):
 		#@TODO: Use a thread-safe structure
@@ -171,12 +171,12 @@ class HAULWriter_asm(HAULWriter):
 		for id in self.heap:
 			ns = id.namespace
 			if not ns == oldNs:
-				self.writeIndent(indent)
+				self.write_indent(indent)
 				self.write('# Namespace "' + str(ns) + '"\n')
 				oldNs = ns
 			
 			#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data))
-			self.writeIndent(indent)
+			self.write_indent(indent)
 			self.write(('#\t%04X' % int(id.user)) + '\t' + str(id.kind) + '\t' + str(id.name) + '\t' + str(id.data_type) + '\n')
 		self.write('\n')
 		
@@ -189,13 +189,13 @@ class HAULWriter_asm(HAULWriter):
 		self.codeSize += len(t)
 		HAULWriter.write(self, t)
 	
-	def writeIndent(self, num):
+	def write_indent(self, num):
 		r = ''
 		for i in xrange(num):
 			r += '\t'
 		self.write(r)
 		
-	def writeNamespace(self, ns, indent=0):
+	def write_namespace(self, ns, indent=0):
 		if (ns and len(ns.ids) > 0):
 			
 			# Pre-process namespace (add all ids to heap)
@@ -203,49 +203,49 @@ class HAULWriter_asm(HAULWriter):
 				self.addToHeap(id)
 			
 			"""
-			self.writeIndent(indent)
+			self.write_indent(indent)
 			self.write('# Namespace "' + str(ns) + '"\n')
 			for id in ns.ids:
 				#self.write('# id: "' + str(id.name) + '" (' + str(id.kind) + ') = ' + str(id.data))
-				self.writeIndent(indent)
+				self.write_indent(indent)
 				self.write(('#\t%04X' % int(id.user)) + '\t' + str(id.kind) + '\t' + str(id.name) + '\t' + str(id.data) + '\n')
 			"""
 	
 	def write_function(self, f, indent=0):
-		f.destination = self.streamOut.size	# Record offset in output stream
+		f.destination = self.stream_out.size	# Record offset in output stream
 		
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('# Begin of function ' + f.id.name + '\n')
 		
-		self.writeNamespace(f.namespace, indent)
+		self.write_namespace(f.namespace, indent)
 		
 		# Store code address
 		f.user = self.codeSize
 		f.id.user = self.codeSize
 		
 		# POP params
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write(':' + f.id.name + ('\t# %04X' % self.codeSize) + '\n')
 		for i in xrange(len(f.args)):
-			self.writeIndent(indent+1)
-			#self.writeExpression(args[i])
+			self.write_indent(indent+1)
+			#self.write_expression(args[i])
 			self.write('POP ');
-			#self.writeVar(f.args[len(len(f.args)) - i - 1])
-			self.writeVar(f.args[i])
+			#self.write_var(f.args[len(len(f.args)) - i - 1])
+			self.write_var(f.args[i])
 			self.write('\n');
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('\n')
 		
-		#self.writeNamespace(f.namespace, indent+1)
+		#self.write_namespace(f.namespace, indent+1)
 		self.write_block(f.block, indent+1)
 		
-		self.writeIndent(indent+1)
+		self.write_indent(indent+1)
 		self.write('# End of function ' + f.id.name + '\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('\n')
 		
 	def write_module(self, m, indent=0):
-		m.destination = self.streamOut.size	# Record offset in output stream
+		m.destination = self.stream_out.size	# Record offset in output stream
 		
 		self.write('### Module "' + m.name + '"\n')
 		for im in m.imports:
@@ -254,7 +254,7 @@ class HAULWriter_asm(HAULWriter):
 			self.write('\n')
 			
 		#self.write('### Module namespace...\n')
-		self.writeNamespace(m.namespace, indent)
+		self.write_namespace(m.namespace, indent)
 		
 		self.write('### Classes...\n')
 		for typ in m.classes:
@@ -272,29 +272,29 @@ class HAULWriter_asm(HAULWriter):
 		self.write_post(indent=indent)
 		
 	def write_class(self, c, indent=0):
-		c.destination = self.streamOut.size	# Record offset in output stream
+		c.destination = self.stream_out.size	# Record offset in output stream
 		
 		#self.write('# Class "' + t.id.name + '"\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('class ')
 		self.write(c.id.name)
 		self.write(':\n')
 		
 		if (c.namespace):
-			#self.writeIndent(indent+1)
+			#self.write_indent(indent+1)
 			#self.write('### Class namespace...\n')
-			self.writeNamespace(c.namespace, indent+1)
+			self.write_namespace(c.namespace, indent+1)
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
 			self.write_function(func, indent+1)
 		
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
-		self.writeIndent(indent)
+		self.write_indent(indent)
 		self.write('\n')
 		
 	def write_block(self, b, indent=0):
-		b.destination = self.streamOut.size	# Record offset in output stream
+		b.destination = self.stream_out.size	# Record offset in output stream
 		
 		self.write('# Block "' + b.name + '"\n')
 		
@@ -305,17 +305,17 @@ class HAULWriter_asm(HAULWriter):
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			if (b.namespace and len(b.namespace.ids) > 0):
-				#self.writeIndent(indent)
+				#self.write_indent(indent)
 				#self.write('### Block namespace...\n')
-				self.writeNamespace(b.namespace, indent)
+				self.write_namespace(b.namespace, indent)
 		
 		for instr in b.instrs:
-			self.writeIndent(indent)
-			self.writeInstr(instr, indent)
+			self.write_indent(indent)
+			self.write_instruction(instr, indent)
 			#self.write('\n')
 			
-	def writeInstr(self, i, indent):
-		i.destination = self.streamOut.size	# Record offset in output stream
+	def write_instruction(self, i, indent):
+		i.destination = self.stream_out.size	# Record offset in output stream
 		
 		#put(' writing instruction: ' + str(i))
 		atom = Atom()
@@ -323,8 +323,8 @@ class HAULWriter_asm(HAULWriter):
 		if (i.comment != None):
 			self.write_comment(i.comment)
 		
-		if (i.control): self.writeControl(i.control, atom=atom, indent=indent)
-		if (i.call): self.writeCall(i.call, atom=atom)
+		if (i.control): self.write_control(i.control, atom=atom, indent=indent)
+		if (i.call): self.write_call(i.call, atom=atom)
 		
 		self.write('\n')
 		#self.write(str(atom))
@@ -332,7 +332,7 @@ class HAULWriter_asm(HAULWriter):
 		#self.write('\n')
 		
 		
-	def writeControl(self, c, atom, indent=0):
+	def write_control(self, c, atom, indent=0):
 		if (c.controlType == C_IF):
 			j = 0
 			while j < len(c.exprs):
@@ -341,21 +341,21 @@ class HAULWriter_asm(HAULWriter):
 				#@TODO: atom for the if-expression has to be atom.written out before writing out the block!
 				
 				self.write('if (')
-				self.writeExpression(c.exprs[j], atom=atom)
+				self.write_expression(c.exprs[j], atom=atom)
 				self.write('):\n')
 				self.write_block(c.blocks[j], indent=indent+1)
 				j += 1
 			
 			if (j < len(c.blocks)):
-				self.writeIndent(indent)
+				self.write_indent(indent)
 				self.write('else:\n')
 				self.write_block(c.blocks[j], indent=indent+1)
 		
 		elif (c.controlType == C_FOR):
 			self.write('for ')
-			self.writeExpression(c.exprs[0], atom=atom)
+			self.write_expression(c.exprs[0], atom=atom)
 			self.write(' in ')
-			self.writeExpression(c.exprs[1], atom=atom)
+			self.write_expression(c.exprs[1], atom=atom)
 			self.write(':\n')
 			self.write_block(c.blocks[0], atom=atom, indent=indent+1)
 		#@TODO: C_WHILE
@@ -364,12 +364,12 @@ class HAULWriter_asm(HAULWriter):
 		#@TODO: C_RAISE
 		elif (c.controlType == C_RETURN):
 			self.write('return ')
-			self.writeExpression(c.exprs[0], atom=atom)
+			self.write_expression(c.exprs[0], atom=atom)
 			#self.write('\n')
 		else:
 			self.write('CONTROL "' + str(c.controlType) + '"\n')
 		
-	def writeCall(self, c, atom, level=0):
+	def write_call(self, c, atom, level=0):
 		i = c.id.name
 		
 		#self.write('/* ' + str(i) + ' */\n')
@@ -380,28 +380,28 @@ class HAULWriter_asm(HAULWriter):
 			## Annotate type if available
 			# if (c.args[0].var) and (not c.args[0].var.type == None): self.write('#@' + c.args[0].var.type.name + '\n')
 			"""
-			self.writeExpression(c.args[0], atom=atom, level=level)
+			self.write_expression(c.args[0], atom=atom, level=level)
 			storVar = atom.use()
 			
 			self.write(' = ')
-			self.writeExpression(c.args[1], atom=atom, level=level)
+			self.write_expression(c.args[1], atom=atom, level=level)
 			storVal = atom.use()
 			"""
 			
 			self.write_comment('Set value of variable ' + str(c.args[0]) + ' to the result of ' + str(c.args[1]) + '\n')
 			
 			"""
-			self.writeExpression(c.args[1], atom=atom, level=level)
+			self.write_expression(c.args[1], atom=atom, level=level)
 			storVal = atom.use(ref=REF_VALUE)
 			
-			self.writeExpression(c.args[0], atom=atom, level=level)
+			self.write_expression(c.args[0], atom=atom, level=level)
 			storVar = atom.use(ref=REF_ADDR)
 			
 			atom.pushInstr('MOV', consume=[storVar, storVal])
 			"""
 			
 			self.write_comment('First: Calculate the primitive result of expression ' + str(c.args[1]))
-			self.writeExpression(c.args[1], atom=atom, level=level)
+			self.write_expression(c.args[1], atom=atom, level=level)
 			storVal = atom.use(ref=REF_VALUE)
 			
 			
@@ -410,34 +410,34 @@ class HAULWriter_asm(HAULWriter):
 			
 		
 		elif i == I_ARRAY_LOOKUP.name:
-			self.writeExpression(c.args[0], atom=atom, level=level)
+			self.write_expression(c.args[0], atom=atom, level=level)
 			self.write('[')
-			self.writeExpressionList(c.args, 1, atom=atom, level=level)
+			self.write_expression_list(c.args, 1, atom=atom, level=level)
 			self.write(']')
 			
 		elif i == I_ARRAY_CONSTRUCTOR.name:
 			self.write('[')
-			self.writeExpressionList(c.args, 0, atom=atom, level=level)
+			self.write_expression_list(c.args, 0, atom=atom, level=level)
 			self.write(']')
 			
 		elif i == I_OBJECT_CALL.name:
 			
 			self.write('(')
-			self.writeExpressionList(c.args, 1, atom=atom, level=level)
+			self.write_expression_list(c.args, 1, atom=atom, level=level)
 			self.write(')')
 			
-			self.writeExpression(c.args[0], atom=atom, level=level)
+			self.write_expression(c.args[0], atom=atom, level=level)
 			storAddr = atom.use()
 			
 			atom.pushInstr(i + ' ', consume=[storAddr], consumeMore=len(c.args)-1)
 			atom.pushResult()
 			
 		elif i == I_OBJECT_LOOKUP.name:
-			self.writeExpression(c.args[0], atom=atom, level=0)
+			self.write_expression(c.args[0], atom=atom, level=0)
 			storObject = atom.use()
 			
 			self.write('.')
-			self.writeExpression(c.args[1], atom=atom, level=0)
+			self.write_expression(c.args[1], atom=atom, level=0)
 			storProp = atom.use()
 			
 			atom.pushInstr('LOOKUP', consume=[storObject, storProp], consumeMore=0)
@@ -451,7 +451,7 @@ class HAULWriter_asm(HAULWriter):
 				# Bare-metal function
 				
 				self.write('(')
-				self.writeExpressionList(c.args, 0, atom=atom, level=level)
+				self.write_expression_list(c.args, 0, atom=atom, level=level)
 				self.write(')')
 				
 				atom.pushInstr(INSTR_INTERNAL_TRANS[c.id.name], consume=[], consumeMore=len(c.args))
@@ -459,7 +459,7 @@ class HAULWriter_asm(HAULWriter):
 			else:
 				# Function call
 				self.write('(')
-				self.writeExpressionList(c.args, 0, atom=atom, level=level)
+				self.write_expression_list(c.args, 0, atom=atom, level=level)
 				self.write(')')
 				
 				"""
@@ -476,40 +476,40 @@ class HAULWriter_asm(HAULWriter):
 			atom.pushResult()
 			
 			
-	def writeExpressionList(self, es, start, atom, level):
+	def write_expression_list(self, es, start, atom, level):
 		for i in xrange(len(es)-start):
 			if (i > 0): self.write(', ')
-			self.writeExpression(es[start+i], atom=atom, level=level)
+			self.write_expression(es[start+i], atom=atom, level=level)
 			atom.use()	## Process in reverse order
 			
 		
 	
-	def writeExpression(self, e, atom, level=0):
+	def write_expression(self, e, atom, level=0):
 		if (e.value):
 			self.write('VALUE{')
-			self.writeValue(e.value)
+			self.write_value(e.value)
 			self.write('}')
 			atom.pushValue(e.value)
 			
 		if (e.var):
-			self.writeVar(e.var)
+			self.write_var(e.var)
 			atom.pushVar(e.var)
 			
 		if (e.call):
 			if (level > 0): self.write('(')
 			
 			#subAtom = atom.addProcedure()
-			self.writeCall(e.call, atom=atom, level=level+1)
+			self.write_call(e.call, atom=atom, level=level+1)
 			#atom.pushResult(subAtom)
 			if (level > 0): self.write(')')
 			
-	def writeValue(self, v):
+	def write_value(self, v):
 		if (type(v.data) is str):
 			self.write("'" + v.data + "'")	#@TODO: Escaping!
 		else:
 			self.write(str(v))	#.data
 			
-	def writeVar(self, v):
+	def write_var(self, v):
 		self.write(('[@%04X' % int(v.user)) + ' ' + v.name + ']')
 		
 		#self.write('[' + v.id.namespace.name + ':' + v.id.name + ']')

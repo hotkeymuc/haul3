@@ -832,22 +832,24 @@ class HAULReader:
 	#@var stream Stream
 	#@var filename str
 	#@var ofs int
-	#@var ofsGet int
-	#@var lineNum int
-	#@var linePos int
+	#@var ofs_get int
+	#@var line_num int
+	#@var line_col int
 	#@var peekNext HAULToken
 	
 	#@var tempNs HAULNamespace
+	#@var default_extension str
 	
 	
 	def __init__(self, stream, filename='?'):
 		self.stream = stream
 		self.filename = filename	# For useful error messages
+		self.default_extension = 'py'
 		
 		self.ofs = 0
-		self.ofsGet = 0	# Without peeks
-		self.lineNum = 1
-		self.linePos = 1
+		self.ofs_get = 0	# Without peeks
+		self.line_num = 1
+		self.line_col = 1
 		self.peekNext = None
 		
 		#self.annot = None	# Current annotation
@@ -859,7 +861,7 @@ class HAULReader:
 		return self.stream.eof()
 	
 	def loc(self):
-		return self.ofsGet
+		return self.ofs_get
 	
 	def seek(self, ofs):
 		self.stream.seek(ofs)
@@ -867,9 +869,9 @@ class HAULReader:
 		# Reset reader
 		self.peekNext = None
 		self.ofs = ofs
-		self.ofsGet = ofs
-		self.lineNum = 1
-		self.linePos = 1
+		self.ofs_get = ofs
+		self.line_num = 1
+		self.line_col = 1
 	
 	def peek(self):
 		return self.stream.peek()
@@ -881,10 +883,10 @@ class HAULReader:
 		# Update stats
 		self.ofs = self.stream.ofs
 		if (r == '\n'):
-			self.lineNum = self.lineNum + 1
-			self.linePos = 1
+			self.line_num = self.line_num + 1
+			self.line_col = 1
 		else:
-			self.linePos = self.linePos + 1
+			self.line_col = self.line_col + 1
 		return r
 	
 	#@fun raise_parse_error
@@ -918,20 +920,20 @@ class HAULReader:
 
 
 class HAULWriter:
-	#@var streamOut Stream
-	#@var defaultExtension str
+	#@var stream_out Stream
+	#@var default_extension str
 	
-	def __init__(self, streamOut):
-		self.streamOut = streamOut
-		self.defaultExtension = 'txt'
+	def __init__(self, stream_out):
+		self.stream_out = stream_out
+		self.default_extension = 'txt'
 	
 	def write(self, t):
 		"Write to output stream."
-		self.streamOut.put(t)
+		self.stream_out.put(t)
 	
 	def write_comment(self, t):
 		"Add a comment to the file"
-		self.streamOut.put('// ' + t + '\n')
+		self.stream_out.put('// ' + t + '\n')
 	
 	def write_module(self, m):
 		pass
@@ -1030,8 +1032,11 @@ class HAULTranslator:
 		self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
 		
 	
-	def process_lib(self, name, stream):
+	def process_lib(self, name, stream, filename=None):
 		self.libs.append(name)
+		
+		if (filename == None):
+			filename = name + '.py'	#self.ReaderClass.default_extension
 		
 		put('Scanning "{}"...'.format(name))
 		lib_reader = self.ReaderClass(stream=stream, filename=name)

@@ -131,7 +131,7 @@ except HAULParseError as e:
 #libs = None
 
 
-from haul.translator import HAULTranslator
+from haul.haul import HAULTranslator
 
 t = HAULTranslator(HAULReader_py, HAULWriter_py)
 
@@ -140,6 +140,7 @@ try:
 	t.process_lib('hio', FileReader('libs/hio.py'))
 	
 	t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.py'))
+	#t.translate('small', FileReader('examples/small.py'), FileWriter('build/small.py'))
 	
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))

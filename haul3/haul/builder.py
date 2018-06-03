@@ -8,7 +8,6 @@ import subprocess	# for running commands
 
 from utils import *
 from langs.py.haulReader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
-from translator import *
 
 def put(t):
 	print('HAULBuilder:\t' + str(t))
@@ -19,20 +18,31 @@ class HAULSource:
 		self.name = name
 		self.stream = stream
 		self.uri = None
+		self.dest_filename = None
 	
 
 class HAULProject:
-	def __init__(self):
+	def __init__(self, name):
+		self.name = name
+		
+		self.sources_path = '.'
 		self.sources = []
 		
-		self.libs = []
 		self.libs_path = 'libs'
+		self.libs = []
 		
+		self.run_test = False
 	
-	def add_source_file(self, filename, name=None):
+	def add_source(self, name=None, filename=None):
+		if ((name == None) and (filename == None)):
+			raise Exception('A name or filename has to be specified as source')
+		
 		if (name == None):
 			# Guess name from filename if omitted
 			name = name_by_filename(filename)
+		if (filename == None):
+			# Guess filename from name if omitted
+			filename = self.sources_path + '/' + name + '.py'
 		
 		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
 		self.sources.append(source)
@@ -51,28 +61,27 @@ class HAULProject:
 class HAULBuilder:
 	"Provides the functionality to build a HAUL file for another platform. Like make etc."
 	
-	def __init__(self, platform, lang=None):
+	def __init__(self, platform, lang):
 		self.platform = platform
 		self.lang = lang
 		
-		self.source_path = '.'
-		self.source_filename = None
-		self.name = None
+		self.project = None
+		self.translator = None
 		
-		self.libs_path = 'libs'
 		self.data_path = 'data'
 		self.staging_path = 'staging'
 		self.output_path = 'build'
 		
-		self.libs = []
-		self.namespace = HAULNamespace(name='builder', parent=HAUL_ROOT_NAMESPACE)
 	
-	# File system abstraction
+	### File system abstraction
 	def exists(self, filename):
 		return (os.path.isfile(filename))
 	
+	def exists_dir(self, path):
+		return os.path.exists(path)
+	
 	def mkdir(self, path):
-		if not os.path.exists(path):
+		if (self.exists_dir(path) == False):
 			os.makedirs(path)
 	
 	def chdir(self, path):
@@ -125,26 +134,49 @@ class HAULBuilder:
 	
 	
 	
-	def stream_from_file(self, filename):
-		stream = StringReader(self.type(filename))
-		return stream
 	
-	def set_source(self, filename):
-		self.source_filename = filename
-		self.name = name_by_filename(self.source_filename)
 	
-	def add_lib(self, name):
-		self.libs.append(name)
+	### User interface
+	def set_project(self, project):
+		self.project = project
 	
-	def scan_libs(self):
-		for l in self.libs:
-			name = l
-			filename = self.libs_path + '/' + name + '.py'
+	def set_translator(self, t):
+		self.translator = t
+	
+	def process_libs(self):
+		put('Processing libs...')
+		for s in self.project.libs:
+			self.translator.process_lib(name=s.name, stream=s.stream, filename=s.uri)
+		
+	
+	def translate_project(self, output_path=None, dest_extension=None, stream_out_single=None):
+		"Translate the loaded project using the given translator. If stream_out_single is given, all files are written to that stream instead of individual files."
+		
+		self.process_libs()
+		
+		if (output_path == None):
+			output_path = self.staging_path
+		
+		if (dest_extension == None):
+			dest_extension = self.lang
+		
+		put('Translating source(s)...')
+		for s in self.project.sources:
+			if (stream_out_single == None):
+				# Each file to own output file
+				if (s.dest_filename == None):
+					# Assume default names
+					s.dest_filename = output_path + '/' + s.name + '.' + dest_extension
+					put('Assigned output filename "{}"'.format(s.dest_filename))
+				
+				stream_out = FileWriter(s.dest_filename)
+				self.translator.translate(s.name, s.stream, stream_out, close_stream=True)
+			else:
+				# All files into one stream
+				self.translator.translate(s.name, s.stream, stream_out_single, close_stream=False)
+				
 			
-			put('Scanning library "{}" in "{}"...'.format(name, filename))
-			stream = self.stream_from_file(filename)
-			reader = HAULReader_py(stream=stream, filename=filename)
-			m = reader.read_module(name=name, namespace=self.namespace, scan_only=True)
+		
 	
 	def translate(self, name, source_filename, dest_filename, DestWriterClass, dialect=None):
 		
@@ -182,19 +214,22 @@ class HAULBuilder:
 			i += 1
 		self.touch(dest_filename, r)
 	
-	def build(self, perform_test_run=False):
+	def build(self, project):
 		"Actually build a file."
 		
 		put('Starting build...')
+		self.set_project(project)
+		
+		if (self.exists_dir(self.output_path) == False):
+			put('Creating output path "' + self.output_path + '"...')
+			self.mkdir(self.output_path)
+		
+		if (self.exists_dir(self.staging_path) == False):
+			put('Creating staging path "' + self.staging_path + '"...')
+			self.mkdir(self.staging_path)
 		
 		put('Cleaning staging path "' + self.staging_path + '"...')
 		self.clean(self.staging_path)
-		
-		put('Scanning libraries...')
-		self.scan_libs()
-		
-		put('Creating output path "' + self.output_path + '"...')
-		self.mkdir(self.output_path)
 		
 		
 	

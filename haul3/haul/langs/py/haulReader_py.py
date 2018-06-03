@@ -80,6 +80,7 @@ class HAULReader_py(HAULReader):
 	def __init__(self, stream, filename):
 		HAULReader.__init__(self, stream, filename)
 		
+		self.default_extension = 'py'
 		self.lastIfBlock = [None]	# Used for ELIF handling (adding one block to a previous one)
 		self.lastFunction = None	#@FIXME: Used to infer function returnType based on the type of a return statement
 	
@@ -124,8 +125,8 @@ class HAULReader_py(HAULReader):
 				c = self.peek()
 		
 		r.originByte = self.ofs
-		r.originLine = self.lineNum
-		r.originPos = self.linePos
+		r.originLine = self.line_num
+		r.originPos = self.line_col
 		
 		# Identify tokens by their first character (this could be done much nicer and dynamically)
 		if (c in PAT_BLANK):

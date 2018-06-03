@@ -22,7 +22,16 @@ from haul.platforms.webos.haulBuilder_webos import *
 #source_filename = 'hres_test.py'
 #source_filename = 'hio_test.py'
 
-perform_test_run = True
+p = HAULProject('hello')
+p.sources_path = 'examples'
+p.libs_path = 'libs'
+
+p.add_lib('hio')
+p.add_source('hello')
+#p.add_resource(...)
+
+p.run_test = True
+
 
 
 #builder = HAULBuilder_android()
@@ -37,32 +46,13 @@ builder = HAULBuilder_html()
 #builder = HAULBuilder_webos()
 
 
-#resources = [
-#	os.path.join(source_path, 'hres_data1.txt'),
-#	os.path.join(source_path, 'hres_data2.txt'),
-#]
-
-#builder.source_path = os.path.abspath('examples')
-#builder.libs_path = 'libs'
-#builder.data_path = 'data'
-#builder.staging_path = 'staging'
-#builder.output_path = 'build'
-
-
-builder.add_lib('hio')
-#builder.add_source('helper', 'examples/small.py', is_main=False)
-builder.set_source('examples/hello.py')
+builder.build(p)
 
 #builder.translate()
 #builder.compile()
 #builder.package()
 #builder.test()
-builder.build(perform_test_run=perform_test_run)
-
-üüüüüüüüüüüüüüü I am in the midst of changing the structure
-@TODO: HAULTranslator? Just to "quickly" translate something. Can be re-used by builders!
-
-
 #builder.finish()
+
 
 put('build.py ended.')
