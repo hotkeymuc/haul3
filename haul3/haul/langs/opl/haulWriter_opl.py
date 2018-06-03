@@ -363,10 +363,23 @@ class HAULWriter_opl(HAULWriter):
 			if (level > 0): self.write(')')
 			
 	def write_value(self, v):
-		if (type(v.data) == str):
-			self.write('"' + v.data + '"')	#@TODO: Escaping!
+		if (v.type == T_STRING):
+			t = v.data_str
+			t = t.replace('\\', '\\\\')
+			t = t.replace('"', '\\"')
+			t = t.replace('\r', '\\r')
+			t = t.replace('\n', '\\n')
+			t = t.replace('\'', '\\\'')
+			self.write('"' + t + '"')
+		elif (v.type == T_BOOLEAN):
+			if (v.data_bool): self.write('TRUE')
+			else: self.write('FALSE')
+		elif (v.type == T_INT):
+			self.write(str(v.data_int))
+		elif (v.type == T_FLOAT):
+			self.write(str(v.data_float))
 		else:
-			self.write(str(v))	#.data
+			self.write('[type=' + str(v.type) + ']')
 	
 	def write_type(self, v):
 		if (v == T_INTEGER):	self.write('%')

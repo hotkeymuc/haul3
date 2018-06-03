@@ -20,15 +20,19 @@ from haul.langs.opl.haulWriter_opl import *
 
 class HAULBuilder_psion(HAULBuilder):
 	def __init__(self):
-		HAULBuilder.__init__(self, lang='opl', platform='psion')
+		HAULBuilder.__init__(self, platform='psion', lang='opl')
+		
+		self.set_translator(HAULTranslator(HAULReader_py, HAULWriter_opl, dialect=DIALECT_OPL3))
 	
-	def build(self, source_path, source_filename, output_path, staging_path, data_path, resources=None, perform_test_run=False):
+	def build(self, project):
 		
-		HAULBuilder.build(self, source_path=source_path, source_filename=source_filename, output_path=output_path, staging_path=staging_path, data_path=data_path, resources=resources, perform_test_run=perform_test_run)
+		HAULBuilder.build(self, project=project)
 		
-		libs_path = os.path.join(data_path, 'platforms', 'psion', 'libs')
-		vm_path = os.path.join(data_path, 'platforms', 'psion', 'vm')
-		tools_path = os.path.join(data_path, '..', 'tools')
+		name = self.project.name
+		
+		libs_path = os.path.join(self.data_path, 'platforms', 'psion', 'libs')
+		vm_path = os.path.join(self.data_path, 'platforms', 'psion', 'vm')
+		tools_path = os.path.join(self.data_path, '..', 'tools')
 		qemu_path = os.path.join(tools_path, 'qemu')
 		
 		
@@ -39,38 +43,32 @@ class HAULBuilder_psion(HAULBuilder):
 		lcd_lines = 2	# 2 for CM/XP, 4 for LZ etc.
 		
 		
-		name = name_by_filename(source_filename)
-		staging_path = os.path.realpath(staging_path)
+		staging_path = os.path.abspath(self.staging_path)
 		
 		name8 = name[0:8].upper()
 		oplFilename = name8 + '.OPL'
 		#ob3Filename = name8 + '.ob3'
 		outputFilename = name8 + '.OPK'
-		oplFilenameFull = os.path.join(staging_path, oplFilename)
-		
-		put('Staging to "%s"...' % (staging_path))
+		oplFilenameFull = os.path.abspath(os.path.join(staging_path, oplFilename))
 		
 		
-		put('Cleaning staging path...')
-		self.clean(staging_path)
-		
+		put('Preparing path names...')
+		for s in self.project.sources:
+			s.dest_filename = self.staging_path + '/' + s.name[0:8].upper() + '.OPL'
+		for s in self.project.libs:
+			s.dest_filename = self.staging_path + '/' + s.name[0:8].upper() + '.OPL'
 		
 		put('Copying libraries...')
-		#self.copy('haul/platforms/dos/lib/hio.pas', staging_path + '/hio.pas')
-		
-		libs = []
-		"""
-		#@TODO: Use module.imports!
-		libs = ['sys', 'hio']
-		for l in libs:
-			self.copy('haul/platforms/psion/lib/' + l + '.opl', staging_path + '/' + l + '.opl')
-		"""
-		
-		put('Translating source...')
-		m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
+		for s in self.project.libs:
+			self.copy(os.path.join(libs_path, s.name + '.opl'), os.path.join(self.staging_path, s.name[0:8].upper() + '.OPL'))
 		
 		
-		### Split module into separate files
+		put('Translating sources to OPL3...')
+		#m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=oplFilenameFull, DestWriterClass=HAULWriter_opl, dialect=DIALECT_OPL3)
+		m = self.translate_project(output_path=self.staging_path)
+		
+		
+		### Split main module into separate files
 		# OPL3 (XP/CM) does not support multiple procs in one file.
 		for f in m.funcs:
 			#put(str(f.id.name) + ':	' + str(f))
@@ -179,6 +177,7 @@ class HAULBuilder_psion(HAULBuilder):
 		sourceListFilename = DOS_TEMP_DIR + '\\' + name8 + '.lst'
 		
 		
+		"""
 		autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + oplFilename + ' ' + DOS_TEMP_DIR + CRLF
 		#oplFiles.append(DOS_TEMP_DIR + '\\' + oplFilename)
 		autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + oplFilename + '>' + sourceListFilename + CRLF
@@ -187,6 +186,19 @@ class HAULBuilder_psion(HAULBuilder):
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + l + '.OPL ' + DOS_TEMP_DIR + CRLF
 			#oplFiles.append(DOS_TEMP_DIR + '\\' + l + '.OPL')
 			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + l + '.OPL>>' + sourceListFilename + CRLF
+		"""
+		
+		autoexec += 'COPY NUL ' + sourceListFilename + CRLF
+		for s in self.project.sources:
+			n = s.name[0:8].upper() + '.OPL'
+			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
+			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + sourceListFilename + CRLF
+		for s in self.project.libs:
+			n = s.name[0:8].upper() + '.OPL'
+			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
+			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
+			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + sourceListFilename + CRLF
 		
 		if bootable:
 			# Add BOOT procedure that calls the main file
@@ -196,6 +208,11 @@ class HAULBuilder_psion(HAULBuilder):
 			
 			#oplFiles.append(DOS_TEMP_DIR + '\\BOOT.OPL')
 			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\BOOT.OPL>>' + sourceListFilename + CRLF
+		
+		
+		#autoexec += 'ECHO ---------- All sources ----------' + CRLF
+		#autoexec += 'TYPE ' + sourceListFilename + CRLF
+		#autoexec += 'ECHO --------------------' + CRLF
 		
 		### Compile
 		OPLTRAN_CMD = DEVKIT_PATH + '\\OPLTRAN @' + sourceListFilename
@@ -232,7 +249,8 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		# Lib files preceed the main file
-		for l in libs:
+		for s in self.project.libs:
+			l = s.name[0:8].upper()
 			#while len(l) < 8: l += ' '
 			l += ' OB3'
 			#l = l + ' OB3 ' + l
@@ -288,7 +306,7 @@ class HAULBuilder_psion(HAULBuilder):
 		autoexec += 'ECHO ----------------------------------------' + CRLF
 		
 		
-		if perform_test_run:
+		if (self.project.run_test == True):
 			# Test result
 			
 			autoexec += 'CLS' + CRLF

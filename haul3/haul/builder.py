@@ -151,6 +151,7 @@ class HAULBuilder:
 	
 	def translate_project(self, output_path=None, dest_extension=None, stream_out_single=None):
 		"Translate the loaded project using the given translator. If stream_out_single is given, all files are written to that stream instead of individual files."
+		m = None
 		
 		self.process_libs()
 		
@@ -170,13 +171,14 @@ class HAULBuilder:
 					put('Assigned output filename "{}"'.format(s.dest_filename))
 				
 				stream_out = FileWriter(s.dest_filename)
-				self.translator.translate(s.name, s.stream, stream_out, close_stream=True)
+				m = self.translator.translate(s.name, s.stream, stream_out, close_stream=True)
 			else:
 				# All files into one stream
-				self.translator.translate(s.name, s.stream, stream_out_single, close_stream=False)
+				m = self.translator.translate(s.name, s.stream, stream_out_single, close_stream=False)
 				
 			
-		
+		# Return last translated module, which is most likely the main module
+		return m
 	
 	def translate(self, name, source_filename, dest_filename, DestWriterClass, dialect=None):
 		

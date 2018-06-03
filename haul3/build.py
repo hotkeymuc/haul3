@@ -40,8 +40,8 @@ p.run_test = True
 #builder = HAULBuilder_gameboy()
 #builder = HAULBuilder_html()
 #builder = HAULBuilder_java()
-builder = HAULBuilder_palmos()
-#builder = HAULBuilder_psion()
+#builder = HAULBuilder_palmos()
+builder = HAULBuilder_psion()
 #builder = HAULBuilder_vtech()
 #builder = HAULBuilder_webos()
 
