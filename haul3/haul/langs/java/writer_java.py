@@ -462,10 +462,14 @@ class HAULWriter_java(HAULWriter):
 			#put('...it is child of ' + str(iid.namespace.parent))
 			#if (iid.namespace.has_child
 			
-			if i in ['put', 'fetch', 'shout', 'put_']:
-				self.write('hio.')	# Add HIO prefix
-			elif (i == 'int_str'):
+			
+			# Internals
+			if i == I_PRINT.name:
+				i = 'System.out.println'
+			if i == I_STR.name:
 				i = 'Integer.toString'
+			if i in ['put', 'fetch', 'shout', 'put_']:
+				i = 'hio.' + i
 			
 			
 			self.write(i)

@@ -340,6 +340,13 @@ class HAULWriter_pas(HAULWriter):
 				self.write('.Create')
 			else:
 				# Just a function call
+				
+				# Internals
+				if i == I_PRINT.name:
+					i = 'PrintLn'
+				if (i == I_STR.name):
+					i = 'Str'
+				
 				self.write(i)
 			
 			if (len(c.args) == 0):

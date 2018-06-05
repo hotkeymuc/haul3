@@ -690,16 +690,6 @@ HAUL_ROOT_NAMESPACE = HAULNamespace('root', parent=None)
 ns = HAUL_ROOT_NAMESPACE
 
 # Some things we should handle internally (or put into external library)
-ns.add_id('pass', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('print', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('str', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('chr', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('ord', kind=K_FUNCTION, data_type=T_INTEGER)
-ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
-
-ns.add_id('str_pos', kind=K_FUNCTION, data_type=T_INTEGER)
-ns.add_id('str_compare', kind=K_FUNCTION, data_type=T_BOOLEAN)
-
 ns.add_id('=', kind=K_FUNCTION, data_type=T_NOTHING)	# This is used for complex assignments, like dot-chains (e.g. "self.test.data[123] = ...")
 ns.add_id('==', kind=K_FUNCTION, data_type=T_BOOLEAN)
 ns.add_id('!=', kind=K_FUNCTION, data_type=T_BOOLEAN)
@@ -746,6 +736,17 @@ I_NOTHING = ns.add_id('None', kind=K_CONST, data_type=T_NOTHING, data_value=HAUL
 I_BOOL_TRUE = ns.add_id('True', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=True))
 I_BOOL_FALSE = ns.add_id('False', kind=K_CONST, data_type=T_BOOLEAN, data_value=HAULValue(type=T_BOOLEAN, data_bool=False))
 I_EXCEPTION = ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
+
+I_PASS = ns.add_id('pass', kind=K_FUNCTION, data_type=T_NOTHING)
+I_PRINT = ns.add_id('print', kind=K_FUNCTION, data_type=T_NOTHING)
+I_STR = ns.add_id('str', kind=K_FUNCTION, data_type=T_STRING)
+ns.add_id('chr', kind=K_FUNCTION, data_type=T_STRING)
+ns.add_id('ord', kind=K_FUNCTION, data_type=T_INTEGER)
+ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
+
+ns.add_id('str_pos', kind=K_FUNCTION, data_type=T_INTEGER)
+ns.add_id('str_compare', kind=K_FUNCTION, data_type=T_BOOLEAN)
+
 
 
 # Internal array functions

@@ -234,6 +234,13 @@ class HAULWriter_lua(HAULWriter):
 		
 		else:
 			# Write a standard call
+			
+			# Internals
+			if i == I_PRINT.name:
+				i = 'print'
+			if i == I_STR.name:
+				i = 'tostring'
+			
 			self.write(i)
 			self.write('(')
 			self.write_expression_list(c.args, 0, level)

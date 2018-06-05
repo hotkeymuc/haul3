@@ -1,10 +1,10 @@
 # Hello world
-from hio import put, fetch
+#from hio import put, fetch
 #from haul.utils import put
 
-put('Hello World!')
-put('This is HAUL3.')
+print('Hello World!')
+print('This is HAUL3.')
 
 #while (1 == 1):
 #	pass
-fetch()
+#fetch()

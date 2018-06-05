@@ -379,6 +379,14 @@ class HAULWriter_py(HAULWriter):
 		
 		else:
 			# Write a standard call
+			
+			
+			if i == I_PRINT.name:
+				i = 'print'
+			if i == I_STR.name:
+				i = 'str'
+			
+			
 			self.write(i)
 			self.write('(')
 			

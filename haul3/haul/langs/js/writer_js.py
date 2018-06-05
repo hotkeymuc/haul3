@@ -139,7 +139,7 @@ class HAULWriter_js(HAULWriter):
 	def write_module(self, m, indent=0):
 		m.destination = self.stream_out.size	# Record offset in output stream
 		
-		self.write('//### Module "' + m.name + '"\n')
+		#self.write('//### Module "' + m.name + '"\n')
 		for im in m.imports:
 			self.write('//import ')
 			self.write(str(im))
@@ -148,15 +148,15 @@ class HAULWriter_js(HAULWriter):
 		#self.write('### Module namespace...\n')
 		self.write_namespace(m.namespace, indent)
 		
-		self.write('//### Classes...\n')
+		#self.write('//### Classes...\n')
 		for typ in m.classes:
 			self.write_class(typ, indent)
 		
-		self.write('//### Funcs...\n')
+		#self.write('//### Funcs...\n')
 		for func in m.funcs:
 			self.write_function(func, indent)
 		
-		self.write('//### Root Block (main function):\n')
+		#self.write('//### Root Block (main function):\n')
 		if (self.dialect == DIALECT_WRAP_MAIN):
 			self.write('function main() {\n');
 			if (m.block):
@@ -368,6 +368,13 @@ class HAULWriter_js(HAULWriter):
 			if (iid.kind == K_CLASS):
 				# If ns.findId returns kind=K_FUNCTION it is a standard call, if it is K_CLASS it is an instantiation (call of constructor)!
 				self.write('new ')
+			
+			
+			# Internals
+			if i == I_PRINT.name:
+				i = 'console.log'
+			if i == I_STR.name:
+				i = '""+'
 			
 			self.write(i)
 			self.write('(')

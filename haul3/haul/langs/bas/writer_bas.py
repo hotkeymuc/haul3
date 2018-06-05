@@ -253,40 +253,38 @@ class HAULWriter_bas(HAULWriter):
 		
 		else:
 			# Write a standard call
-			if (i == 'str'):
-				#i = '""+'
+			
+			# Internals
+			if i == I_PRINT.name:
+				i = 'PRINT'
+			if (i == I_STR.name):
 				i = 'STR$'
 			
-			if (i == 'int_str'):
-				i = ''
+			"""
+			# Internals
+			#@FIXME: Redirect to library/external files, e.g. hio_put
+			if (i == 'shout'):
+				self.write('PRINT ')
+				self.write_expression_list(c.args, 0, level)
+				self.write('\nBEEP 250,440\nGET\n')	# Beep and wait for key
+			
+			elif (i == 'put_direct'):
+				self.write('PRINT ')
+				self.write_expression_list(c.args, 0, level)
+				self.write(',')
+				
+			else:
+			"""
 			
 			if (level == 0):
 				
-				# Internals
-				#@FIXME: Redirect to library/external files, e.g. hio_put
-				if (i == 'put'):
-					self.write('PRINT ')
-					self.write_expression_list(c.args, 0, level)
+				self.write('CALL ')
+				self.write(i)
 				
-				elif (i == 'shout'):
-					self.write('PRINT ')
+				if (len(c.args) > 0):
+					self.write('(')
 					self.write_expression_list(c.args, 0, level)
-					self.write('\nBEEP 250,440\nGET\n')	# Beep and wait for key
-				
-				elif (i == 'put_direct'):
-					self.write('PRINT ')
-					self.write_expression_list(c.args, 0, level)
-					self.write(',')
-					
-				else:
-					
-					self.write('CALL ')
-					self.write(i)
-					
-					if (len(c.args) > 0):
-						self.write('(')
-						self.write_expression_list(c.args, 0, level)
-						self.write(')')
+					self.write(')')
 			else:
 				self.write(i)
 				if (len(c.args) > 0):

@@ -462,6 +462,13 @@ class HAULWriter_c(HAULWriter):
 				# If ns.find_id returns kind=K_FUNCTION it is a standard call, if it is K_TYPE it is an instantiation (call of constructor)!
 				self.write('new ')
 			
+			
+			# Internals
+			if i == I_PRINT.name:
+				i = 'print'
+			if i == I_STR.name:
+				i = 'itoa'
+			
 			self.write(i)
 			self.write('(')
 			self.write_expression_list(c.args, 0, level)

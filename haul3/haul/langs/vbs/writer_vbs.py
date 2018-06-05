@@ -236,8 +236,11 @@ class HAULWriter_vbs(HAULWriter):
 		
 		else:
 			# Write a standard call
-			if (i == 'str'):
-				i = '""+'
+			# Internals
+			if i == I_PRINT.name:
+				i = 'PRINT'
+			if (i == I_STR.name):
+				i = 'STR$'
 			
 			if (level == 0):
 				self.write('CALL ')

@@ -298,49 +298,49 @@ class HAULWriter_opl(HAULWriter):
 		
 		else:
 			# Write a standard call
-			if (i == 'str'):
-				#i = '""+'
+			
+			# Internals
+			if i == I_PRINT.name:
+				i = 'PRINT'
+			if (i == I_STR.name):
 				i = 'STR$'
 			
-			if (i == 'int_str'):
-				i = ''
+			"""
+			# Internals
+			if (i == 'put'):
+				self.write('PRINT ')
+				self.write_expression_list(c.args, 0, level)
+			
+			elif (i == 'shout'):
+				self.write('PRINT ')
+				self.write_expression_list(c.args, 0, level)
+				
+				# Beep and wait for key
+				self.write(' : ')
+				self.write('BEEP 250,440')
+				self.write(' : ')
+				self.write('GET')	# Beep and wait for key
+			
+			elif (i == 'put_direct'):
+				self.write('PRINT ')
+				self.write_expression_list(c.args, 0, level)
+				self.write(',')
+			"""
 			
 			if (level == 0):
 				
-				# Internals
-				if (i == 'put'):
-					self.write('PRINT ')
-					self.write_expression_list(c.args, 0, level)
+				self.write(i.upper())
 				
-				elif (i == 'shout'):
-					self.write('PRINT ')
-					self.write_expression_list(c.args, 0, level)
-					
-					# Beep and wait for key
-					self.write(' : ')
-					self.write('BEEP 250,440')
-					self.write(' : ')
-					self.write('GET')	# Beep and wait for key
+				#@FIXME: in OPL functions have their return type indicator added (%, $, ...)
+				#f = namespace.findId(i)
+				#self.write_type(f.data)
 				
-				elif (i == 'put_direct'):
-					self.write('PRINT ')
+				self.write(':')
+				
+				if (len(c.args) > 0):
+					self.write('(')
 					self.write_expression_list(c.args, 0, level)
-					self.write(',')
-					
-				else:
-					
-					self.write(i.upper())
-					
-					#@FIXME: in OPL functions have their return type indicator added (%, $, ...)
-					#f = namespace.findId(i)
-					#self.write_type(f.data)
-					
-					self.write(':')
-					
-					if (len(c.args) > 0):
-						self.write('(')
-						self.write_expression_list(c.args, 0, level)
-						self.write(')')
+					self.write(')')
 			else:
 				self.write(i)
 				if (len(c.args) > 0):
