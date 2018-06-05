@@ -105,7 +105,7 @@ class HAULWriter_c(HAULWriter):
 			self.write(' */\n')
 		
 	def write_function(self, f, indent=0, parentClassName=None):
-		f.destination = self.stream_out.size	# Record offset in output stream
+		f.destination = self.stream_out.ofs	# Record offset in output stream
 		###self.write_namespace(f.namespace, indent)
 		
 		name = f.id.name
@@ -149,7 +149,7 @@ class HAULWriter_c(HAULWriter):
 		self.write('}\n')
 		
 	def write_module(self, m, indent=0):
-		m.destination = self.stream_out.size	# Record offset in output stream
+		m.destination = self.stream_out.ofs	# Record offset in output stream
 		self.write_comment('### Begin of Module "' + m.name + '"')
 		
 		#self.write('### Module namespace...\n')
@@ -236,7 +236,7 @@ class HAULWriter_c(HAULWriter):
 		
 	
 	def write_class(self, c, indent=0):
-		c.destination = self.stream_out.size	# Record offset in output stream
+		c.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write_indent(indent)
 		self.write_comment('# Class "' + c.id.name + '"')
@@ -265,7 +265,7 @@ class HAULWriter_c(HAULWriter):
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
 	def write_block(self, b, indent=0):
-		b.destination = self.stream_out.size	# Record offset in output stream
+		b.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#self.write_comment("# Block \"" + b.name + "\"")
 		
@@ -291,7 +291,7 @@ class HAULWriter_c(HAULWriter):
 			self.write('\n')
 			
 	def write_instruction(self, i, indent):
-		i.destination = self.stream_out.size	# Record offset in output stream
+		i.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#put(' writing instruction: ' + str(i))
 		if (i.comment):

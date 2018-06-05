@@ -107,7 +107,7 @@ class HAULReader_py(HAULReader):
 	
 	#@fun get_next HAULToken
 	def get_next(self, skip_blank=True):
-		self.ofsGet = self.ofs
+		#self.ofsGet = self.ofs
 		
 		if (self.peekNext != None):
 			r = self.peekNext
@@ -124,7 +124,7 @@ class HAULReader_py(HAULReader):
 				self.get()
 				c = self.peek()
 		
-		r.originByte = self.ofs
+		r.originByte = self.stream.ofs
 		r.originLine = self.line_num
 		r.originPos = self.line_col
 		

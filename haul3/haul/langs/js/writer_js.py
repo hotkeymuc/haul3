@@ -100,7 +100,7 @@ class HAULWriter_js(HAULWriter):
 					self.write(';\n')
 		
 	def write_function(self, f, indent=0, parentClassName=None):
-		f.destination = self.stream_out.size	# Record offset in output stream
+		f.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		# No need to declare arguments
 		#self.write_namespace(f.namespace, indent)	# Namespace outside function
@@ -137,7 +137,7 @@ class HAULWriter_js(HAULWriter):
 		self.write('};\n')
 		
 	def write_module(self, m, indent=0):
-		m.destination = self.stream_out.size	# Record offset in output stream
+		m.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#self.write('//### Module "' + m.name + '"\n')
 		for im in m.imports:
@@ -169,7 +169,7 @@ class HAULWriter_js(HAULWriter):
 		
 	
 	def write_class(self, c, indent=0):
-		c.destination = self.stream_out.size	# Record offset in output stream
+		c.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write_indent(indent)
 		self.write('//# Class "' + c.id.name + '"\n')
@@ -198,7 +198,7 @@ class HAULWriter_js(HAULWriter):
 		#self.write('# End-of-Type "' + t.id.name + '"\n')
 		
 	def write_block(self, b, indent=0):
-		b.destination = self.stream_out.size	# Record offset in output stream
+		b.destination = self.stream_out.ofs	# Record offset in output stream
 		#self.write("# Block \"" + b.name + "\"\n")
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
@@ -214,7 +214,7 @@ class HAULWriter_js(HAULWriter):
 			#self.write('\n')
 			
 	def write_instruction(self, i, indent):
-		i.destination = self.stream_out.size	# Record offset in output stream
+		i.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#put(' writing instruction: ' + str(i))
 		if (i.comment):

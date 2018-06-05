@@ -212,7 +212,7 @@ class HAULWriter_asm(HAULWriter):
 			"""
 	
 	def write_function(self, f, indent=0):
-		f.destination = self.stream_out.size	# Record offset in output stream
+		f.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write_indent(indent)
 		self.write('# Begin of function ' + f.id.name + '\n')
@@ -245,7 +245,7 @@ class HAULWriter_asm(HAULWriter):
 		self.write('\n')
 		
 	def write_module(self, m, indent=0):
-		m.destination = self.stream_out.size	# Record offset in output stream
+		m.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write('### Module "' + m.name + '"\n')
 		for im in m.imports:
@@ -272,7 +272,7 @@ class HAULWriter_asm(HAULWriter):
 		self.write_post(indent=indent)
 		
 	def write_class(self, c, indent=0):
-		c.destination = self.stream_out.size	# Record offset in output stream
+		c.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#self.write('# Class "' + t.id.name + '"\n')
 		self.write_indent(indent)
@@ -294,7 +294,7 @@ class HAULWriter_asm(HAULWriter):
 		self.write('\n')
 		
 	def write_block(self, b, indent=0):
-		b.destination = self.stream_out.size	# Record offset in output stream
+		b.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write('# Block "' + b.name + '"\n')
 		
@@ -315,7 +315,7 @@ class HAULWriter_asm(HAULWriter):
 			#self.write('\n')
 			
 	def write_instruction(self, i, indent):
-		i.destination = self.stream_out.size	# Record offset in output stream
+		i.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#put(' writing instruction: ' + str(i))
 		atom = Atom()

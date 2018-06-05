@@ -740,38 +740,39 @@ I_EXCEPTION = ns.add_id('Exception', kind=K_FUNCTION, data_type=T_OBJECT)
 I_PASS = ns.add_id('pass', kind=K_FUNCTION, data_type=T_NOTHING)
 I_PRINT = ns.add_id('print', kind=K_FUNCTION, data_type=T_NOTHING)
 I_STR = ns.add_id('str', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('chr', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('ord', kind=K_FUNCTION, data_type=T_INTEGER)
-ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
+I_CHR = ns.add_id('chr', kind=K_FUNCTION, data_type=T_STRING)
+I_ORD = ns.add_id('ord', kind=K_FUNCTION, data_type=T_INTEGER)
+I_LEN = ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
 
-ns.add_id('str_pos', kind=K_FUNCTION, data_type=T_INTEGER)
-ns.add_id('str_compare', kind=K_FUNCTION, data_type=T_BOOLEAN)
+#I_STR_POS = ns.add_id('str_pos', kind=K_FUNCTION, data_type=T_INTEGER)
+#I_STR_COMPARE = ns.add_id('str_compare', kind=K_FUNCTION, data_type=T_BOOLEAN)
 
 
 
 # Internal array functions
 ns = HAULNamespace(T_ARRAY, parent=HAUL_ROOT_NAMESPACE)
 HAUL_ROOT_NAMESPACE.add_namespace(ns)
-ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('pop', kind=K_FUNCTION, data_type=T_INHERIT)
+I_ARRAY_APPEND = ns.add_id('append', kind=K_FUNCTION, data_type=T_NOTHING)
+I_ARRAY_POP = ns.add_id('pop', kind=K_FUNCTION, data_type=T_INHERIT)
 I_ARRAY_SLICE = ns.add_id('#slice', kind=K_FUNCTION, data_type=T_ARRAY)
 I_ARRAY_LEN = ns.add_id('len', kind=K_FUNCTION, data_type=T_INTEGER)
 
 # Internal string functions
 ns = HAULNamespace(T_STRING, parent=HAUL_ROOT_NAMESPACE)
 HAUL_ROOT_NAMESPACE.add_namespace(ns)
-ns.add_id('replace', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('index', kind=K_FUNCTION, data_type=T_INTEGER)
-ns.add_id('rfind', kind=K_FUNCTION, data_type=T_INTEGER)
-ns.add_id('startswith', kind=K_FUNCTION, data_type=T_BOOLEAN)
-ns.add_id('split', kind=K_FUNCTION, data_type=T_ARRAY)
+I_STR_REPLACE = ns.add_id('replace', kind=K_FUNCTION, data_type=T_STRING)
+I_STR_INDEX = ns.add_id('index', kind=K_FUNCTION, data_type=T_INTEGER)
+I_STR_RFIND = ns.add_id('rfind', kind=K_FUNCTION, data_type=T_INTEGER)
+I_STR_STARTSWITH = ns.add_id('startswith', kind=K_FUNCTION, data_type=T_BOOLEAN)
+I_STR_SPLIT = ns.add_id('split', kind=K_FUNCTION, data_type=T_ARRAY)
+
 
 # Internal handle functions (files, pipes, ...)
 ns = HAULNamespace(T_HANDLE, parent=HAUL_ROOT_NAMESPACE)
 HAUL_ROOT_NAMESPACE.add_namespace(ns)
-ns.add_id('read', kind=K_FUNCTION, data_type=T_STRING)
-ns.add_id('write', kind=K_FUNCTION, data_type=T_NOTHING)
-ns.add_id('close', kind=K_FUNCTION, data_type=T_NOTHING)
+T_HND_READ = ns.add_id('read', kind=K_FUNCTION, data_type=T_STRING)
+T_HND_WRITE = ns.add_id('write', kind=K_FUNCTION, data_type=T_NOTHING)
+T_HND_CLOSE = ns.add_id('close', kind=K_FUNCTION, data_type=T_NOTHING)
 HAUL_ROOT_NAMESPACE.add_id('open', kind=K_FUNCTION, data_type=T_HANDLE)
 
 # Internal Exceptions
@@ -856,8 +857,8 @@ class HAULReader:
 		self.filename = filename	# For useful error messages
 		self.default_extension = 'py'
 		
-		self.ofs = 0
-		self.ofs_get = 0	# Without peeks
+		#self.ofs = 0
+		#self.ofs_get = 0	# Without peeks
 		self.line_num = 1
 		self.line_col = 1
 		self.peekNext = None
@@ -872,15 +873,15 @@ class HAULReader:
 	
 	def loc(self):
 		#return self.ofs_get
-		return self.ofs
+		return self.stream.ofs
 	
 	def seek(self, ofs):
 		self.stream.seek(ofs)
 		
 		# Reset reader
 		self.peekNext = None
-		self.ofs = ofs
-		self.ofs_get = ofs
+		#self.ofs = ofs
+		#self.ofs_get = ofs
 		self.line_num = 1
 		self.line_col = 1
 	
@@ -892,7 +893,7 @@ class HAULReader:
 		if r == None: return None
 		
 		# Update stats
-		self.ofs = self.stream.ofs
+		#self.ofs = self.stream.ofs
 		if (r == '\n'):
 			self.line_num = self.line_num + 1
 			self.line_col = 1
@@ -1054,7 +1055,7 @@ class HAULTranslator:
 		lib_m = lib_reader.read_module(name=name, namespace=self.namespace, scan_only=True)
 	
 	def translate(self, name, stream_in, stream_out, close_stream=True):
-		put('Translating "{}"...'.format(name))
+		put('Translating "{}" from "{}" to "{}"...'.format(name, stream_in.filename, stream_out.filename))
 		
 		reader = self.ReaderClass(stream=stream_in, filename=name)
 		

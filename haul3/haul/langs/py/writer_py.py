@@ -82,7 +82,7 @@ class HAULWriter_py(HAULWriter):
 			
 		
 	def write_function(self, f, indent=0):
-		f.destination = self.stream_out.size	# Record offset in output stream
+		f.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		#self.write_namespace(f.namespace, indent)
 		
@@ -150,7 +150,7 @@ class HAULWriter_py(HAULWriter):
 		self.write('\n')
 	
 	def write_module(self, m, indent=0):
-		m.destination = self.stream_out.size	# Record offset in output stream
+		m.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write_comment('### Module "' + m.name + '"')
 		for im in m.imports:
@@ -176,7 +176,7 @@ class HAULWriter_py(HAULWriter):
 			self.write_block(m.block, indent)
 		
 	def write_class(self, c, indent=0):
-		c.destination = self.stream_out.size	# Record offset in output stream
+		c.destination = self.stream_out.ofs	# Record offset in output stream
 		#self.write('# Class "' + t.id.name + '"\n')
 		self.write_indent(indent)
 		self.write('class ')
@@ -210,7 +210,7 @@ class HAULWriter_py(HAULWriter):
 	
 	def write_block(self, b, indent=0):
 		#self.write('# Block "' + b.name + '"\n')
-		b.destination = self.stream_out.size	# Record offset in output stream
+		b.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
 			if (b.namespace and len(b.namespace.ids) > 0):
@@ -236,7 +236,7 @@ class HAULWriter_py(HAULWriter):
 		
 	def write_instruction(self, i, indent):
 		#put(' writing instruction: ' + str(i))
-		i.destination = self.stream_out.size	# Record offset in output stream
+		i.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		if (i.comment):
 			self.write_comment(i.comment)

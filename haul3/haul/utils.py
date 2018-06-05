@@ -44,12 +44,17 @@ def name_by_filename(inputFilename):
 		inputName = inputName[:p]
 	return inputName
 
-
+class Stream:
+	#@var filename str
+	#@var ofs int
+	pass
 
 class StringReader:
 	"Just a naive Stream implementation for quick and dirty testing."
-	#@var data str
 	#@var ofs int
+	#@var filename str
+	
+	#@var data str
 	#@var len int
 	
 	#@fun __init__
@@ -58,6 +63,7 @@ class StringReader:
 		self.data = data
 		self.ofs = 0
 		self.len = len(data)
+		self.filename = '?'
 	
 	#@fun close
 	def close(self):
@@ -86,11 +92,14 @@ class StringReader:
 		return self.data[self.ofs]
 	
 class StringWriter:
+	#@var ofs int
+	#@var filename str
+	
 	#@var r str
-	#@var size int
 	def __init__(self):
 		self.r = ''
-		self.size = 0
+		self.ofs = 0
+		self.filename = '?'
 	
 	#@fun close
 	def close(self):
@@ -100,12 +109,13 @@ class StringWriter:
 	#@arg data str
 	def put(self, data):
 		self.r = self.r + data
-		self.size = self.size + len(data)
+		self.ofs = self.ofs + len(data)
 
 class FileReader:
+	#@var ofs int
+	#@var filename str
 	#@var has_peek bool
 	#@var peeked str
-	#@var ofs int
 	#@var is_eof bool
 	#@var h #hnd
 	
@@ -116,6 +126,7 @@ class FileReader:
 		self.peeked = None
 		self.is_eof = False
 		self.ofs = 0
+		self.filename = filename
 		self.h = open(filename, 'rb')
 	
 	def __del__(self):
@@ -166,11 +177,13 @@ class FileReader:
 	
 
 class FileWriter:
+	#@var ofs int
+	#@var filename str
 	#@var h #hnd
-	#@var size int
 	
 	def __init__(self, filename):
-		self.size = 0
+		self.ofs = 0
+		self.filename = filename
 		self.h = open(filename, 'wb+')
 	
 	def close(self):
@@ -183,5 +196,5 @@ class FileWriter:
 	#@arg data str
 	def put(self, data):
 		self.h.write(data)
-		self.size = self.size + len(data)
+		self.ofs = self.ofs + len(data)
 	
