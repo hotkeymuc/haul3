@@ -3,6 +3,9 @@
 class MyClass:
 	#@var name str
 	
+	def __init__(self, a_name):
+		self.name = a_name
+	
 	#@fun setName
 	#@arg n str
 	def setName(self, n):

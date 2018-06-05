@@ -46,20 +46,23 @@ os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
 #example_name = 'hello'
 #example_name = 'small'
 #example_name = 'shellmini'
-#example_name = 'hres_test'
-example_name = 'hio_test'
+#example_name = 'hio_test'
+example_name = 'hres_test'
 
 p = HAULProject(example_name)
 p.sources_path = 'examples'
 p.libs_path = 'libs'
+p.ress_path = 'examples'
 
 
 # Add libs that are available for importing
-p.add_lib('hio')
+#p.add_lib('hio')
+p.add_lib('hres')
 
 p.add_source(example_name)
 
-#p.add_resource(...)
+p.add_res('hres_data1.txt')
+p.add_res('hres_data2.txt')
 
 p.run_test = True
 

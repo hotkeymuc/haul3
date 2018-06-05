@@ -611,7 +611,8 @@ class HAULReader_py(HAULReader):
 				# When doing a object look-up, the name space shifts to the looked-up value. Alternatively we could store it as "run-time look-up/late binding"
 				put_debug('Variable "' + str(v.name) + '" is a ' + str(v.kind)+ ' of type "' + str(v.data_type) + '". Shifting namespace for object look-up...')
 				
-				if (v.data_type == T_CLASS):
+				#if (v.data_type == T_CLASS):
+				if (v.kind == K_CLASS):
 					put_debug('Calling method of a class type - static access!')
 					ns_shifted = v.namespace
 					"""
@@ -619,10 +620,15 @@ class HAULReader_py(HAULReader):
 					if (ns_shifted == None):
 						self.raise_parse_error('Static access on "' + str(v.name) + '" failed, because its namespace is unknown at ' + str(ns), t)
 					"""
+				elif (v.kind == K_MODULE):
+					#put_debug('"{}" is a module, shifting into...'.format(v.name))
+					ns_shifted = ns.find_namespace(v.name)
+					
 				else:
 					ns_shifted = ns.find_namespace_of(v.data_type)
-					if (ns_shifted == None):
-						self.raise_parse_error('Object lookup for "' + str(v.name) + '" failed, because namespace for type "' + str(v.data_type) + '" is unknown at ' + str(ns), t)
+				
+				if (ns_shifted == None):
+					self.raise_parse_error('Object lookup for "' + str(v.name) + '" failed, because namespace for kind "' + str(v.kind) + '", type "' + str(v.data_type) + '" is unknown at ' + str(ns), t)
 				
 				
 				# Normal call

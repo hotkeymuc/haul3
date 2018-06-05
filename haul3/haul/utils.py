@@ -130,7 +130,8 @@ class FileReader:
 		self.h = open(filename, 'rb')
 	
 	def __del__(self):
-		self.h.close()
+		#self.h.close()
+		pass
 	
 	#@fun eof bool
 	def eof(self):

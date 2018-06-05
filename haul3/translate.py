@@ -137,10 +137,12 @@ t = HAULTranslator(HAULReader_py, HAULWriter_js)
 
 try:
 	#t.process_lib('haul.utils', FileReader('haul/utils.py'))
-	#t.process_lib('hio', FileReader('libs/hio.py'))
+	t.process_lib('hio', FileReader('libs/hio.py'))
+	#t.process_lib('hres', FileReader('libs/hres.py'))
 	
-	t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.js'))
-	#t.translate('small', FileReader('examples/small.py'), FileWriter('build/small.py'))
+	#t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.js'))
+	#t.translate('small', FileReader('examples/small.py'), FileWriter('build/small.js'))
+	t.translate('classes', FileReader('examples/classes.py'), FileWriter('build/classes.js'))
 	
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))

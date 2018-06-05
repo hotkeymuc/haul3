@@ -35,6 +35,9 @@ class HAULProject:
 		self.libs_path = 'libs'
 		self.libs = []
 		
+		self.ress_path = 'data'
+		self.ress = []
+		
 		self.run_test = False
 	
 	def add_source(self, name=None, filename=None):
@@ -55,10 +58,25 @@ class HAULProject:
 	def add_lib(self, name, filename=None):
 		if (filename == None):
 			# Guess default lib filename if omitted
-			filename = self.libs_path + '/' + name + '.py'
+			filename = os.path.join(self.libs_path, name + '.py')
 		
 		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
 		self.libs.append(source)
+		
+	
+	def add_res(self, name=None, filename=None):
+		if ((name == None) and (filename == None)):
+			raise Exception('A name or filename has to be specified as resource')
+		
+		if (name == None):
+			# Guess name from filename if omitted
+			name = name_by_filename(filename)
+		if (filename == None):
+			# Guess filename from name if omitted
+			filename = os.path.join(self.sources_path, name)
+		
+		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
+		self.ress.append(source)
 		
 	
 

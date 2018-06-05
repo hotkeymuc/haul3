@@ -2,9 +2,17 @@
 
 # Load the real file, overwriting this module instance (same name!)
 import imp
-hres = imp.load_source('hio', '../haul/langs/py/lib/hres.py')
+hres1 = imp.load_source('hres2', '../data/langs/py/hres.py')
 
-hio = imp.load_source('hio', '../haul/langs/py/lib/hio.py')
+def use(uri):
+	return hres1.use(uri)
+
+def get(i):
+	return hres1.get(i)
+
+
+"""
+hio = imp.load_source('hio', '../data/langs/py/hio.py')
 
 def put(t):
 	hio.put(t)
@@ -26,3 +34,4 @@ def hres_use(filename):
 	return i
 hres.use = hres_use
 
+"""
