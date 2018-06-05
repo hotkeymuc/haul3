@@ -301,17 +301,17 @@ class HAULWriter_opl(HAULWriter):
 			
 			# Internals
 			if i == I_PRINT.name:
-				i = 'PRINT'
+				#i = 'PRINT'
+				self.write('PRINT ')
+				self.write_expression_list(c.args, 0, level)
+				return
+				
 			if (i == I_STR.name):
 				i = 'STR$'
 			
 			"""
 			# Internals
-			if (i == 'put'):
-				self.write('PRINT ')
-				self.write_expression_list(c.args, 0, level)
-			
-			elif (i == 'shout'):
+			if (i == 'shout'):
 				self.write('PRINT ')
 				self.write_expression_list(c.args, 0, level)
 				

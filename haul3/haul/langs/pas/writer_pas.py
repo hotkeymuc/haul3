@@ -343,7 +343,7 @@ class HAULWriter_pas(HAULWriter):
 				
 				# Internals
 				if i == I_PRINT.name:
-					i = 'PrintLn'
+					i = 'WriteLn'
 				if (i == I_STR.name):
 					i = 'Str'
 				

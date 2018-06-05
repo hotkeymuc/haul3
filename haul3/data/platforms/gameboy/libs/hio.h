@@ -3,12 +3,13 @@
 
 */
 
+/*
 #include <stdio.h>
-
 
 #include <gb/font.h>
 #include <gb/console.h>
 #include <gb/drawing.h>
+*/
 
 #define bool char
 #define True 1
@@ -17,7 +18,7 @@
 font_t put_font, shout_font;
 
 // Forward
-void main_internal(void);
+//void _main(void);
 
 void put(char *text) {
 	printf(text);
@@ -102,7 +103,7 @@ char str_compare(char *s1, char *s2) {
 	}
 }
 
-
+/*
 void main(void) {
 	// First, init the font system
 	font_init();
@@ -126,5 +127,6 @@ void main(void) {
 	font_set(put_font);
 	//shout("HAUL for GameBoy");
 	
-	main_internal();
+	_main();
 }
+*/

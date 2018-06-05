@@ -159,6 +159,14 @@ class HAULWriter_c(HAULWriter):
 			self.write(GLUE_ARDUINO_PRE);
 		elif self.dialect == DIALECT_Z88DK:
 			self.write('#define VGL\n')
+			self.write('#include <stdio.h>\n')
+		elif self.dialect == DIALECT_GBDK:
+			self.write('#include <gb/gb.h>\n')
+			self.write('#include <gb/font.h>\n')
+			self.write('#include <gb/console.h>\n')
+			self.write('#include <gb/drawing.h>\n')
+			self.write('#include <stdio.h>\n')
+			pass
 		
 		if (len(m.imports) > 0):
 			self.write('\n')
@@ -204,9 +212,10 @@ class HAULWriter_c(HAULWriter):
 		self.write('\n')
 		self.write_comment('### Root Block (main function)...')
 		if self.dialect == DIALECT_GBDK:
-			self.write('void main_internal() {\n')
+			self.write('void main_internal(void) {\n')
 		elif self.dialect == DIALECT_Z88DK:
-			self.write('void main(void) {\n')
+			#self.write('void main(void) {\n')
+			self.write('main() {\n')
 		elif self.dialect == DIALECT_ARDUINO:
 			#self.write('int main() {\n')
 			self.write('void _main() {\n')
@@ -219,10 +228,20 @@ class HAULWriter_c(HAULWriter):
 		
 		if self.dialect == DIALECT_GBDK:
 			self.write('}\n')
+			self.write('\n')
+			self.write('font_t print_font;\n')
+			self.write('void main(void) {\n')
+			self.write('	font_init();\n')
+			self.write('	print_font = font_load(font_ibm);\n')
+			self.write('	font_set(print_font);\n')
+			self.write('	main_internal();\n')
+			self.write('}\n')
+		
 		elif self.dialect == DIALECT_ARDUINO:
 			self.write('}\n')
 			self.write(GLUE_ARDUINO_POST);
 		elif self.dialect == DIALECT_Z88DK:
+			self.write('while(1){} // Break in end\n')
 			self.write('}\n')
 			#self.write(GLUE_Z88DK_POST);
 		else:
@@ -465,7 +484,10 @@ class HAULWriter_c(HAULWriter):
 			
 			# Internals
 			if i == I_PRINT.name:
-				i = 'print'
+				if self.dialect == DIALECT_ARDUINO:
+					i = 'Serial.println'
+				else:
+					i = 'printf'
 			if i == I_STR.name:
 				i = 'itoa'
 			

@@ -1119,7 +1119,7 @@ class HAULReader_py(HAULReader):
 				
 				# Comments at end of line
 				t = self.peek_next(skip_blank=False)
-				if ((indent == 0) and (t != None) and (t.data[0] == L_COMMENT)):
+				if ((indent == 0) and (t != None) and (len(t.data) > 0) and (t.data[0] == L_COMMENT)):
 					#This check is needed. Or else it may SKIP an annotation that is following an end-of-block at root-level.
 					pass
 				else:

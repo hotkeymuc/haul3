@@ -3,16 +3,14 @@ var hio = {
 	_fetchElement: null,
 	
 	init: function(e) {
-		this._putElement = document.getElementById("hioOut");
-		this._fetchElement = document.getElementById("hioIn");
-		
-		main();
+		hio._putElement = document.getElementById("hioOut");
+		hio._fetchElement = document.getElementById("hioIn");
 	},
 	put: function(txt) {
-		this._putElement.innerText += txt + '\n';
+		hio._putElement.innerText += txt + '\n';
 	},
 	put_: function(txt) {
-		this._putElement.innerText += txt;
+		hio._putElement.innerText += txt;
 	},
 	shout: function(txt) {
 		alert(txt);
@@ -38,21 +36,24 @@ function put_(txt) {
 function shout(txt) {
 	alert(txt);
 }
-/*
-function fetch() {
-	return prompt('hio.fetch');
-}
-*/
-var _fetchResolve = null;
+
+// Simple (prompt)
 function fetch() {
 	var txt = prompt('hio.fetch');
-	//let txt = await fetch_wait();
 	return txt;
 }
-function fetch_wait() {
+/*
+// Modern (async)
+var _fetchResolve = null;
+function fetch() {
+	//var txt = prompt('hio.fetch');
+	let txt = await fetch_wait();
+	return txt;
+}
+async function fetch_wait() {
 	return new Promise((resolve, reject) => {
 		_fetchResolve = resolve;
-		resolve(prompt('fetch_wait'));
+		//resolve(prompt('fetch_wait'));
 	});
 }
 function hioIn_enter() {
@@ -63,11 +64,12 @@ function hioIn_enter() {
 		_fetchResolve = null;
 	}
 }
+*/
 
 function int_str(i) {
 	return ('' + i);
 }
 
-window.onload = function(e) {
-	hio.init(e);
-};
+//window.onload = function(e) { hio.init(e);};
+//document.addEventListener('DOMContentLoaded', hio.init, false);
+window.addEventListener('load', hio.init, false)

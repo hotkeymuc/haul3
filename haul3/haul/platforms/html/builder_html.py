@@ -32,12 +32,13 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 // Translated source goes here:
 {1}
 // End of translated code
+window.addEventListener('load', main, false);
 </script>
 </head>
 <body>
 	<h1>{0}</h1>
 	<pre id="hioOut"></pre>
-	<input type="text" id="hioIn" /><button onclick="hioIn_enter();">OK</button>
+	<!-- <input type="text" id="hioIn" /><button onclick="hioIn_enter();">OK</button> -->
 	<small>HAUL3</small>
 </body>
 </html>

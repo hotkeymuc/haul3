@@ -184,7 +184,7 @@ class HAULWriter_java(HAULWriter):
 		self.write('public class ')
 		#self.write(m.name.capitalize())
 		self.write(m.name)
-		self.write(' implements IMain')
+		#self.write(' implements IMain')	# Requires interface IMain
 		self.write(' {\n')
 		
 		self.write_indent(indent+1)

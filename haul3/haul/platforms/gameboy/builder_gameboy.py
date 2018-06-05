@@ -31,7 +31,7 @@ class HAULBuilder_gameboy(HAULBuilder):
 		start_path = os.getcwd()
 		
 		
-		gbdk_path = self.get_path('GBDK_PATH', os.path.join(self.tools_path, 'platforms', 'gameboy', 'gbdk'))
+		gbdk_path = os.path.abspath(self.get_path('GBDK_PATH', os.path.join(self.tools_path, 'platforms', 'gameboy', 'gbdk')))
 		
 		libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'gameboy', 'libs'))
 		
@@ -58,9 +58,10 @@ class HAULBuilder_gameboy(HAULBuilder):
 		
 		
 		#self.copy(os.path.join(libs_path, 'hio.h'), os.path.join(self.staging_path, 'hio.h'))
-		put('Copying libraries...')
-		for s in self.project.libs:
-			self.copy(libs_path + '/' + s.name + '.h', self.staging_path + '/' + s.name + '.h')
+		# Using libraries via command line argument
+		#put('Copying libraries...')
+		#for s in self.project.libs:
+		#	self.copy(libs_path + '/' + s.name + '.h', self.staging_path + '/' + s.name + '.h')
 		
 		
 		# Prepare environment
@@ -69,18 +70,27 @@ class HAULBuilder_gameboy(HAULBuilder):
 		#my_env['GBDKDIR'] = os.path.join(GBDK_DIR, '')	# Note the trailing slash! It is important or else GBDK will screw things up!
 		
 		#@FIXME: For some reason this must be relative or else the GB compilation fails with "...gameboy.re not found"
-		my_env['GBDKDIR'] = './tools/platforms/gameboy/gbdk/'	# Note the trailing slash! It is important or else GBDK will screw things up!
+		#my_env['GBDKDIR'] = './tools/platforms/gameboy/gbdk/'	# Note the trailing slash! It is important or else GBDK will screw things up!
+		#my_env['GBDKDIR'] = gbdk_path.replace('\\', '/') + '/'	# Note the trailing slash! It is important or else GBDK will screw things up!
+		my_env['GBDKDIR'] = os.path.join(gbdk_path, '')	# Note the trailing slash! It is important or else GBDK will screw things up!
+		
+		my_env['TEMP'] = os.path.abspath(self.staging_path)
+		my_env['TMP'] = os.path.abspath(self.staging_path)
+		
 		
 		# Compilation
 		put('Compiling using GBDK...')
 		
-		cmd = os.path.abspath(os.path.join(gbdk_path, 'bin', 'lcc'))
+		cmd = os.path.join(gbdk_path, 'bin', 'lcc')
 		cmd += ' -Wa-l'
 		cmd += ' -Wl-m'
 		cmd += ' -Wl-j'
+		
 		cmd += ' -DUSE_SFR_FOR_REG'
-		cmd += ' -I"%s"' % (libs_path)
+		cmd += ' -I"{}"'.format(os.path.join(gbdk_path, 'include'))
+		cmd += ' -I"{}"'.format(libs_path)
 		cmd += ' -c'
+		cmd += ' -v'
 		cmd += ' -o "%s"' % (o_filename_full)
 		cmd += ' "%s"' % (c_filename_full)
 		
