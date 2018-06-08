@@ -3,7 +3,7 @@
 
 import datetime
 
-from haul.haul import *
+from haul.core import *
 
 class HAULWriter_json(HAULWriter):
 	"Writes JSON representation"

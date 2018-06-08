@@ -2,6 +2,8 @@
 
 from hio import *
 
+import helper
+
 ###import sys
 ###from sys import *
 
@@ -111,9 +113,16 @@ bar(1234)
 
 
 #@var s str
+
+put('Import test')
+s = helper.helper_test()
+put(s)
+
+
 put_('Enter something!')
 s = fetch()
 shout(s)
+
 
 shout('small.py end.')
 #return 0

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-from haul.haul import *
+from haul.core import *
 from haul.utils import *
 
 # Patterns for tokenizing Python

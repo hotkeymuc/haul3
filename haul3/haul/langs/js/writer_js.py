@@ -20,7 +20,7 @@ TODO:
 import datetime
 import copy
 
-from haul.haul import *
+from haul.core import *
 
 def put(t):
 	print('HAULWriter_js:\t' + str(t))
@@ -37,6 +37,7 @@ INFIX_TRANS = {
 	'+':	'+',
 	'-':	'-',
 	'*':	'*',
+	'=':	'=',
 	'/':	'/',
 	'<':	'<',
 	'>':	'>',
@@ -115,9 +116,11 @@ class HAULWriter_js(HAULWriter):
 				name = parentClassName + '.prototype.' + name
 		
 		self.write_indent(indent)
-		self.write('var ')
+		#self.write('var ')
+		self.write('function ')
 		self.write(name)
-		self.write(' = function(')
+		#self.write(' = function')
+		self.write('(')
 		j = 0
 		for i in xrange(len(f.args)):
 			if (i == 0) and (not parentClassName == None):
@@ -134,7 +137,7 @@ class HAULWriter_js(HAULWriter):
 		self.write_block(f.block, indent+1)
 		
 		self.write_indent(indent)
-		self.write('};\n')
+		self.write('}\n')
 		
 	def write_module(self, m, indent=0):
 		m.destination = self.stream_out.ofs	# Record offset in output stream
@@ -182,7 +185,7 @@ class HAULWriter_js(HAULWriter):
 		if (c.namespace):
 			# Fix self --> this
 			selfId = c.namespace.get_id(A_SELF, kind=K_VARIABLE)
-			if not selfId == None:
+			if (selfId != None):
 				selfId.name = 'this'
 			
 			#self.write_indent(indent+1)
@@ -249,11 +252,11 @@ class HAULWriter_js(HAULWriter):
 				j += 1
 			
 			if (j < len(c.blocks)):
-				self.write_indent(indent)
+				#self.write_indent(indent)
 				self.write('else {\n')
 				self.write_block(c.blocks[j], indent+1)
 				self.write_indent(indent)
-				self.write('}\n')
+				self.write('}')
 		
 		elif (c.controlType == C_FOR):
 			self.write('for (')
@@ -276,14 +279,14 @@ class HAULWriter_js(HAULWriter):
 			self.write(') {\n')
 			self.write_block(c.blocks[0], indent+1)
 			self.write_indent(indent)
-			self.write('}\n')
+			self.write('}')
 		elif (c.controlType == C_WHILE):
 			self.write('while (')
 			self.write_expression(c.exprs[0])
 			self.write(') {\n')
 			self.write_block(c.blocks[0], indent+1)
 			self.write_indent(indent)
-			self.write('}\n')
+			self.write('}')
 		elif (c.controlType == C_RETURN):
 			self.write('return')
 			if (len(c.exprs) > 0):
@@ -357,6 +360,7 @@ class HAULWriter_js(HAULWriter):
 			#else:
 			self.write(' ' + INFIX_TRANS[i] + ' ')
 			
+			#put(INFIX_TRANS[i] + '\t' + str(c))
 			self.write_expression(c.args[1], level)	# level-1
 		
 		else:
@@ -397,7 +401,12 @@ class HAULWriter_js(HAULWriter):
 			
 	def write_value(self, v):
 		if (v.type == T_STRING):
-			self.write("'" + v.data_str + "'")	#@TODO: Escaping!
+			r = v.data_str
+			r = r.replace('\\', '\\\\')
+			r = r.replace('\"', '\\\"')
+			r = r.replace('\n', '\\n')
+			r = r.replace('\r', '\\r')
+			self.write('"' + r + '"')
 		elif (v.type == T_INTEGER):
 			self.write(str(v.data_int))
 		elif (v.type == T_FLOAT):
@@ -407,6 +416,8 @@ class HAULWriter_js(HAULWriter):
 				self.write('true')
 			else:
 				self.write('false')
+		elif (v.type == T_NOTHING):
+			self.write('null');
 		else:
 			self.write('[type=' + v.type + '?]')
 			

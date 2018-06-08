@@ -170,7 +170,7 @@ class HAULNamespace:
 		
 		#@var r HAULNamespace
 		r = self
-		while not (r == None):
+		while (r != None):
 			# Try finding it here
 			#put('finding "' + str(name) + '" in namespace "' + str(r) + '"...')
 			i = r.get_id(name=name, kind=kind)
@@ -234,7 +234,7 @@ class HAULNamespace:
 		
 		#@var r HAULNamespace
 		r = self
-		while not (r == None):
+		while (r != None):
 			if (r.name == name):
 				return r
 			
@@ -277,7 +277,7 @@ class HAULNamespace:
 		return None
 	
 	#@fun is_parent_of bool
-	#@arg ns HAULId
+	#@arg i HAULId
 	def has_child(self, i):
 		p = i.namespace
 		while (p != None):
@@ -967,6 +967,7 @@ class HAULWriter:
 		#@var name str
 		name = reader.filename.replace('.', '_')
 		
+		#@var m HAULModule
 		
 		#@var ns HAULNamespace
 		if (namespace != None):
@@ -1033,6 +1034,12 @@ class HAULWriter:
 class HAULTranslator:
 	"Provides the functionality to build a HAUL file for another platform. Like make etc."
 	
+	#@var ReaderClass HAULReader
+	#@var WriterClass HAULWriter
+	#@var libs arr str
+	#@var dialect str
+	#@var namespace HAULNamespace
+	
 	def __init__(self, ReaderClass, WriterClass, dialect=None):
 		self.ReaderClass = ReaderClass
 		self.WriterClass = WriterClass
@@ -1050,18 +1057,24 @@ class HAULTranslator:
 		if (filename == None):
 			filename = name + '.py'	#self.ReaderClass.default_extension
 		
-		put('Scanning "{}"...'.format(name))
+		#put('Scanning "{}"...'.format(name))
 		lib_reader = self.ReaderClass(stream=stream, filename=name)
 		lib_m = lib_reader.read_module(name=name, namespace=self.namespace, scan_only=True)
 	
+	#@fun translate HAULModule
+	#@arg name str
+	#@arg stream_in #hnd
+	#@arg stream_out #hnd
+	#@arg close_stream bool True
 	def translate(self, name, stream_in, stream_out, close_stream=True):
-		put('Translating "{}" from "{}" to "{}"...'.format(name, stream_in.filename, stream_out.filename))
+		#put('Translating "{}" from "{}" to "{}"...'.format(name, stream_in.filename, stream_out.filename))
 		
 		reader = self.ReaderClass(stream=stream_in, filename=name)
 		
 		monolithic = True	# Use simple (but good) monolithic version (True) or a memory friendly multi-pass streaming method (False)
 		reader.seek(0)
 		
+		#@var writer HAULWriter
 		if (self.dialect == None):
 			writer = self.WriterClass(stream_out)
 		else:

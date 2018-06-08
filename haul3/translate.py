@@ -106,43 +106,21 @@ except HAULParseError as e:
 
 
 
-
-
-#source_filename = 'examples/hello.py'
-#source_filename = 'examples/small.py'
-#source_filename = 'examples/infer.py'
-#source_filename = 'examples/complex.py'
-#source_filename = 'examples/classes.py'
-#source_filename = 'examples/shellmini.py'
-#source_filename = 'examples/vm.py'
-#source_filename = 'examples/arrays.py'
-#output_path = 'build'
-#libs = None
-#libs = ['haul/utils.py']
-
-
-#source_filename = 'haul/utils.py'
-#output_path = 'build/haul'
-#libs = None
-
-
-#source_filename = 'haul/haul.py'
-#output_path = 'build/haul'
-#libs = None
-
-
-from haul.haul import HAULTranslator
+from haul.core import HAULTranslator
 
 t = HAULTranslator(HAULReader_py, HAULWriter_js)
 
 try:
+	### First: Parse all potential libs (headers), so all the namespaces are known for importing
 	#t.process_lib('haul.utils', FileReader('haul/utils.py'))
 	t.process_lib('hio', FileReader('libs/hio.py'))
 	#t.process_lib('hres', FileReader('libs/hres.py'))
 	
+	### Then: Actually translate code
 	#t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.js'))
 	#t.translate('small', FileReader('examples/small.py'), FileWriter('build/small.js'))
-	t.translate('classes', FileReader('examples/classes.py'), FileWriter('build/classes.js'))
+	#t.translate('classes', FileReader('examples/classes.py'), FileWriter('build/classes.js'))
+	t.translate('core', FileReader('haul/core.py'), FileWriter('build/haul/core.js'))
 	
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))

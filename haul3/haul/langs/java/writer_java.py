@@ -11,7 +11,7 @@ TODO:
 import datetime
 import copy
 
-from haul.haul import *
+from haul.core import *
 
 def put(t):
 	print('HAULWriter_c:\t' + str(t))

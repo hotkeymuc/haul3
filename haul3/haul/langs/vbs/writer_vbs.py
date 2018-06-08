@@ -3,7 +3,7 @@
 
 import datetime
 
-from haul.haul import *
+from haul.core import *
 
 def put(t):
 	print('HAULWriter_vbs:\t' + str(t))

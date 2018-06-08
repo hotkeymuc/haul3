@@ -8,7 +8,6 @@ Builder for PSION (CM/XP)
 * emulates using ORG2BETA for DOS
 """
 
-#from haul.haul import *
 from haul.utils import *
 from haul.builder import *
 
