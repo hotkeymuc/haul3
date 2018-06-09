@@ -112,15 +112,18 @@ t = HAULTranslator(HAULReader_py, HAULWriter_js)
 
 try:
 	### First: Parse all potential libs (headers), so all the namespaces are known for importing
-	#t.process_lib('haul.utils', FileReader('haul/utils.py'))
-	t.process_lib('hio', FileReader('libs/hio.py'))
+	t.process_lib('haul.utils', FileReader('haul/utils.py'))
+	t.process_lib('haul.core', FileReader('haul/core.py'))
+	#t.process_lib('hio', FileReader('libs/hio.py'))
 	#t.process_lib('hres', FileReader('libs/hres.py'))
 	
 	### Then: Actually translate code
 	#t.translate('hello', FileReader('examples/hello.py'), FileWriter('build/hello.js'))
 	#t.translate('small', FileReader('examples/small.py'), FileWriter('build/small.js'))
 	#t.translate('classes', FileReader('examples/classes.py'), FileWriter('build/classes.js'))
-	t.translate('core', FileReader('haul/core.py'), FileWriter('build/haul/core.js'))
+	#t.translate('haul.utils', FileReader('haul/utils.py'), FileWriter('build/haul/utils.js'))
+	#t.translate('haul.core', FileReader('haul/core.py'), FileWriter('build/haul/core.js'))
+	t.translate('haul.langs.py.reader_py', FileReader('haul/langs/py/reader_py.py'), FileWriter('build/haul/langs/py/reader_py.js'))
 	
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))

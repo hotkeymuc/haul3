@@ -204,9 +204,12 @@ class HAULReader_py(HAULReader):
 		self.get_next()
 		return t
 	
+	#@fun read_line str
 	def read_line(self, skip_blank=False):
 		l = ''
 		t = self.get_next(skip_blank=skip_blank)
+		if (t == None): return l
+		
 		l = l + str(t.data)
 		c = self.peek()
 		while ((c in PAT_EOL) == False) and (self.eof() == False):
@@ -407,6 +410,8 @@ class HAULReader_py(HAULReader):
 		put_debug('read_expression():	ns=' + str(namespace) + ' t=' + str(t))
 		#e.token = t
 		ns = namespace
+		
+		#@var v HAULId
 		
 		# Determine type of expression
 		if (t.data == '('):
@@ -611,15 +616,13 @@ class HAULReader_py(HAULReader):
 				# When doing a object look-up, the name space shifts to the looked-up value. Alternatively we could store it as "run-time look-up/late binding"
 				put_debug('Variable "' + str(v.name) + '" is a ' + str(v.kind)+ ' of type "' + str(v.data_type) + '". Shifting namespace for object look-up...')
 				
+				#@var ns_shifted HAULNamespace
+				
 				#if (v.data_type == T_CLASS):
 				if (v.kind == K_CLASS):
 					put_debug('Calling method of a class type - static access!')
 					ns_shifted = v.namespace
-					"""
-					ns_shifted = ns.find_namespace_of(v.name)
-					if (ns_shifted == None):
-						self.raise_parse_error('Static access on "' + str(v.name) + '" failed, because its namespace is unknown at ' + str(ns), t)
-					"""
+					
 				elif (v.kind == K_MODULE):
 					#put_debug('"{}" is a module, shifting into...'.format(v.name))
 					ns_shifted = ns.find_namespace(v.name)
@@ -925,6 +928,7 @@ class HAULReader_py(HAULReader):
 				# The returnType of that expression can be used to infer function returnType
 				# Find closest returnType namespace entry
 				
+				#@var iret HAULId
 				if (BLOCKS_HAVE_LOCAL_NAMESPACE == True):
 					iret = namespace.find_id(A_RETTYPE, ignore_unknown=True)
 					
@@ -949,12 +953,9 @@ class HAULReader_py(HAULReader):
 			ctrl.add_expression(self.read_expression(namespace=ns))
 			i.control = ctrl
 			
-			"""
-		elif (t.data == L_FUNC):
-			self.raise_parse_error('HAULParseError: Cannot use inline functions, yet. Please put them before any main-block instruction ', t)
-		elif (t.data == L_CLASS):
-			self.raise_parse_error('HAULParseError: Cannot use inline classes, yet. Please put them before any main-block instruction ', t)
-			"""
+		
+		#elif (t.data == L_FUNC): self.raise_parse_error('HAULParseError: Cannot use inline functions, yet. Please put them before any main-block instruction ', t)
+		#elif (t.data == L_CLASS): self.raise_parse_error('HAULParseError: Cannot use inline classes, yet. Please put them before any main-block instruction ', t)
 		elif (t.data == L_FUNC):
 			put_debug('read_module():	reading root function block...')
 			module.addFunc(self.read_function(namespace=namespace, scan_only=scan_only))
@@ -1028,6 +1029,7 @@ class HAULReader_py(HAULReader):
 		put_debug('read_block()...')
 		b = HAULBlock(scan_only=scan_only)
 		b.origin = self.loc()
+		#put(self.line_num)
 		b.name = blockName
 		
 		if (BLOCKS_HAVE_LOCAL_NAMESPACE == True):
@@ -1044,6 +1046,8 @@ class HAULReader_py(HAULReader):
 		# Skip initial EOL
 		
 		# Check this block's indentation level
+		#@var indent int
+		
 		t = self.peek_next(skip_blank=False)
 		while (self.eof() == False) and (t.type == TOKEN_EOL):
 			self.get_next(skip_blank=False)
@@ -1099,7 +1103,7 @@ class HAULReader_py(HAULReader):
 				# Treat it as a string expression
 				e = self.read_expression(namespace=ns)
 				if (e.value.type != T_STRING):
-					self.raise_parse_error('Expected comment to be a string value, but got {}'.format(str(e)), t)
+					self.raise_parse_error('Expected comment to be a string value, but got "' + str(e) + '"', t)
 				
 				comment = e.value.data_str
 				put_debug('read_block():	Doc Comment: "' + str(comment) + '"')
