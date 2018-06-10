@@ -37,7 +37,6 @@ INFIX_TRANS = {
 	'+':	'+',
 	'-':	'-',
 	'*':	'*',
-	'=':	'=',
 	'/':	'/',
 	'<':	'<',
 	'>':	'>',
@@ -47,6 +46,9 @@ INFIX_TRANS = {
 	'!=':	'!=',
 	'<<':	'<<',
 	'>>':	'>>',
+	
+	'=':	'=',
+	'in':	'in',
 }
 INFIX_KEYS = INFIX_TRANS.keys()
 
@@ -107,19 +109,21 @@ class HAULWriter_js(HAULWriter):
 		#self.write_namespace(f.namespace, indent)	# Namespace outside function
 		self.write_comment('Namespace skipped (function args)')
 		
+		self.write_indent(indent)
+		
 		name = f.id.name
-		if (not parentClassName == None):
+		if (parentClassName != None):
 			if (name == A_INIT):
 				name = parentClassName
 			else:
 				if name == '__repr__': name = 'toString'
 				name = parentClassName + '.prototype.' + name
+		else:
+			self.write('var ')
 		
-		self.write_indent(indent)
-		#self.write('var ')
-		self.write('function ')
+		#self.write('function ')
 		self.write(name)
-		#self.write(' = function')
+		self.write(' = function')
 		self.write('(')
 		j = 0
 		for i in xrange(len(f.args)):
@@ -137,7 +141,7 @@ class HAULWriter_js(HAULWriter):
 		self.write_block(f.block, indent+1)
 		
 		self.write_indent(indent)
-		self.write('}\n')
+		self.write('};\n')
 		
 	def write_module(self, m, indent=0):
 		m.destination = self.stream_out.ofs	# Record offset in output stream

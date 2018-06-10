@@ -43,11 +43,11 @@ os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
 
 
 ### Create project
-#example_name = 'hello'
+example_name = 'hello'
 #example_name = 'small'
 #example_name = 'shellmini'
 #example_name = 'hio_test'
-example_name = 'hres_test'
+#example_name = 'hres_test'
 
 p = HAULProject(example_name)
 p.sources_path = 'examples'
@@ -57,7 +57,7 @@ p.ress_path = 'examples'
 
 # Add libs that are available for importing
 #p.add_lib('hio')
-p.add_lib('hres')
+#p.add_lib('hres')
 
 p.add_source(example_name)
 
@@ -73,8 +73,8 @@ p.run_test = True
 #builder = HAULBuilder_arduino()
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
-builder = HAULBuilder_html()
-#builder = HAULBuilder_java()
+#builder = HAULBuilder_html()
+builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
 #builder = HAULBuilder_vtech()

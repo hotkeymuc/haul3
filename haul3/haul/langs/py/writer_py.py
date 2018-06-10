@@ -29,7 +29,7 @@ class HAULWriter_py(HAULWriter):
 		HAULWriter.__init__(self, stream_out)
 		self.default_extension = 'py'
 		self.dialect = dialect
-		self.write_comment('Translated from HAUL3 to Python on ' + str(datetime.datetime.now()) )
+		self.write_comment('Translated from HAUL3 to Python on ' + str(datetime.datetime.now()))
 		
 	def write_comment(self, t):
 		"Add a comment to the file"

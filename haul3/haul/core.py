@@ -3,22 +3,9 @@
 
 """
 	HAUL
-	HotKey's Amphibious Unambiguous Language
-	HotKey's Average Universal Language
-	
-	XXX HAUL3 - HotKey's Averaging Language
-
-2013-01-04
-	This was made way after SR1 and SR2
-	Currently it is just a lexer, parser and generator
-
-TODO:
-	* Store class/object constructors as I_CLASS_NEW instead of python-style standard function call "ClassName()"
-	* Warum ueberhaupt noch module.classes, module.funcs - das kann doch alles in den namespace!?
-	* Fields, arrays, generics!
+	HotKey's Amphibious Universal Language
 """
 
-#AUTO_CREATE_UNKNOWN_IDS = True	# Required for type inference. Turn off for debugging the parser. Is stricter, breaks faster that way.
 
 #@fun put
 #@arg t str

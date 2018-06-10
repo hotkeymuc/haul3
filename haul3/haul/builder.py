@@ -7,7 +7,7 @@ import shutil
 import subprocess	# for running commands
 
 from utils import *
-from haul import HAULParseError
+from core import HAULParseError
 from langs.py.reader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
 
 def put(t):
@@ -39,6 +39,7 @@ class HAULProject:
 		self.ress = []
 		
 		self.run_test = False
+		self.merge = False
 	
 	def add_source(self, name=None, filename=None):
 		if ((name == None) and (filename == None)):

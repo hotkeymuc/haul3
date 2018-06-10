@@ -109,6 +109,7 @@ class HAULReader_py(HAULReader):
 	def get_next(self, skip_blank=True):
 		#self.ofsGet = self.ofs
 		
+		#@var r HAULToken
 		if (self.peekNext != None):
 			r = self.peekNext
 			self.peekNext = None
