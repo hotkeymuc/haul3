@@ -14,6 +14,7 @@ from haul.platforms.psion.builder_psion import *
 from haul.platforms.vtech.builder_vtech import *
 from haul.platforms.webos.builder_webos import *
 
+from haul.project import HAULProject
 
 
 ### Set up external tool paths
@@ -42,14 +43,32 @@ os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
 #os.environ['PalmSDK'] = '';
 
 
-### Create project
-from haul.project import *
 
-example_name = 'hello'
+
+### Chose a Builder
+#builder = HAULBuilder_android()
+#builder = HAULBuilder_arduino()
+#builder = HAULBuilder_dos()
+#builder = HAULBuilder_gameboy()
+#builder = HAULBuilder_html()
+builder = HAULBuilder_java()
+#builder = HAULBuilder_palmos()
+#builder = HAULBuilder_psion()
+#builder = HAULBuilder_vtech()
+#builder = HAULBuilder_webos()
+
+builder.staging_path = 'staging'
+builder.output_path = 'build/build.' + builder.platform
+
+
+
+
+### Create project
+#example_name = 'hello'
 #example_name = 'small'
 #example_name = 'shellmini'
 #example_name = 'hio_test'
-#example_name = 'hres_test'
+example_name = 'hres_test'
 
 p = HAULProject(example_name)
 p.package = 'haul.examples'
@@ -60,32 +79,14 @@ p.ress_path = 'examples'
 
 # Add libs that are available for importing
 #p.add_lib('hio')
-#p.add_lib('hres')
+p.add_lib('hres')
 
 p.add_source(p.package + '.' + example_name, p.sources_path + '/' + example_name + '.py')
 
-p.add_res('hres_data1.txt')
-p.add_res('hres_data2.txt')
+p.add_res('hres1.txt')
+p.add_res('hres2.txt')
 
 p.run_test = not True
-
-
-
-### Do the building
-#builder = HAULBuilder_android()
-#builder = HAULBuilder_arduino()
-#builder = HAULBuilder_dos()
-#builder = HAULBuilder_gameboy()
-#builder = HAULBuilder_html()
-#builder = HAULBuilder_java()
-#builder = HAULBuilder_palmos()
-#builder = HAULBuilder_psion()
-#builder = HAULBuilder_vtech()
-builder = HAULBuilder_webos()
-
-builder.staging_path = 'staging'
-builder.output_path = 'build/webos'
-
 
 
 builder.build(p)

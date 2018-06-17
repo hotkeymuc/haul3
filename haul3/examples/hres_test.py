@@ -8,9 +8,9 @@ print('hres_test.py...')
 
 print('Using resources...')
 #@var i1 int
-i1 = hres.use('hres_data1.txt')
+i1 = hres.use('hres1.txt')
 #@var i2 int
-i2 = hres.use('hres_data2.txt')
+i2 = hres.use('hres2.txt')
 
 
 print('Getting data from resources...')

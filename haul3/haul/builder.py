@@ -90,14 +90,14 @@ class HAULTranslator:
 				if (s.dest_filename == None):
 					# Assume default names
 					s.dest_filename = os.path.abspath(os.path.join(output_path, s.name.replace('.', '/') + '.' + dest_extension))
-					put('Assigned filename "{}"'.format(s.dest_filename))
+					put('Assigned automatic filename "{}"'.format(s.dest_filename))
 					
 				
 			
 		
 		put('Processing libs...')
 		for s in project.libs:
-			self.process_lib(name=s.name, stream=s.stream, filename=s.uri)
+			self.process_lib(name=s.name, stream_in=s.stream, filename=s.uri)
 		
 		#@var m HAULModule
 		m = None
@@ -223,8 +223,6 @@ class HAULBuilder:
 	
 	
 	### User interface
-	def set_project(self, project):
-		self.project = project
 	
 	def set_translator(self, t):
 		self.translator = t
@@ -268,29 +266,34 @@ class HAULBuilder:
 		put('Writing to "%s"...' % (dest_filename))
 		self.touch(dest_filename, stream_out.r)
 		return m
+	"""
 	
-	def bundle(self, resources, dest_filename):
+	def resources_to_string(self):
+		"Convert the resources into a string"
+		
 		r = '# HRES data\n'
-		r += '#@var _data str[]\n'
+		r += '#@var _data arr\n'
 		r += '_data = []\n'
 		i = 0
-		for res in resources:
-			r += '# "' + str(res) + '"\n'
-			t = self.type(res)
+		for res in self.project.ress:
+			r += '# "' + str(res.name) + '"\n'
+			t = self.type(res.uri)
 			t = t.replace('\\', '\\\\')
 			t = t.replace('\'', '\\\'')
 			t = t.replace('\n', '\\n')
 			t = t.replace('\r', '\\r')
 			r += '_data[' + str(i) + '] = \'' + t + '\'\n'
 			i += 1
-		self.touch(dest_filename, r)
-	"""
+		#self.touch(dest_filename, r)
+		return r
+	
 	
 	def build(self, project):
-		"Actually build a file."
+		"Actually build stuff"
 		
+		# These are the basic steps needed for any kind of builder
 		put('Starting build...')
-		self.set_project(project)
+		self.project = project
 		
 		if (self.exists_dir(self.output_path) == False):
 			put('Creating output path "' + self.output_path + '"...')
@@ -303,5 +306,6 @@ class HAULBuilder:
 		put('Cleaning staging path "' + self.staging_path + '"...')
 		self.clean(self.staging_path)
 		
+		# Everything after that is implemented by the Builders themselves
 		
 	
