@@ -106,10 +106,26 @@ except HAULParseError as e:
 
 
 
-from haul.core import HAULTranslator
+from haul.project import HAULProject
+from haul.builder import HAULTranslator
 
-t = HAULTranslator(HAULReader_py, HAULWriter_js)
+#t = HAULTranslator(HAULReader_py, HAULWriter_js)
+t = HAULTranslator(HAULReader_py, HAULWriter_java)
 
+### Do it using a HAULProject
+p = HAULProject('my_project')
+#p.sources_path = 'examples'
+p.sources_path = '.'
+#p.libs_path = 'libs'
+
+p.add_source('haul.utils')
+p.add_source('haul.core')
+p.add_source('haul.langs.py.reader_py')
+
+t.translate_project(p, output_path='build', dest_extension='java')
+
+"""
+### Do it manually, file by file
 try:
 	### First: Parse all potential libs (headers), so all the namespaces are known for importing
 	t.process_lib('haul.utils', FileReader('haul/utils.py'))
@@ -127,5 +143,6 @@ try:
 	
 except HAULParseError as e:
 	put('HAULParseError: at token ' + str(e.token) + ': ' + str(e.message))
+"""
 
 put('translate.py ended.')

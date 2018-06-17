@@ -57,6 +57,10 @@ class HAULBuilder_vtech(HAULBuilder):
 		#put('Copying essentials...')
 		#essentials = ['vtech']
 		
+		put('Preparing path names...')
+		for s in self.project.sources:
+			s.dest_filename = self.staging_path + '/' + (s.name.split('.')[-1]) + '.c'
+		
 		put('Copying libraries...')
 		for s in self.project.libs:
 			self.copy(os.path.join(libs_path, s.name + '.h'), os.path.join(self.staging_path, s.name + '.h'))

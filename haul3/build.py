@@ -43,6 +43,8 @@ os.environ['POSE_PATH'] = os.path.abspath('tools/platforms/palmos/pose');
 
 
 ### Create project
+from haul.project import *
+
 example_name = 'hello'
 #example_name = 'small'
 #example_name = 'shellmini'
@@ -50,6 +52,7 @@ example_name = 'hello'
 #example_name = 'hres_test'
 
 p = HAULProject(example_name)
+p.package = 'haul.examples'
 p.sources_path = 'examples'
 p.libs_path = 'libs'
 p.ress_path = 'examples'
@@ -59,12 +62,12 @@ p.ress_path = 'examples'
 #p.add_lib('hio')
 #p.add_lib('hres')
 
-p.add_source(example_name)
+p.add_source(p.package + '.' + example_name, p.sources_path + '/' + example_name + '.py')
 
 p.add_res('hres_data1.txt')
 p.add_res('hres_data2.txt')
 
-p.run_test = True
+p.run_test = not True
 
 
 
@@ -74,11 +77,15 @@ p.run_test = True
 #builder = HAULBuilder_dos()
 #builder = HAULBuilder_gameboy()
 #builder = HAULBuilder_html()
-builder = HAULBuilder_java()
+#builder = HAULBuilder_java()
 #builder = HAULBuilder_palmos()
 #builder = HAULBuilder_psion()
 #builder = HAULBuilder_vtech()
-#builder = HAULBuilder_webos()
+builder = HAULBuilder_webos()
+
+builder.staging_path = 'staging'
+builder.output_path = 'build/webos'
+
 
 
 builder.build(p)

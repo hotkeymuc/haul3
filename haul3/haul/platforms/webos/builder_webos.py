@@ -25,6 +25,9 @@ class HAULBuilder_webos(HAULBuilder):
 		
 		name = self.project.name
 		
+		app_package = self.project.package	#'wtf.haul'	#'de.bernhardslawik.haul'
+		app_id = app_package + '.' + name
+		
 		startPath = os.getcwd()
 		
 		libs_path = os.path.abspath(os.path.join(self.data_path, 'platforms', 'webos', 'libs'))
@@ -46,9 +49,9 @@ class HAULBuilder_webos(HAULBuilder):
 		put('Translating sources to JavaScript...')
 		self.translate_project(output_path=self.staging_path)
 		
-		if not os.path.isfile(js_filename_full):
-			raise HAULBuildError('Main JavaScript file "{}" was not created!'.format(js_filename_full))
-			return False
+		#if not os.path.isfile(js_filename_full):
+		#	raise HAULBuildError('Main JavaScript file "{}" was not created!'.format(js_filename_full))
+		#	return False
 		
 		
 		#@FIXME: We need to create a matching Assistant!
@@ -73,8 +76,6 @@ MainAssistant.prototype = {
 		
 		
 		put('Staging webOS app...')
-		app_package = 'wtf.haul'	#'de.bernhardslawik.haul'
-		app_id = app_package + '.' + name
 		
 		appInfo = {
 			'id': app_id,
@@ -118,7 +119,7 @@ MainAssistant.prototype = {
 		for s in self.project.sources:
 			sources.append({
 				'scenes': 'main',
-				'source': s.name + '.js'
+				'source': s.name.replace('.', '/') + '.js'
 			})
 		
 		#sources_json = str(sources)

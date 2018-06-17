@@ -698,6 +698,7 @@ class HAULReader_py(HAULReader):
 						v = ns2.add_id(name=t.data, kind=K_VARIABLE, data_type=T_UNKNOWN, origin=self.loc())
 						
 					else:
+						put(ns2.dump())
 						self.raise_parse_error('Undefined id "' + str(t.data) + '" at ' + str(ns2), t)
 						
 				
@@ -1436,20 +1437,31 @@ class HAULReader_py(HAULReader):
 	def read_module(self, namespace, name, scan_only=False):
 		put_debug('read_module()')
 		
+		parent_namespace = namespace
+		
+		# Split name into package part and name
+		parts = name.split('.')
+		i = 0
+		ns = namespace
+		while (i < len(parts)):
+			name = parts[i]
+			ns = ns.get_or_create_namespace(name)
+			i = i + 1
+		
 		m = HAULModule(scan_only=scan_only)
 		m.name = name
 		m.origin = self.loc()
 		
-		if (scan_only):
-			#@TODO: registerGlobal=False so it gets de-allocated when done?
-			m.namespace = HAULNamespace(name=m.name, parent=namespace)
-			namespace.add_namespace(m.namespace)
-		else:
-			m.namespace = namespace.get_or_create_namespace(m.name)
-			
-		#m.namespace.data_module = m
 		
-		ns = m.namespace
+		#if (scan_only):
+		#	#@TODO: registerGlobal=False so it gets de-allocated when done?
+		#	m.namespace = HAULNamespace(name=m.name, parent=namespace)
+		#	namespace.add_namespace(m.namespace)
+		#else:
+		#	m.namespace = namespace.get_or_create_namespace(m.name)
+		#	
+		m.namespace = ns
+		m.parent_namespace = parent_namespace
 		
 		while (self.eof() == False):
 			t = self.peek_next()
@@ -1482,8 +1494,10 @@ class HAULReader_py(HAULReader):
 					imp_name = inc.data
 					put('Importing "' + imp_name + '"')
 					
-					imp_ns = namespace.get_namespace(imp_name)
+					#@FIXME: This does not add the import hierarchical, but as a string "haul.foo.bar"!
+					imp_ns = m.parent_namespace.get_namespace(imp_name)
 					if (imp_ns == None):
+						put(namespace.dump())
 						self.raise_parse_error('Unknown import "' + imp_name + '" is not in namespace.', t)
 					
 					ns.add_id(name=imp_name, kind=K_MODULE, data_type=T_MODULE, origin=self.loc())
@@ -1504,9 +1518,18 @@ class HAULReader_py(HAULReader):
 					
 					put('Importing from "' + imp_name + '"')
 					
-					imp_ns = namespace.get_namespace(imp_name)
-					if (imp_ns == None):
-						self.raise_parse_error('Unknown import "' + imp_name + '" not in namespace.', t)
+					# Hop through it
+					parts = imp_name.split('.')
+					imp_ns = m.parent_namespace
+					i = 0
+					while (i < len(parts)):
+						imp_name = parts[i]
+						imp_ns = imp_ns.get_namespace(imp_name)
+						if (imp_ns == None):
+							put(namespace.dump())
+							self.raise_parse_error('Unknown import from "' + imp_name + '" not in namespace.', t)
+						i = i + 1
+					
 					
 					# Read list of things to import
 					imp_list = []

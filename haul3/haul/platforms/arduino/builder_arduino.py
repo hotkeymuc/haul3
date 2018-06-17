@@ -77,10 +77,15 @@ class HAULBuilder_arduino(HAULBuilder):
 		
 		
 		put('Translating sources to C...')
-		self.translate_project(output_path=staging_path_1)
+		stream_main = FileWriter(os.path.abspath(os.path.join(staging_path_1, cFilename)))
+		
+		#stream_main.put('#import <Arduino.h>\n')
+		
+		self.translate_project(output_path=staging_path_1, stream_out_single=stream_main)
+		stream_main.close()
 		
 		if not os.path.isfile(os.path.join(staging_path_1, cFilename)):
-			raise HULBuildError('Main C file "{}" was not created!'.format(os.path.join(staging_path_1, cFilename)))
+			raise HAULBuildError('Main C file "{}" was not created!'.format(os.path.join(staging_path_1, cFilename)))
 			return False
 		
 		
@@ -110,7 +115,8 @@ class HAULBuilder_arduino(HAULBuilder):
 		#cmd += ' ' + os.path.realpath(ENV['SRC_PATH'] + '/' + filename)
 		#cmd += ' ' + os.path.realpath(self.output_path + '/' + cFilename)
 		#cmd += ' ' + os.path.realpath(stagingPath + '/' + cFilename)
-		cmd += ' ' + os.path.realpath(staging_path_1 + '/' + cFilename)
+		cmd += ' ' + os.path.abspath(os.path.join(staging_path_1, cFilename))
+		#cmd += ' ' + cFilenames
 		
 		
 		r = self.command(cmd)

@@ -46,6 +46,9 @@ class HAULBuilder_gameboy(HAULBuilder):
 		self.rm_if_exists(o_filename_full)
 		self.rm_if_exists(gb_filename_full)
 		
+		put('Preparing path names...')
+		for s in self.project.sources:
+			s.dest_filename = self.staging_path + '/' + (s.name.split('.')[-1]) + '.c'
 		
 		put('Translating source...')
 		#m = self.translate(name=name, source_filename=os.path.join(source_path, source_filename), SourceReaderClass=HAULReader_py, dest_filename=c_filename_full, DestWriterClass=HAULWriter_c, dialect=DIALECT_GBDK)

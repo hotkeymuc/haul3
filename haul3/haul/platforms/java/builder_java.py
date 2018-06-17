@@ -27,16 +27,17 @@ class HAULBuilder_java(HAULBuilder):
 		name = self.project.name
 		
 		
-		app_package = 'wtf.haul'	#'de.bernhardslawik.haul'
+		app_package = self.project.package
 		app_id = app_package + '.' + name
+		app_package_path = app_package.replace('.', '/')
 		
 		src_path = os.path.abspath(os.path.join(self.staging_path, 'src'))
 		java_filename = name + '.java'
-		java_filename_full = os.path.join(src_path, java_filename)
+		java_filename_full = os.path.abspath(os.path.join(src_path, app_package_path, java_filename))
 		
 		class_path = os.path.abspath(os.path.join(self.staging_path, 'build'))
 		class_filename = name + '.class'
-		class_filename_full = os.path.join(class_path, 'wtf', 'haul', class_filename)
+		class_filename_full = os.path.abspath(os.path.join(class_path, app_package_path, class_filename))
 		
 		jar_filename = name + '.jar'
 		jar_filename_full = os.path.abspath(os.path.join(self.staging_path, jar_filename))
@@ -67,8 +68,12 @@ class HAULBuilder_java(HAULBuilder):
 			m = self.translate(name='hresdata', source_filename=resPyFilenameFull, SourceReaderClass=HAULReader_py, dest_filename=resFilenameFull, DestWriterClass=HAULWriter_java)
 		"""
 		
+		put('Preparing path names...')
+		for s in self.project.sources:
+			s.dest_filename = os.path.abspath(os.path.join(src_path, s.name.replace('.', '/') + '.java'))
+		
 		put('Translating sources to Java...')
-		self.translate_project(output_path=src_path)
+		self.translate_project()
 		
 		if not os.path.isfile(java_filename_full):
 			raise HAULBuildError('Main Java file "{}" was not created!'.format(java_filename_full))

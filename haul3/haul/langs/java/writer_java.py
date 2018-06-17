@@ -142,12 +142,12 @@ class HAULWriter_java(HAULWriter):
 		self.write_indent(indent)
 		self.write('}\n')
 		
-	def write_module(self, m, indent=0, package='wtf.haul'):
+	def write_module(self, m, indent=0):
 		m.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		self.write_comment('### Begin of Module "' + m.name + '"')
 		
-		self.write('//package ' + str(m.namespace) + '\n')
+		package = m.namespace.parent.full_name(m.parent_namespace)
 		
 		self.write('package ')
 		self.write(package)

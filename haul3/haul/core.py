@@ -309,6 +309,14 @@ class HAULNamespace:
 			
 		return r
 	
+	def full_name(self, stop=None):
+		r = self.name
+		p = self.parent
+		while (p != stop) and (p != None):
+			r = p.name + '.' + r
+			p = p.parent
+		return r
+	
 	def __repr__(self):
 		r = ''
 		if (self.parent): r = r + str(self.parent) + '.'
@@ -585,6 +593,7 @@ class HAULModule:
 	"One Module of Code"
 	#@var name str
 	#@var namespace HAULNamespace
+	#@var parent_namespace HAULNamespace
 	#@var classes arr HAULClass
 	#@var funcs arr HAULFunction
 	#@var imports arr str
@@ -599,6 +608,7 @@ class HAULModule:
 	def __init__(self, scan_only=False):
 		self.name = '?'
 		self.namespace = None
+		self.parent_namespace = None
 		
 		self.classes = []
 		self.funcs = []
@@ -948,19 +958,19 @@ class HAULWriter:
 	
 	#@fun stream
 	#@arg reader HAULReader
-	def stream(self, reader, namespace=None, monolithic=False):
+	def stream(self, name, reader, namespace=None, monolithic=False):
 		"Write to output stream what the reader provides. Returns the module object"
-		
-		#@var name str
-		name = reader.filename.replace('.', '_')
 		
 		#@var m HAULModule
 		
 		#@var ns HAULNamespace
-		if (namespace != None):
-			ns = namespace
-		else:
+		if (namespace == None):
 			ns = HAUL_ROOT_NAMESPACE
+		else:
+			ns = namespace
+		
+		
+		
 		
 		if monolithic:
 			### Cheap (greedy: read whole input file into AST, then translate)
@@ -1017,59 +1027,3 @@ class HAULWriter:
 		
 	
 
-
-class HAULTranslator:
-	"Provides the functionality to build a HAUL file for another platform. Like make etc."
-	
-	#@var ReaderClass HAULReader
-	#@var WriterClass HAULWriter
-	#@var libs arr str
-	#@var dialect str
-	#@var namespace HAULNamespace
-	
-	def __init__(self, ReaderClass, WriterClass, dialect=None):
-		self.ReaderClass = ReaderClass
-		self.WriterClass = WriterClass
-		self.dialect = dialect
-		self.libs = []
-		
-		# For the sake of compilation we could also clone the HAUL_ROOT_NAMESPACE and write directly to it
-		#self.namespace = HAUL_ROOT_NAMESPACE.clone()
-		self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
-		
-	
-	def process_lib(self, name, stream, filename=None):
-		self.libs.append(name)
-		
-		if (filename == None):
-			filename = name + '.py'	#self.ReaderClass.default_extension
-		
-		#put('Scanning "{}"...'.format(name))
-		lib_reader = self.ReaderClass(stream=stream, filename=name)
-		lib_m = lib_reader.read_module(name=name, namespace=self.namespace, scan_only=True)
-	
-	#@fun translate HAULModule
-	#@arg name str
-	#@arg stream_in #hnd
-	#@arg stream_out #hnd
-	#@arg close_stream bool True
-	def translate(self, name, stream_in, stream_out, close_stream=True):
-		#put('Translating "{}" from "{}" to "{}"...'.format(name, stream_in.filename, stream_out.filename))
-		
-		reader = self.ReaderClass(stream=stream_in, filename=name)
-		
-		monolithic = True	# Use simple (but good) monolithic version (True) or a memory friendly multi-pass streaming method (False)
-		reader.seek(0)
-		
-		#@var writer HAULWriter
-		if (self.dialect == None):
-			writer = self.WriterClass(stream_out)
-		else:
-			writer = self.WriterClass(stream_out, dialect=self.dialect)
-		
-		m = writer.stream(reader=reader, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
-		
-		if (close_stream): stream_out.close()
-		return m
-		
-	

@@ -38,12 +38,15 @@ class HAULBuilder_palmos(HAULBuilder):
 		
 		pas_filename_full = os.path.join(self.staging_path, pas_filename)
 		
+		put('Preparing path names...')
+		for s in self.project.sources:
+			s.dest_filename = self.staging_path + '/' + self.name_to_8(s.name) + '.pas'
 		
 		put('Translating source to PP...')
 		self.translate_project(output_path=self.staging_path)
 		
 		if not os.path.isfile(pas_filename_full):
-			raise HULBuildError('Main Pascal file "{}" was not created!'.format(pas_filename_full))
+			raise HAULBuildError('Main Pascal file "{}" was not created!'.format(pas_filename_full))
 			return False
 		
 		
@@ -55,7 +58,7 @@ class HAULBuilder_palmos(HAULBuilder):
 			sources.append(s.name)
 		
 		for s in self.project.sources:
-			sources.append(s.name)
+			sources.append(self.name_to_8(s.name))
 		
 		#@TODO: Convert file to PDB
 		put('Converting pas files to PDBs...')

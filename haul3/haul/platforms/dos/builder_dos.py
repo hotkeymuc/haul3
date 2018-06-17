@@ -8,7 +8,6 @@ from haul.langs.py.reader_py import *
 from haul.langs.pas.writer_pas import *
 
 
-
 class HAULBuilder_dos(HAULBuilder):
 	def __init__(self):
 		HAULBuilder.__init__(self, platform='dos', lang='pas')
@@ -27,8 +26,8 @@ class HAULBuilder_dos(HAULBuilder):
 		qemu_path = self.get_path('QEMU_PATH', os.path.abspath(os.path.join(self.tools_path, 'qemu')))
 		
 		
-		pas_filename = name[0:8] + '.pas'
-		exe_filename = name[0:8] + '.exe'
+		pas_filename = self.name_to_8(name) + '.pas'
+		exe_filename = self.name_to_8(name) + '.exe'
 		pas_filename_full = os.path.abspath(os.path.join(self.staging_path, pas_filename))
 		exe_filename_full = os.path.abspath(os.path.join(self.staging_path, exe_filename))
 		
@@ -37,9 +36,9 @@ class HAULBuilder_dos(HAULBuilder):
 		
 		put('Preparing path names...')
 		for s in self.project.sources:
-			s.dest_filename = self.staging_path + '/' + s.name[0:8] + '.pas'
+			s.dest_filename = os.path.abspath(os.path.join(self.staging_path, self.name_to_8(s.name) + '.pas'))
 		for s in self.project.libs:
-			s.dest_filename = self.staging_path + '/' + s.name[0:8] + '.pas'
+			s.dest_filename = os.path.abspath(ps.path.join(self.staging_path, self.name_to_8(s.name) + '.pas'))
 		
 		
 		put('Copying libraries...')

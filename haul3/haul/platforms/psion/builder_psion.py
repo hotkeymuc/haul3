@@ -41,7 +41,7 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		
 		
-		name8 = name[0:8].upper()
+		name8 = self.name_to_8(name).upper()
 		opl_filename = name8 + '.OPL'
 		#ob3Filename = name8 + '.ob3'
 		opl_filename_full = os.path.abspath(os.path.join(self.staging_path, opl_filename))
@@ -50,13 +50,13 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		put('Preparing path names...')
 		for s in self.project.sources:
-			s.dest_filename = self.staging_path + '/' + s.name[0:8].upper() + '.OPL'
+			s.dest_filename = self.staging_path + '/' + self.name_to_8(s.name).upper() + '.OPL'
 		for s in self.project.libs:
-			s.dest_filename = self.staging_path + '/' + s.name[0:8].upper() + '.OPL'
+			s.dest_filename = self.staging_path + '/' + self.name_to_8(s.name).upper() + '.OPL'
 		
 		put('Copying libraries...')
 		for s in self.project.libs:
-			self.copy(os.path.join(data_libs_path, s.name + '.opl'), os.path.join(self.staging_path, s.name[0:8].upper() + '.OPL'))
+			self.copy(os.path.join(data_libs_path, s.name + '.opl'), os.path.join(self.staging_path, self.name_to_8(s.name).upper() + '.OPL'))
 		
 		
 		put('Translating sources to OPL3...')
@@ -187,12 +187,12 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		autoexec += 'COPY NUL ' + source_list_filename + CRLF
 		for s in self.project.sources:
-			n = s.name[0:8].upper() + '.OPL'
+			n = self.name_to_8(s.name).upper() + '.OPL'
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
 			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
 			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + source_list_filename + CRLF
 		for s in self.project.libs:
-			n = s.name[0:8].upper() + '.OPL'
+			n = self.name_to_8(s.name).upper() + '.OPL'
 			autoexec += 'COPY ' + DOS_STAGING_DIR + '\\' + n + ' ' + DOS_TEMP_DIR + CRLF
 			#oplFiles.append(DOS_TEMP_DIR + '\\' + n)
 			autoexec += 'ECHO ' + DOS_TEMP_DIR + '\\' + n + '>>' + source_list_filename + CRLF
@@ -252,7 +252,7 @@ class HAULBuilder_psion(HAULBuilder):
 		
 		# Lib files preceed the main file
 		for s in self.project.libs:
-			l = s.name[0:8].upper()
+			l = self.name_to_8(s.name).upper()
 			#while len(l) < 8: l += ' '
 			l += ' OB3'
 			#l = l + ' OB3 ' + l

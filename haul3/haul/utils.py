@@ -185,13 +185,20 @@ class FileWriter:
 	def __init__(self, filename):
 		self.ofs = 0
 		self.filename = filename
+		
+		## Create dir if not exists
+		#path = os.path.dirname(filename)
+		#if (os.path.exists(path) == False):
+		#	os.makedirs(path)
+		
 		self.h = open(filename, 'wb+')
 	
 	def close(self):
 		self.h.close()
 	
 	def __del__(self):
-		self.h.close()
+		#self.h.close()
+		pass
 	
 	#@fun put
 	#@arg data str

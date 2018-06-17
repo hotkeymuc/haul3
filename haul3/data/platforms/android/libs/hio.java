@@ -17,13 +17,16 @@ interface IMain {
 	/*public static void main(String[] args);*/
 	public void _main();
 }
-interface IHIO_putter {
+
+/*
+public interface IHIO_putter {
 	void put(String data);
 	void put_direct(String data);
 	void shout(String data);
 }
+*/
 
-class hio {
+public class hio {
 	
 	//public static Handler _handler;
 	//public static Thread _mainThread;

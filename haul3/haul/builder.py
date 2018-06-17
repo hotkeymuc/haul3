@@ -7,8 +7,7 @@ import shutil
 import subprocess	# for running commands
 
 from utils import *
-from core import HAULParseError
-from langs.py.reader_py import HAULNamespace, HAUL_ROOT_NAMESPACE, HAULReader_py
+from core import HAULParseError, HAULNamespace, HAUL_ROOT_NAMESPACE
 
 def put(t):
 	print('HAULBuilder:\t' + str(t))
@@ -17,69 +16,117 @@ def put(t):
 class HAULBuildError(Exception):
 	pass
 
-class HAULSource:
-	def __init__(self, name, stream, uri=None):
-		self.name = name
-		self.stream = stream
-		self.uri = uri
-		self.dest_filename = None
-	
 
-class HAULProject:
-	def __init__(self, name):
-		self.name = name
-		
-		self.sources_path = '.'
-		self.sources = []
-		
-		self.libs_path = 'libs'
+
+class HAULTranslator:
+	"Provides the functionality to compile a HAUL file to another platform. Like make etc."
+	
+	#@var ReaderClass HAULReader
+	#@var WriterClass HAULWriter
+	#@var libs arr str
+	#@var dialect str
+	#@var namespace HAULNamespace
+	
+	def __init__(self, ReaderClass, WriterClass, dialect=None):
+		self.ReaderClass = ReaderClass
+		self.WriterClass = WriterClass
+		self.dialect = dialect
 		self.libs = []
 		
-		self.ress_path = 'data'
-		self.ress = []
+		# For the sake of compilation we could also clone the HAUL_ROOT_NAMESPACE and write directly to it
+		#self.namespace = HAUL_ROOT_NAMESPACE.clone()
+		self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
 		
-		self.run_test = False
-		self.merge = False
 	
-	def add_source(self, name=None, filename=None):
-		if ((name == None) and (filename == None)):
-			raise Exception('A name or filename has to be specified as source')
+	#@fun process_lib HAULModule
+	#@arg name str
+	#@arg stream_out #hnd
+	#@arg filename str
+	def process_lib(self, name, stream_in, filename=None):
+		"Read and parse the given file"
+		self.libs.append(name)
 		
-		if (name == None):
-			# Guess name from filename if omitted
-			name = name_by_filename(filename)
 		if (filename == None):
-			# Guess filename from name if omitted
-			filename = self.sources_path + '/' + name + '.py'
+			filename = name + '.py'	#self.ReaderClass.default_extension
 		
-		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
-		self.sources.append(source)
+		#put('Scanning "{}"...'.format(name))
+		lib_reader = self.ReaderClass(stream=stream_in, filename=name)
+		lib_m = lib_reader.read_module(name=name, namespace=self.namespace, scan_only=True)
+		return lib_m
+	
+	#@fun translate_source HAULModule
+	#@arg name str
+	#@arg stream_in #hnd
+	#@arg stream_out #hnd
+	#@arg close_stream bool True
+	def translate_source(self, source, stream_out, close_stream=True):
+		#put('Translating "{}" from "{}" to "{}"...'.format(name, stream_in.filename, stream_out.filename))
+		
+		reader = self.ReaderClass(stream=source.stream, filename=source.uri)
+		
+		monolithic = True	# Use simple (but good) monolithic version (True) or a memory friendly multi-pass streaming method (False)
+		reader.seek(0)
+		
+		#@var writer HAULWriter
+		if (self.dialect == None):
+			writer = self.WriterClass(stream_out)
+		else:
+			writer = self.WriterClass(stream_out, dialect=self.dialect)
+		
+		m = writer.stream(reader=reader, name=source.name, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
+		
+		if (close_stream): stream_out.close()
+		return m
 		
 	
-	def add_lib(self, name, filename=None):
-		if (filename == None):
-			# Guess default lib filename if omitted
-			filename = os.path.join(self.libs_path, name + '.py')
+	#@fun translate_project
+	#@arg project HAULProject
+	def translate_project(self, project, output_path=None, dest_extension=None, stream_out_single=None):
 		
-		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
-		self.libs.append(source)
+		if (stream_out_single == None):
+			put('Checking source filenames...')
+			for s in project.sources:
+				# Each file to own output file
+				if (s.dest_filename == None):
+					# Assume default names
+					s.dest_filename = os.path.abspath(os.path.join(output_path, s.name.replace('.', '/') + '.' + dest_extension))
+					put('Assigned filename "{}"'.format(s.dest_filename))
+					
+				
+			
 		
+		put('Processing libs...')
+		for s in project.libs:
+			self.process_lib(name=s.name, stream=s.stream, filename=s.uri)
+		
+		#@var m HAULModule
+		m = None
+		
+		put('Translating source(s)...')
+		for s in project.sources:
+			#try:
+				if (stream_out_single == None):
+					
+					path = os.path.dirname(s.dest_filename)
+					if (os.path.exists(path) == False):
+						os.makedirs(path)
+					
+					stream_out = FileWriter(s.dest_filename)
+					
+					m = self.translate_source(s, stream_out, close_stream=True)
+				else:
+					# All files into one stream
+					m = self.translate_source(s, stream_out_single, close_stream=False)
+					
+			#except HAULParseError as e:
+			#	raise Exception('Cannot translate "{}": {} in {}'.format(s.uri, e.message, str(e.token)))
+			#	return None
+		
+		# Return last translated module, which is most likely the main module
+		return m
 	
-	def add_res(self, name=None, filename=None):
-		if ((name == None) and (filename == None)):
-			raise Exception('A name or filename has to be specified as resource')
-		
-		if (name == None):
-			# Guess name from filename if omitted
-			name = name_by_filename(filename)
-		if (filename == None):
-			# Guess filename from name if omitted
-			filename = os.path.join(self.sources_path, name)
-		
-		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
-		self.ress.append(source)
-		
-	
+
+
 
 class HAULBuilder:
 	"Provides the functionality to build a HAUL file for another platform. Like make etc."
@@ -167,6 +214,13 @@ class HAULBuilder:
 		
 		return r
 	
+	def name_to_8(self, n):
+		if ('.' in n):
+			p = n.rfind('.')
+			n = n[p+1:]
+		
+		return n[0:8]
+	
 	
 	### User interface
 	def set_project(self, project):
@@ -175,17 +229,9 @@ class HAULBuilder:
 	def set_translator(self, t):
 		self.translator = t
 	
-	def process_libs(self):
-		put('Processing libs...')
-		for s in self.project.libs:
-			self.translator.process_lib(name=s.name, stream=s.stream, filename=s.uri)
-		
-	
 	def translate_project(self, output_path=None, dest_extension=None, stream_out_single=None):
 		"Translate the loaded project using the given translator. If stream_out_single is given, all files are written to that stream instead of individual files."
 		m = None
-		
-		self.process_libs()
 		
 		if (output_path == None):
 			output_path = self.staging_path
@@ -193,25 +239,7 @@ class HAULBuilder:
 		if (dest_extension == None):
 			dest_extension = self.lang
 		
-		put('Translating source(s)...')
-		for s in self.project.sources:
-			try:
-				if (stream_out_single == None):
-					# Each file to own output file
-					if (s.dest_filename == None):
-						# Assume default names
-						s.dest_filename = output_path + '/' + s.name + '.' + dest_extension
-						put('Assigned output filename "{}"'.format(s.dest_filename))
-					
-					stream_out = FileWriter(s.dest_filename)
-					m = self.translator.translate(s.name, s.stream, stream_out, close_stream=True)
-				else:
-					# All files into one stream
-					m = self.translator.translate(s.name, s.stream, stream_out_single, close_stream=False)
-					
-			except HAULParseError as e:
-				raise HAULBuildError('Cannot translate "{}": {} in {}'.format(s.uri, e.message, str(e.token)))
-				return None
+		m = self.translator.translate_project(self.project, output_path=output_path, dest_extension=dest_extension, stream_out_single=stream_out_single)
 		
 		# Return last translated module, which is most likely the main module
 		return m
@@ -233,7 +261,7 @@ class HAULBuilder:
 			writer = DestWriterClass(stream_out, dialect=dialect)
 		
 		try:
-			m = writer.stream(reader, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
+			m = writer.stream(reader, name, namespace=self.namespace, monolithic=monolithic)	# That's where the magic happens!
 		except HAULParseError as e:
 			raise
 		

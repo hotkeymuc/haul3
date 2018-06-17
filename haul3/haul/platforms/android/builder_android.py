@@ -29,10 +29,12 @@ class HAULBuilder_android(HAULBuilder):
 		
 		#@TODO: MAke package name customizable!
 		
-		appNamespace = 'wtf.haul'
-		android_app_id = appNamespace + '.' + name
-		android_app_version = '0.0.1'
-		app_activity_id = 'wtf.haul.HaulActivity'	#android_app_id + '.MainActivity'
+		app_namespace = self.project.package
+		android_app_id = app_namespace + '.' + name
+		android_app_version = self.project.version
+		app_activity_name = 'HaulActivity'
+		app_activity_id = app_namespace + '.' + app_activity_name	#android_app_id + '.MainActivity'
+		app_package_path = app_namespace.replace('.', '/')
 		
 		data_libs_path = os.path.join(self.data_path, 'platforms', 'android', 'libs')
 		data_res_path = os.path.join(self.data_path, 'platforms', 'android', 'res')
@@ -46,8 +48,8 @@ class HAULBuilder_android(HAULBuilder):
 		java_filename = name + '.java'
 		#class_filename = name.capitalize() + '.class'
 		class_filename = name + '.class'
-		package_src_path = os.path.join(src_path, 'wtf', 'haul')
-		package_class_path = os.path.join(class_path, 'wtf', 'haul')
+		package_src_path = os.path.abspath(os.path.join(src_path, app_package_path))
+		package_class_path = os.path.abspath(os.path.join(class_path, app_package_path))
 		
 		
 		java_filename_full = os.path.join(package_src_path, java_filename)
@@ -94,17 +96,17 @@ class HAULBuilder_android(HAULBuilder):
 		put('Cleaning staging paths...')
 		self.clean(src_path)
 		self.clean(class_path)
-		self.mkdir(os.path.join(src_path, 'wtf'))
-		self.mkdir(os.path.join(src_path, 'wtf', 'haul'))
+		self.mkdir(package_src_path)
 		
 		
 		
 		put('Preparing path names...')
 		for s in self.project.sources:
-			s.dest_filename = package_src_path + '/' + s.name + '.java'
+			s.dest_filename = os.path.abspath(os.path.join(src_path, s.name.replace('.', '/') + '.java'))
+		
 		
 		put('Translating sources to Java...')
-		self.translate_project(output_path=package_src_path)
+		self.translate_project(output_path=src_path)
 		
 		if not os.path.isfile(java_filename_full):
 			raise HAULBuildError('Main Java file "{}" was not created!'.format(java_filename_full))
@@ -118,7 +120,7 @@ class HAULBuilder_android(HAULBuilder):
 		src_files = []
 		for s in self.project.libs:
 			lib_filename_data = data_libs_path + '/' + s.name + '.java'
-			f = os.path.join(src_path, 'wtf', 'haul', s.name + '.java')
+			f = os.path.join(src_path, s.name + '.java')
 			self.copy(lib_filename_data, f)
 			src_files.append(f)
 		
@@ -126,14 +128,14 @@ class HAULBuilder_android(HAULBuilder):
 		
 		
 		put('Creating haulInfo...')
-		haulInfo = '''package wtf.haul;
+		haulInfo = '''package %s;
 
 //import %s;
 
 public class HaulInfo {
 	public static final %s MainClass = new %s();
 }
-''' % (android_app_id, name, name)
+''' % (app_namespace, android_app_id, name, name)
 # % (android_app_id, name.capitalize(), name.capitalize())
 		self.touch(haul_info_filename, haulInfo)
 		src_files.append(haul_info_filename)
@@ -143,10 +145,27 @@ public class HaulInfo {
 			return False
 		
 		
-		put('Copying activities...')
-		f = os.path.join(src_path, 'wtf', 'haul', 'HaulActivity.java')
-		self.copy(os.path.join(data_res_path, 'HaulActivity.java'), f)
+		put('Creating activity...')
+		f = os.path.join(package_src_path, app_activity_name + '.java')
+		#self.copy(os.path.join(data_res_path, 'HaulActivity.java'), f)
+		
+		r = 'package %s;\n' % (app_namespace)
+		r = r + self.type(os.path.join(data_res_path, 'HaulActivity.java'))
+		self.touch(f, r)
 		src_files.append(f)
+		
+		
+		#@FIXME: Android currently always needs the hio interface
+		f = os.path.abspath(os.path.join(src_path, 'wtf', 'haul', 'IHIO_putter.java'))
+		self.mkdir(os.path.dirname(f))
+		self.copy(os.path.join(data_libs_path, 'IHIO_putter.java'), f)
+		src_files.append(f)
+		
+		f = os.path.abspath(os.path.join(src_path, 'wtf', 'haul', 'hio.java'))
+		self.mkdir(os.path.dirname(f))
+		self.copy(os.path.join(data_libs_path, 'hio.java'), f)
+		src_files.append(f)
+		
 		
 		
 		

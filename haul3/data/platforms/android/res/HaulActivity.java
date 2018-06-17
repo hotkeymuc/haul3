@@ -1,4 +1,4 @@
-package wtf.haul;
+//package wtf.haul;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -10,6 +10,9 @@ import android.view.Window;
 import android.widget.TextView;
 import android.graphics.Typeface;
 //import android.util.Log;
+
+import wtf.haul.hio;
+import wtf.haul.IHIO_putter;
 
 public class HaulActivity extends Activity implements IHIO_putter {
 	
