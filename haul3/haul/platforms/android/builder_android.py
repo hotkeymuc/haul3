@@ -119,8 +119,9 @@ class HAULBuilder_android(HAULBuilder):
 		put('Copying libraries...')
 		src_files = []
 		for s in self.project.libs:
-			lib_filename_data = data_libs_path + '/' + s.name + '.java'
-			f = os.path.join(src_path, s.name + '.java')
+			lib_filename_data = os.path.join(data_libs_path, s.name, s.name + '.java')
+			f = os.path.join(src_path, s.name, s.name + '.java')
+			self.mkdir(os.path.dirname(f))
 			self.copy(lib_filename_data, f)
 			src_files.append(f)
 		
@@ -161,10 +162,10 @@ public class HaulInfo {
 		self.copy(os.path.join(data_libs_path, 'IHIO_putter.java'), f)
 		src_files.append(f)
 		
-		f = os.path.abspath(os.path.join(src_path, 'wtf', 'haul', 'hio.java'))
-		self.mkdir(os.path.dirname(f))
-		self.copy(os.path.join(data_libs_path, 'hio.java'), f)
-		src_files.append(f)
+		#f = os.path.abspath(os.path.join(src_path, 'hio', 'haul', 'hio.java'))
+		#self.mkdir(os.path.dirname(f))
+		#self.copy(os.path.join(data_libs_path, 'hio.java'), f)
+		#src_files.append(f)
 		
 		
 		

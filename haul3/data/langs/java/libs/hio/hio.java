@@ -1,5 +1,6 @@
 // HAUL I/O for Java
-package wtf.haul;
+//package wtf.haul;
+package hio;
 
 import java.util.*;
 
@@ -8,7 +9,7 @@ interface IMain {
 	void _main();
 }
 
-class hio {
+public class hio {
 	
 	public static void put(String data) {
 		System.out.println(data);

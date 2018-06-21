@@ -85,8 +85,9 @@ class HAULBuilder_java(HAULBuilder):
 		
 		src_files = []
 		for s in self.project.libs:
-			f_in = data_libs_path + '/' + s.name + '.java'
-			f_out = os.path.abspath(os.path.join(src_path, s.name + '.java'))
+			f_in = os.path.join(data_libs_path, s.name, s.name + '.java')
+			f_out = os.path.abspath(os.path.join(src_path, s.name, s.name + '.java'))
+			self.mkdir(os.path.dirname(f_out))
 			self.copy(f_in, f_out)
 			src_files.append(f_out)
 		

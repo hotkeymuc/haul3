@@ -163,9 +163,11 @@ class HAULWriter_java(HAULWriter):
 			self.write('\n')
 			self.write_comment('### Imports...')
 			for im in m.imports:
-				self.write('// import ')
+				self.write('import ')
 				self.write(str(im))
-				self.write(';\n')
+				self.write('.')
+				self.write(str(im))
+				self.write(';	// Assume class of same name\n')
 			self.write('\n')
 		
 		
