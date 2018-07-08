@@ -370,6 +370,9 @@ class HAULWriter_opl(HAULWriter):
 			t = t.replace('\r', '\\r')
 			t = t.replace('\n', '\\n')
 			t = t.replace('\'', '\\\'')
+			#t = t.replace('\r', '"+CHR$(13)+"')
+			#t = t.replace('\n', '"+CHR$(10)+"')
+			#t = t.replace('"', '"+CHR$(34)+"')
 			self.write('"' + t + '"')
 		elif (v.type == T_BOOLEAN):
 			if (v.data_bool): self.write('TRUE')

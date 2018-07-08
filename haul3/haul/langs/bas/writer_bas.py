@@ -16,22 +16,42 @@ PAT_INFIX = [
 ]
 
 DIALECT_GW = 0
+DIALECT_MS = 1
 
 class HAULWriter_bas(HAULWriter):
-	"Writes BASIC code"
+	"Writes Basic code"
 	
 	def __init__(self, stream_out, dialect=DIALECT_GW):
 		HAULWriter.__init__(self, stream_out)
 		self.default_extension = 'bas'
 		
-		self.write_comment('Translated from HAUL3 to BASIC on ' + str(datetime.datetime.now()) )
+		#self.write_comment('Translated from HAUL3 to BASIC on ' + str(datetime.datetime.now()) )
 		
 		self.dialect = dialect
 		
+		# Add line numbers?
+		self.line_numbering = False
+		self.current_line = 10
+		# Have "real" functions (or only GOSUB?)
+		self.functions = True
+		
+		if self.dialect == DIALECT_MS:
+			self.line_numbering = True
+			self.functions = False
+		
+	
+	def write_nl(self):
+		self.write('\n')
+		self.current_line = self.current_line + 10
+		if self.line_numbering == True:
+			self.write(str(self.current_line) + ' ')
+	
 	def write_comment(self, t):
 		"Add a comment to the file"
+		self.write('\'' + t)
+		self.write_nl()
 		#self.stream_out.put('REM ' + t + '\n')
-		self.stream_out.put('REM ' + t + '\n')
+		#self.stream_out.put('REM ' + t + '\n')
 		
 	def write_indent(self, num):
 		r = ''
@@ -54,55 +74,74 @@ class HAULWriter_bas(HAULWriter):
 					self.write('DIM ' + str(id.name))
 					self.write('	\' AS ')
 					self.write_type(id.data_type)
-					self.write('\n')
+					self.write_nl()
 		
 	def write_function(self, f, indent=0):
 		f.destination = self.stream_out.ofs	# Record offset in output stream
 		
-		#self.write_namespace(f.namespace, indent)
+		#@TODO: Resollve GOSUB <f.id>
+		f.line_number = self.current_line
+		f.id.user = self.current_line
 		
+		#self.write_namespace(f.namespace, indent)
 		self.write_indent(indent)
 		
-		self.write('FUNCTION ')
-		self.write(f.id.name)
-		
-		if (len(f.args) > 0):
-			self.write('(')
-			for i in xrange(len(f.args)):
-				if (i > 0): self.write(', ')
-				#self.write_expression(args[i])
-				self.write_var(f.args[i])
-				"""
-				id = f.namespace.findId(f.args[i].name)
-				if (id == None):
-					#self.write_comment('UnknownType')
-					pass
-				else:
-					self.write(' AS ')
-					self.write_type(id.data)
-				"""
-			self.write(')')
+		if (self.functions):
+			self.write('FUNCTION ')
+			self.write(f.id.name)
 			
-		self.write('\n')
+			if (len(f.args) > 0):
+				self.write('(')
+				for i in xrange(len(f.args)):
+					if (i > 0): self.write(', ')
+					#self.write_expression(args[i])
+					self.write_var(f.args[i])
+					"""
+					# QBasic:
+					id = f.namespace.findId(f.args[i].name)
+					if (id == None):
+						#self.write_comment('UnknownType')
+						pass
+					else:
+						self.write(' AS ')
+						self.write_type(id.data)
+					"""
+				self.write(')')
+		else:
+			# No support for "real" functions
+			self.write('\'Function ' + f.id.name)
+			
+		self.write_nl()
 		
 		#if self.dialect == DIALECT_OPL:
 		#	self.write_namespace(f.namespace, indent+1)
 		self.write_block(f.block, indent+1)
 		
-		self.write('END FUNCTION\n')
+		if (self.functions):
+			self.write('END FUNCTION')
+		else:
+			self.write('RETURN \'End of ' + f.id.name)
+		self.write_nl()
+		
+		#@TODO: Resolve GOSUB <end of f.id>
 		
 		self.write_indent(indent)
-		self.write('\n')
+		self.write_nl()
 		
 	def write_module(self, m, indent=0):
 		m.destination = self.stream_out.ofs	# Record offset in output stream
+		if self.line_numbering == True:
+			# Initial line
+			self.write(str(self.current_line) + ' ')
 		
 		self.write_comment('### Module "' + m.name + '"')
+		self.write_comment('Translated from HAUL3 to BASIC on ' + str(datetime.datetime.now()) )
+		
 		for im in m.imports:
 			"""
 			self.write('\'INCLUDE ')
 			self.write(str(im))
-			self.write('\n')
+			self.write_nl()
 			"""
 			
 			#self.write('LOADM "' + str(im) + '"\n')	# Not compatible with old OPL, gives error
@@ -113,7 +152,9 @@ class HAULWriter_bas(HAULWriter):
 		self.write_comment('### Root Block (main function):')
 		if (m.block):
 			self.write_block(m.block, indent)
-			
+			# Terminate main block
+			self.write('END')
+			self.write_nl()
 		
 		#@FIXME: Old OPL needs to have each PROC in its own file. Newer OPL can have "PROC xxx:" in source
 		### OPL seems to need the procs at the bottom (after main proc)
@@ -125,38 +166,48 @@ class HAULWriter_bas(HAULWriter):
 		for func in m.funcs:
 			self.write_function(func, indent)
 		
+		# Fill last line
+		if self.line_numbering == True:
+			self.write('REM End of module\n')
 		
+	
 	def write_class(self, c, indent=0):
 		c.destination = self.stream_out.ofs	# Record offset in output stream
 		
-		#self.write('# Class "' + t.id.name + '"\n')
+		#self.write_comment('# Class "' + c.id.name + '"\n')
 		self.write_indent(indent)
 		self.write('class ')
 		self.write(c.id.name)
-		self.write(':\n')
+		self.write(':')
+		self.write_nl()
 		
 		if (c.namespace):
-			#self.write_indent(indent+1)
-			#self.write('### Class namespace...\n')
 			self.write_namespace(c.namespace, indent+1)
 		
 		#@TODO: Initializer?
 		for func in c.funcs:
 			self.write_function(func, indent+1)
 		
-		#self.write('# End-of-Type "' + t.id.name + '"\n')
-		
 	def write_block(self, b, indent=0):
 		b.destination = self.stream_out.ofs	# Record offset in output stream
 		
-		#self.write("# Block \"" + b.name + "\"\n")
+		#@TODO: Resolve GOSUB <b.id>
+		b.line_number = self.current_line
 		
+		#self.write_comment("# Block \"" + b.name + "\"\n")
 		for instr in b.instrs:
 			if (instr.control) or (instr.call):
 				self.write_indent(indent)
 				self.write_instruction(instr, indent)
-				self.write('\n')
-			
+				
+			if (instr.comment):
+				self.write('\'')
+				self.write(instr.comment)
+				
+			self.write_nl()
+		
+		#@TODO: Resolve GOSUB <end of b.id>
+		
 	def write_instruction(self, i, indent):
 		i.destination = self.stream_out.ofs	# Record offset in output stream
 		
@@ -173,43 +224,57 @@ class HAULWriter_bas(HAULWriter):
 				if (j > 0):
 					self.write_indent(indent)
 					self.write('ELSE ')	# "ELSEIF" in OPL
-				self.write('IF (')
+				self.write('IF ')
 				
 				self.write_expression(c.exprs[j])
-				self.write(')')
+				#self.write(')')
 				self.write(' THEN')
-				self.write('\n')
+				self.write_nl()
 				self.write_block(c.blocks[j], indent+1)
 				j += 1
 			
 			if (j < len(c.blocks)):
 				self.write_indent(indent)
-				self.write('ELSE\n')
+				self.write('ELSE')
+				self.write_nl()
 				self.write_block(c.blocks[j], indent+1)
 			
 			self.write_indent(indent)
-			self.write('END IF\n')
+			self.write('END IF')
+			self.write_nl()
 		
 		elif (c.controlType == C_FOR):
 			self.write('FOR ')
 			self.write_expression(c.exprs[0])
 			self.write(' in ')
 			self.write_expression(c.exprs[1])
-			self.write('\n')
+			self.write_nl()
 			self.write_block(c.blocks[0], indent+1)
 			
 			self.write('NEXT ')
 			self.write_expression(c.exprs[0])
 			
 		elif (c.controlType == C_RETURN):
-			self.write('RETURN ')
-			self.write_expression(c.exprs[0])
-			#self.write('\n')
+			if (self.functions == True):
+				self.write('RETURN ')
+				self.write_expression(c.exprs[0])
+			else:
+				self.resolve_expressions(c.exprs, 0, 0)
+				self.write('R = ')
+				self.write_expression_list(c.exprs, 0, 0)
+				self.write_nl()
+				self.write_indent(indent)
+				self.write('RETURN')
+				
+				
+			#self.write_nl()
 		else:
-			self.write('CONTROL "' + str(c.controlType) + '"\n')
+			self.write_comment('CONTROL "' + str(c.controlType) + '"')
+			self.write_nl()
 		
 	def write_call(self, c, level=0):
 		i = c.id.name
+		
 		
 		# Set-variable-instruction
 		if i == I_VAR_SET.name:
@@ -218,85 +283,136 @@ class HAULWriter_bas(HAULWriter):
 			# if (c.args[0].var) and (not c.args[0].var.type == None): self.write('#@' + c.args[0].var.type.name + '\n')
 			
 			#self.write_var(c.args[0].var)
+			self.resolve_expressions(c.args, 1, level)
+			
 			self.write_expression(c.args[0], level)
 			self.write(' = ')
-			self.write_expression(c.args[1], level)
+			self.write_expression_list(c.args, 1, level)
 		
 		elif i == I_ARRAY_LOOKUP.name:
+			self.resolve_expressions(c.args, 1, level)
 			self.write_expression(c.args[0], level)
 			self.write('(')
 			self.write_expression_list(c.args, 1, level)
 			self.write(')')
 			
 		elif i == I_ARRAY_CONSTRUCTOR.name:
+			#@FIXME: Write it out...
+			self.resolve_expressions(c.args, 0, level)
 			self.write('(')
 			self.write_expression_list(c.args, 0, level)
 			self.write(')')
 			
 		elif i == I_OBJECT_CALL.name:
+			#@FIXME: Not trivially supported in GW
+			self.resolve_expressions(c.args, 1, level)
 			self.write_expression(c.args[0], level)
 			self.write('(')
 			self.write_expression_list(c.args, 1, level)
 			self.write(')')
 			
 		elif i == I_OBJECT_LOOKUP.name:
+			self.resolve_expressions(c.args, 1, level)
 			self.write_expression(c.args[0], level)
 			self.write('.')
-			self.write_expression(c.args[1], level)
+			self.write_expression_list(c.args, 1, level)
 		
 		elif any(i in p for p in PAT_INFIX):
+			self.resolve_expressions(c.args, 0, level)
+			
 			self.write_expression(c.args[0], level)	# level-1
 			
 			self.write(' ' + i + ' ')
 			
-			self.write_expression(c.args[1], level)	# level-1
+			self.write_expression_list(c.args, 1, level)	# level-1
 		
 		else:
 			# Write a standard call
 			
 			# Internals
+			is_internal = False
 			if i == I_PRINT.name:
 				i = 'PRINT'
-			if (i == I_STR.name):
+				is_internal = True
+			elif (i == I_STR.name):
 				i = 'STR$'
+				is_internal = True
 			
-			"""
-			# Internals
-			#@FIXME: Redirect to library/external files, e.g. hio_put
-			if (i == 'shout'):
-				self.write('PRINT ')
-				self.write_expression_list(c.args, 0, level)
-				self.write('\nBEEP 250,440\nGET\n')	# Beep and wait for key
 			
-			elif (i == 'put_direct'):
-				self.write('PRINT ')
-				self.write_expression_list(c.args, 0, level)
-				self.write(',')
+			if (self.functions == True) or (is_internal == True):
+				self.resolve_expressions(c.args, 0, level)
 				
-			else:
-			"""
-			
-			if (level == 0):
-				
-				self.write('CALL ')
+				#if (level == 0): #self.write('CALL ')
 				self.write(i)
 				
 				if (len(c.args) > 0):
 					self.write('(')
 					self.write_expression_list(c.args, 0, level)
 					self.write(')')
+				
 			else:
-				self.write(i)
-				if (len(c.args) > 0):
-					self.write('(')
-					self.write_expression_list(c.args, 0, level)
-					self.write(')')
+				# No "real" function, so convert it to a GOSUB
+				self.write_comment('Call function ' + str(i))
+				
+				# Prepare function arguments
+				f = c.id.data_function
+				j = 0
+				for j in range(len(f.args)):
+					# Set the function arguments (variabes) directly
+					fa = f.args[j]
+					a = c.args[j]
+					
+					# Create a virtua HAULCall to set that var
+					c2 = HAULCall(I_VAR_SET)
+					e2 = HAULExpression()
+					e2.var = fa
+					c2.args.append(e2)
+					c2.args.append(a)
+					self.write_call(c2)
+					self.write_nl()
+					j = j + 1
+					
+				self.write('GOSUB ??? \'' + i + '')
+				
+				self.write_nl()
 			
+		
+	def resolve_expressions(self, es, start, level=0):
+		if self.functions == True: return
+		
+		i = 0
+		for i in xrange(len(es)-start):
+			e = es[start+i]
+			if (e.call != None) and (not e.call.id.name in PAT_INFIX):
+				self.write_comment('Resolve GOSUB call to ' + e.call.id.name)
+				
+				self.write_expression(e, 0)
+				
+				self.write_resolved_variable(i, e.call.id.data_type)
+				self.write(' = ')
+				self.write('R')
+				#self.write_type(e.call.id.data_type)
+				self.write_nl()
+			
+		
+	def write_resolved_variable(self, i, typ):
+		self.write('A')
+		self.write(str(i))
+		self.write_type(typ)
+	
 	def write_expression_list(self, es, start, level):
 		i = 0
 		for i in xrange(len(es)-start):
+			e = es[start+i]
 			if (i > 0): self.write(', ')
-			self.write_expression(es[start+i], level=level)
+			
+			if (self.functions == False) and (e.call != None) and (not e.call.id.name in PAT_INFIX):
+				self.write_resolved_variable(i, e.call.id.data_type)
+				
+			else:
+				self.write_expression(e, level=level)
+			
+			
 	
 	def write_expression(self, e, level=0):
 		if (e.value): self.write_value(e.value)
@@ -308,7 +424,11 @@ class HAULWriter_bas(HAULWriter):
 			
 	def write_value(self, v):
 		if (v.type == T_STRING):
-			self.write('"' + v.data_str.replace('"', '"+CHR$(34)+"') + '"')	#@TODO: Escaping!
+			t = v.data_str
+			t = t.replace('\r', '"+CHR$(13)+"')
+			t = t.replace('\n', '"+CHR$(10)+"')
+			t = t.replace('"', '"+CHR$(34)+"')
+			self.write('"' + t + '"')
 		elif (v.type == T_INTEGER):
 			self.write(str(v.data_int))
 		elif (v.type == T_FLOAT):
@@ -323,10 +443,10 @@ class HAULWriter_bas(HAULWriter):
 	
 	def write_type(self, v):
 		if (v == T_INTEGER):	self.write('%')
-		elif (v == T_FLOAT):	pass
+		elif (v == T_FLOAT):	pass	# self.write('#')
 		elif (v == T_STRING):	self.write('$')
-		else:
-			self.write(str(v))
+		#else:
+		#	self.write(str(v))
 			
 		
 	def write_var(self, v):

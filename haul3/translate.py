@@ -131,19 +131,28 @@ except HAULParseError as e:
 
 
 ### Do it using a HAULProject
-p = HAULProject('my_project')
-#p.sources_path = 'examples'
+"""
+p = HAULProject('project0')
 p.sources_path = '.'
 #p.libs_path = 'libs'
 
 p.add_source('haul.utils')
 p.add_source('haul.core')
 p.add_source('haul.langs.py.reader_py')
+"""
+
+p = HAULProject('example')
+p.sources_path = 'examples'
+p.add_lib('hio')
+#p.add_source('small')
+p.add_source('bastest')
 
 
 #t = HAULTranslator(HAULReader_py, HAULWriter_js)
-t = HAULTranslator(HAULReader_py, HAULWriter_java)
-t.translate_project(p, output_path='build', dest_extension='java')
+#t = HAULTranslator(HAULReader_py, HAULWriter_java)
+#t.translate_project(p, output_path='build', dest_extension='java')
+t = HAULTranslator(HAULReader_py, HAULWriter_bas, dialect=DIALECT_MS)
+t.translate_project(p, output_path='build', dest_extension='bas')
 
 
 put('translate.py ended.')
