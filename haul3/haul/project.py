@@ -52,6 +52,16 @@ class HAULProject:
 		source = HAULSource(name=name, stream=FileReader(filename), uri=filename)
 		self.sources.append(source)
 		
+	def add_source_stream(self, stream, name=None, uri=None):
+		if ((name == None) and (uri == None)):
+			raise Exception('A name or uri has to be specified as source')
+		
+		if (name == None):
+			# Guess name from filename if omitted
+			name = name_by_filename(uri)
+		
+		source = HAULSource(name=name, stream=stream, uri=uri)
+		self.sources.append(source)
 	
 	def add_lib(self, name, filename=None):
 		if (filename == None):

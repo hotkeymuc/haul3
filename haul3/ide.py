@@ -26,6 +26,9 @@ from haul.langs.pas.writer_pas import *
 from haul.langs.py.writer_py import *
 from haul.langs.vbs.writer_vbs import *
 
+from haul.project import HAULProject, HAULSource
+from haul.builder import HAULTranslator
+
 LANGS = [
 	HAULWriter_asm,
 	HAULWriter_bas,
@@ -760,10 +763,35 @@ class MainFrame(wx.Frame):
 		try:
 			#self.module = writer.stream(reader, namespace=ns, monolithic=monolithic)	# That's where the magic happens!
 			
-			# Translate it
+			"""
+			# Translate it (old, without HAULTranslator)
 			t = HAULTranslator(HAULReader_py, self.WriterClass)
 			t.process_lib('hio', FileReader('libs/hio.py'))
 			self.module = t.translate(name=input_filename, stream_in=stream_in, stream_out=stream_out)
+			"""
+			
+			# Translate it (using HAULProject / HAULTranslator)
+			p = HAULProject('example')
+			p.sources_path = 'examples'
+			
+			p.add_lib('hio')
+			
+			#p.add_source('small')
+			#p.add_source('bastest')
+			#p.add_source(input_filename)
+			#p.add_source_stream(stream_in, uri=input_filename)
+			
+			t = HAULTranslator(HAULReader_py, self.WriterClass)	#, dialect=DIALECT_MS)
+			#t.translate_project(p, output_path='build', dest_extension='bas')
+			
+			# Only translate one source/stream
+			for l in p.libs:
+				t.process_lib(l.name, l.stream, l.uri)
+			
+			source = HAULSource(name=input_filename, stream=stream_in, uri=input_filename)
+			self.module = t.translate_source(source, stream_out, close_stream=True)
+			
+			
 			
 		except HAULParseError as e:
 			put('Parse error: ' + e.message + ' in ' + str(e.token))
