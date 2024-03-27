@@ -969,9 +969,6 @@ class HAULWriter:
 		else:
 			ns = namespace
 		
-		
-		
-		
 		if monolithic:
 			### Cheap (greedy: read whole input file into AST, then translate)
 			m = reader.read_module(name=name, namespace=ns)

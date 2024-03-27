@@ -732,7 +732,9 @@ class HAULReader_py(HAULReader):
 					
 					# Next letter
 					t2 = self.peek_next()
-					iId2 = iId2 + str(t2.data)
+					if not t2 is None:
+						iId2 = iId2 + str(t2.data)
+					
 				
 				#put('Longest infix found: "' + iId + '", next up: ' + str(t2))
 				
@@ -1577,7 +1579,7 @@ class HAULReader_py(HAULReader):
 				#put('read_module():	Doc-Comment: "' + str(comment.value) + '"')
 				#self.get_next()	# Skip EOL
 				
-			elif ((len(t.data) > 0) and (t.data[0] == L_COMMENT)):
+			elif ((type(t.data) is str) and (len(t.data) > 0) and (t.data[0] == L_COMMENT)):
 				#o = self.ofsGet
 				
 				self.get_next()

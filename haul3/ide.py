@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8
 
-import wxversion
+#import wxversion
 #wxversion.select("2.8")
 import wx, wx.html, wx.stc
 import sys
 
-import thread
+#import thread
 import time
 
 
@@ -294,7 +294,6 @@ class TreeControl(wx.TreeCtrl):
 		self.Expand(mi)
 		
 	
-	
 	def select_object(self, o, selectednode=None):
 		"Search for the item that has the given object as PyData"
 		
@@ -336,7 +335,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_id(self, parent, id):
 		ii = self.AppendItem(parent, 'id "{}"'.format(id.name))
-		self.SetPyData(ii, id)
+		#self.SetPyData(ii, id)
+		self.SetItemData(ii, id)
 		# kind
 		# data
 		# value
@@ -349,7 +349,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_module(self, parent, m):
 		mi = self.AppendItem(parent, 'module "{}"'.format(m.name))
-		self.SetPyData(mi, m)
+		#self.SetPyData(mi, m)
+		self.SetItemData(mi, m)
 		self.add_name(mi, m.name)
 		
 		# imports
@@ -363,12 +364,14 @@ class TreeControl(wx.TreeCtrl):
 			for f in m.funcs:
 				self.add_func(fsi, f)
 		
-		self.add_block(mi, m.block)
+		if (m.block is not None):
+			self.add_block(mi, m.block)
 		return mi
 	
 	def add_namespace(self, parent, ns):
 		nsi = self.AppendItem(parent, 'namespace "{}"'.format(ns.name))
-		self.SetPyData(nsi, ns)
+		#self.SetPyData(nsi, ns)
+		self.SetItemData(nsi, ns)
 		#self.add_name(nsi, ns.name)
 		
 		if (len(ns.ids) > 0):
@@ -388,7 +391,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_block(self, parent, b):
 		bi = self.AppendItem(parent, 'block "{}"'.format(b.name))
-		self.SetPyData(bi, b)
+		#self.SetPyData(bi, b)
+		self.SetItemData(bi, b)
 		#self.add_name(bi, b.name)
 		
 		if BLOCKS_HAVE_LOCAL_NAMESPACE:
@@ -403,7 +407,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_func(self, parent, f):
 		fi = self.AppendItem(parent, 'func "{}"'.format(f.id.name))
-		self.SetPyData(fi, f)
+		#self.SetPyData(fi, f)
+		self.SetItemData(fi, f)
 		self.add_id(fi, f.id)
 		
 		self.add_type(fi, f.returnType)
@@ -426,7 +431,8 @@ class TreeControl(wx.TreeCtrl):
 		else:
 			ii = self.AppendItem(parent, 'instr')
 		
-		self.SetPyData(ii, instr)
+		#self.SetPyData(ii, instr)
+		self.SetItemData(ii, instr)
 		
 		if (instr.comment):
 			self.AppendItem(ii, 'comment: "{}"'.format(instr.comment))
@@ -435,7 +441,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_control(self, parent, c):
 		ci = self.AppendItem(parent, 'control: {}'.format(c.controlType))
-		self.SetPyData(ci, c)
+		#self.SetPyData(ci, c)
+		self.SetItemData(ci, c)
 		#self.AppendItem(ci, 'controlType: "{}"'.format(c.controlType))
 		
 		if (len(c.exprs) > 0):
@@ -452,7 +459,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_call(self, parent, c):
 		ci = self.AppendItem(parent, 'call "{}"'.format(c.id.name))
-		self.SetPyData(ci, c)
+		#self.SetPyData(ci, c)
+		self.SetItemData(ci, c)
 		self.add_id(ci, c.id)
 		
 		#self.add_args(ci, c.args)
@@ -464,7 +472,8 @@ class TreeControl(wx.TreeCtrl):
 	
 	def add_expression(self, parent, e):
 		ei = self.AppendItem(parent, 'expression')
-		self.SetPyData(ei, e)
+		#self.SetPyData(ei, e)
+		self.SetItemData(ei, e)
 		
 		if (e.value): self.add_value(ei, e.value)
 		if (e.var): self.add_id(ei, e.var)
@@ -734,7 +743,8 @@ class MainFrame(wx.Frame):
 	
 	def load_file(self, filename):
 		self.filename = filename
-		with open(filename, 'rb') as h:
+		#with open(filename, 'rb') as h:
+		with open(filename, 'r') as h:
 			self.editor1.set_data(h.read())
 		
 		
@@ -742,8 +752,9 @@ class MainFrame(wx.Frame):
 	
 	def translate(self):
 		input_filename = self.filename
-		text = self.editor1.get_data().encode('ascii','ignore')
-		
+		#text = self.editor1.get_data().encode('ascii','ignore')
+		text = self.editor1.get_data()
+		#text = text.decode('ascii')	# Python 3: Create string
 		stream_in = StringReader(text)
 		
 		stream_out = StringWriter()

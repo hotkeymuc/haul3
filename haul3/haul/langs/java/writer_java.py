@@ -41,7 +41,9 @@ JAVA_GLUE_CODE_PRE = '''
 //### Java glue code (pre)
 '''
 
-JAVA_GLUE_CODE_POST = '''//### Java glue code (post)'''
+JAVA_GLUE_CODE_POST = '''
+//### Java glue code (post)
+'''
 
 
 class HAULWriter_java(HAULWriter):

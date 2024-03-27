@@ -144,15 +144,17 @@ p.add_source('haul.langs.py.reader_py')
 p = HAULProject('example')
 p.sources_path = 'examples'
 p.add_lib('hio')
-#p.add_source('small')
-p.add_source('bastest')
+p.add_source('helper')	# Used to test importing in "small.py"
+p.add_source('small')
+#p.add_source('bastest')
 
 
 #t = HAULTranslator(HAULReader_py, HAULWriter_js)
-#t = HAULTranslator(HAULReader_py, HAULWriter_java)
-#t.translate_project(p, output_path='build', dest_extension='java')
-t = HAULTranslator(HAULReader_py, HAULWriter_bas, dialect=DIALECT_MS)
-t.translate_project(p, output_path='build', dest_extension='bas')
+t = HAULTranslator(HAULReader_py, HAULWriter_java)
+t.translate_project(p, output_path='build', dest_extension='java')
+
+#t = HAULTranslator(HAULReader_py, HAULWriter_bas, dialect=DIALECT_MS)
+#t.translate_project(p, output_path='build', dest_extension='bas')
 
 
 put('translate.py ended.')
