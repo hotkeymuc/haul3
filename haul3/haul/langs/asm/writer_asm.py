@@ -107,7 +107,7 @@ class Atom:
 	def pushInstr(self, instr, consume=[], consumeMore=0):
 		r = instr
 		
-		for i in xrange(consumeMore):
+		for i in range(consumeMore):
 			consume.append(self.useStack - consumeMore + i)
 		
 		i = 0
@@ -191,7 +191,7 @@ class HAULWriter_asm(HAULWriter):
 	
 	def write_indent(self, num):
 		r = ''
-		for i in xrange(num):
+		for i in range(num):
 			r += '\t'
 		self.write(r)
 		
@@ -226,7 +226,7 @@ class HAULWriter_asm(HAULWriter):
 		# POP params
 		self.write_indent(indent)
 		self.write(':' + f.id.name + ('\t# %04X' % self.codeSize) + '\n')
-		for i in xrange(len(f.args)):
+		for i in range(len(f.args)):
 			self.write_indent(indent+1)
 			#self.write_expression(args[i])
 			self.write('POP ');
@@ -477,7 +477,7 @@ class HAULWriter_asm(HAULWriter):
 			
 			
 	def write_expression_list(self, es, start, atom, level):
-		for i in xrange(len(es)-start):
+		for i in range(len(es)-start):
 			if (i > 0): self.write(', ')
 			self.write_expression(es[start+i], atom=atom, level=level)
 			atom.use()	## Process in reverse order

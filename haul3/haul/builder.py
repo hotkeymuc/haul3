@@ -6,8 +6,10 @@ import shutil
 
 import subprocess	# for running commands
 
-from utils import *
-from core import HAULParseError, HAULNamespace, HAUL_ROOT_NAMESPACE
+#from utils import *
+#from core import HAULParseError, HAULNamespace, HAUL_ROOT_NAMESPACE
+from haul.utils import *
+from haul.core import HAULParseError, HAULNamespace, HAUL_ROOT_NAMESPACE
 
 def put(t):
 	print('HAULBuilder:\t' + str(t))

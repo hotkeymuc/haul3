@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+"""
+
+@TODO: call webOS jar directly!
+The platform tools "palm-package" etc. are actually all contained in webos-tools.jar
+
+e.g.:
+java -jar webos-tools.jar palm-log --list
+
+"""
+
 from haul.utils import *
 from haul.builder import *
 

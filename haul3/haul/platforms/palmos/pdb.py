@@ -34,7 +34,7 @@ dmRecAttrCategoryMask = 0x0F	#Mask to extract category from attribute
 NUL = chr(0)
 def long_to_str(v):
 	r = ''
-	for i in xrange(4):
+	for i in range(4):
 		r = chr(v & 0xff) + r
 		v = v >> 8
 	return r
@@ -109,7 +109,7 @@ class PDBFile:
 		p.nextRecordID, = struct.unpack_from('>L', data, o); o += 4
 		p.numRecords, = struct.unpack_from('>H', data, o); o += 2
 		
-		for i in xrange(p.numRecords):
+		for i in range(p.numRecords):
 			rec = PDBRecordEntry()
 			rec.from_file(data, o=o)
 			p.records.append(rec)
@@ -122,7 +122,7 @@ class PDBFile:
 		
 		# Load data once we know the boundaries
 		data_size = l
-		for i in xrange(p.numRecords):
+		for i in range(p.numRecords):
 			rec = p.records[i]
 			if (i+1 < p.numRecords):
 				s = p.records[i+1].offset - rec.offset
@@ -156,14 +156,14 @@ class PDBFile:
 		
 		o = len(data)
 		rec_data_ofs = o + self.numRecords * 8
-		for i in xrange(self.numRecords):
+		for i in range(self.numRecords):
 			rec = self.records[i]
 			put('Writing record #%d header...' % (i))
 			rec_data = rec.to_file(ofs=rec_data_ofs)
 			byte_append(data, rec_data)
 			rec_data_ofs += len(rec.data)
 		
-		for i in xrange(self.numRecords):
+		for i in range(self.numRecords):
 			rec = self.records[i]
 			put('Writing record #%d data...' % (i))
 			byte_append(data, rec.data)
@@ -230,7 +230,7 @@ class PDBFile:
 		r += ', nextRecordID=%08X' % (self.nextRecordID)
 		r += ', numRecords=%04X' % (self.numRecords)
 		
-		for i in xrange(self.numRecords):
+		for i in range(self.numRecords):
 			r += '\n* #%d: ' % (i)
 			rec = self.records[i]
 			r += rec.__repr__()

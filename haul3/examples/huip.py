@@ -9,7 +9,7 @@ def hexdump(data):
 	r1 = ''
 	r2 = ''
 	l = len(data)
-	for i in xrange(l):
+	for i in range(l):
 		v = data[i]
 		
 		if ((i % COLS) == 0):
@@ -22,7 +22,7 @@ def hexdump(data):
 			r2 += '.'
 		
 		if ((i % COLS) == (COLS-1)) or (i == l-1):
-			for j in xrange(COLS-1 - (i % COLS)):
+			for j in range(COLS-1 - (i % COLS)):
 				r1 += '   '	# Pad missing bytes
 			r += r1 + '|' + r2 + '\n'
 			r1 = ''
@@ -221,7 +221,7 @@ class HUIP_Decoder:
 	def decode_string(self):
 		l = self.decode_uint16()
 		s = ''
-		for i in xrange(l):
+		for i in range(l):
 			s += chr(self.decode_uint8())
 		return s
 	def decode_bool(self):

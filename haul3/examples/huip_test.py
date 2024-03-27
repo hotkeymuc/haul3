@@ -30,7 +30,11 @@ class Test_Client(HUIP_Client):
 		print('New input requested: "%s", type=%d, default_value=%s' % (input_id, type, default_value))
 		
 		# Perform input from stdin
-		value = raw_input(input_id + ' [' + str(default_value) + ']: ')
+		#value = raw_input(input_id + ' [' + str(default_value) + ']: ')
+		try:
+			value = input(input_id + ' [' + str(default_value) + ']: ')
+		except EOFError:	# Happens when running wihtout stdin connected
+			value = default_value
 		#print(str(input_id) + ' [' + str(default_value) + ']:')
 		#value = '1234567'
 		
@@ -68,7 +72,8 @@ test_client.command_action('test')
 
 ### A test app
 import time
-import thread
+#from thread import start_new_thread
+from _thread import start_new_thread
 class Test_App(HUIP_App):
 	def __init__(self):
 		HUIP_App.__init__(self)
@@ -79,7 +84,7 @@ class Test_App(HUIP_App):
 	
 	def start(self, session):
 		#self.main()	# Run direct
-		thread.start_new_thread(self.main, (session,))	# Run in separate thread
+		start_new_thread(self.main, (session,))	# Run in separate thread
 	
 	def main(self, session):
 		# Basic output
@@ -92,7 +97,7 @@ class Test_App(HUIP_App):
 		self.put('Test_App is ready.')
 		
 		# Delays
-		for i in xrange(3):
+		for i in range(3):
 			self.put('Test_App says: ' + str(1+i))
 			time.sleep(1)
 		

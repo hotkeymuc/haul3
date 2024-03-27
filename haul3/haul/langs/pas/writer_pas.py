@@ -49,7 +49,7 @@ class HAULWriter_pas(HAULWriter):
 		
 	def write_indent(self, num):
 		r = ''
-		for i in xrange(num):
+		for i in range(num):
 			r += '\t'
 		self.write(r)
 		
@@ -100,7 +100,7 @@ class HAULWriter_pas(HAULWriter):
 		self.write(f.id.name)
 		self.last_function_name = f.id.name
 		self.write('(')
-		for i in xrange(len(f.args)):
+		for i in range(len(f.args)):
 			if (i > 0): self.write('; ')
 			#self.write_expression(args[i])
 			self.write_var(f.args[i])
@@ -360,7 +360,7 @@ class HAULWriter_pas(HAULWriter):
 			
 	def write_expression_list(self, es, start, level):
 		i = 0
-		for i in xrange(len(es)-start):
+		for i in range(len(es)-start):
 			if (i > 0): self.write(', ')
 			self.write_expression(es[start+i], level=level)
 	

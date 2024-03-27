@@ -2,7 +2,7 @@
 ShadowRunner for HAUL3
 
 This is shadowRunner3 - the resurrection of the VM idea introduced in "shadowRunner1"
-For platforms that are to finicky to compile directly (now) we produce a byte code and implement a platform-specific VM
+For platforms that are too finicky to compile directly (now) we produce a byte code and implement a platform-specific VM
 The VM itself is, again, coded in HAUL3 so it CAN be cross-compiled for the "easy" platforms OR implemented natively on that platform (which is easier for e.g. Z80 ASM).
 
 2017-01-25
@@ -20,7 +20,7 @@ def put(txt):
 #@var VM_MEM_SIZE int
 #@var VM_STACK_SIZE int
 VM_VALUE_SIZE = 2	# Size in bytes
-VM_MEM_SIZE = 64	#1024 * 1
+VM_MEM_SIZE = 128	#64	#1024 * 1
 VM_STACK_SIZE = 8
 
 ### Value modes
@@ -197,8 +197,9 @@ class Memory:
 		
 		#@var i int
 		#self.data = []	#bytearray([0] * self.size)
-		#for i in xrange(self.size): self.data.append(0x00)
-		self.data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		#for i in range(self.size): self.data.append(0x00)
+		#self.data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		self.data = [ 0 ] * size
 		
 	
 	#@fun peek byte
@@ -300,6 +301,9 @@ class VM:
 	#@arg address int
 	#@arg value byte
 	def poke(self, address, value):
+		#if (address >= VM_MEM_SIZE):
+		#	put('MEM OOB!')
+		#	return
 		self.mem.poke(address, value)
 	
 	#@fun get_value int
@@ -555,10 +559,10 @@ class VM:
 		put(r)
 		return self.ip
 	
-	#@fun compile2
+	#@fun compile_arg
 	#@arg text String
 	#@arg value int
-	def compile2(self, text, value):
+	def compile_arg(self, text, value):
 		# Compile and assemble one instruction into mem
 		#@var text2 String
 		#@var op int
@@ -604,7 +608,7 @@ class VM:
 	#@fun compile
 	#@arg text String
 	def compile(self, text):
-		return self.compile2(text, 0-1)
+		return self.compile_arg(text, 0-1)
 	
 	#@fun text
 	#@arg text String
@@ -695,9 +699,10 @@ def test_hello_world():
 	hello_offset = vm.compile('COMMENT')
 	vm.text('Hello world!')
 	
-	vm.compile2('PUSH_D', hello_offset)
+	# Call PUT with address of string
+	vm.compile_arg('PUSH_D', hello_offset)
 	#vm.compile('HOOK_0')
-	vm.compile2('HOOK_D', VM_HOOK_PUT_S)
+	vm.compile_arg('HOOK_D', VM_HOOK_PUT_S)
 	#vm.compile('HALT')
 	
 
@@ -714,15 +719,16 @@ test_hello_world()
 #vm.assemble(VM_OP_NOP)
 #vm.compile('add_0')
 
+vm.compile('COMMENT'); vm.text('Accumulator test: ')
 vm.compile('LOAD_0')
 #vm.compile('HOOK_0')
 vm.compile('ADD_1')
 #vm.compile('HOOK_0')
-#vm.compile2('ADD_D', 3)
+#vm.compile_arg('ADD_D', 3)
 #vm.compile('ADD_1')
 #vm.compile('HOOK_0')
-vm.compile('IF_IS_0'); vm.compile('COMMENT'); vm.text('is zero.')
-vm.compile('IF_IS_1'); vm.compile('COMMENT'); vm.text('is one.')
+vm.compile('IF_IS_0'); vm.compile('COMMENT'); vm.text('it is ZERO.')
+vm.compile('IF_IS_1'); vm.compile('COMMENT'); vm.text('it is ONE.')
 
 vm.compile('HALT')
 #vm.mem.write_to_file('vm_test.srb', size=vm.ip)

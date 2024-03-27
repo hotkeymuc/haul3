@@ -13,7 +13,8 @@ def put(t):
 #@arg filename str
 def read_file(filename):
 	#with open(filename, 'rb') as h: return h.read()
-	h = open(filename, 'rb')
+	#h = open(filename, 'rb')
+	h = open(filename, 'r')
 	data = h.read()
 	h.close()
 	return data
@@ -23,7 +24,8 @@ def read_file(filename):
 #@arg data str
 def write_file(filename, data):
 	#with open(filename, 'wb') as h: h.write(data)
-	h = open(filename, 'wb')
+	#h = open(filename, 'wb')
+	h = open(filename, 'w')
 	h.write(data)
 	h.close()
 	
@@ -127,7 +129,8 @@ class FileReader:
 		self.is_eof = False
 		self.ofs = 0
 		self.filename = filename
-		self.h = open(filename, 'rb')
+		#self.h = open(filename, 'rb')
+		self.h = open(filename, 'r')
 	
 	def __del__(self):
 		#self.h.close()
@@ -191,7 +194,8 @@ class FileWriter:
 		#if (os.path.exists(path) == False):
 		#	os.makedirs(path)
 		
-		self.h = open(filename, 'wb+')
+		#self.h = open(filename, 'wb+')
+		self.h = open(filename, 'w+')
 	
 	def close(self):
 		self.h.close()

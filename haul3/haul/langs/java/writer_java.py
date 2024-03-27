@@ -56,7 +56,7 @@ class HAULWriter_java(HAULWriter):
 		
 	def write_indent(self, num):
 		r = ''
-		for i in xrange(num):
+		for i in range(num):
 			r += '\t'
 		self.write(r)
 		
@@ -118,7 +118,7 @@ class HAULWriter_java(HAULWriter):
 		self.write(name)	# Name
 		self.write('(')
 		j = 0
-		for i in xrange(len(f.args)):
+		for i in range(len(f.args)):
 			if (i == 0) and (not parentClassName == None):
 				# skip first "self"
 				continue
@@ -335,9 +335,9 @@ class HAULWriter_java(HAULWriter):
 			self.write(' in ')
 			self.write_expression(c.exprs[1], namespace=namespace)
 			"""
-			#@FIXME: Dirty hack to handle xrange (only simplest case)
+			#@FIXME: Dirty hack to handle range (only simplest case)
 			
-			if (c.exprs[1].call.id.name == 'xrange'):
+			if (c.exprs[1].call.id.name == 'range'):
 				self.write(' = 0; ')
 				self.write_expression(c.exprs[0])
 				self.write(' < ')
@@ -481,7 +481,7 @@ class HAULWriter_java(HAULWriter):
 			
 	def write_expression_list(self, es, start, level, namespace=None):
 		i = 0
-		for i in xrange(len(es)-start):
+		for i in range(len(es)-start):
 			if (i > 0): self.write(', ')
 			self.write_expression(es[start+i], level=level, namespace=namespace)
 	

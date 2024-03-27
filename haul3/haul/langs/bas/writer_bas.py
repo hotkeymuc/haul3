@@ -55,7 +55,7 @@ class HAULWriter_bas(HAULWriter):
 		
 	def write_indent(self, num):
 		r = ''
-		for i in xrange(num):
+		for i in range(num):
 			r += '\t'
 		self.write(r)
 		
@@ -92,7 +92,7 @@ class HAULWriter_bas(HAULWriter):
 			
 			if (len(f.args) > 0):
 				self.write('(')
-				for i in xrange(len(f.args)):
+				for i in range(len(f.args)):
 					if (i > 0): self.write(', ')
 					#self.write_expression(args[i])
 					self.write_var(f.args[i])
@@ -381,7 +381,7 @@ class HAULWriter_bas(HAULWriter):
 		if self.functions == True: return
 		
 		i = 0
-		for i in xrange(len(es)-start):
+		for i in range(len(es)-start):
 			e = es[start+i]
 			if (e.call != None) and (not e.call.id.name in PAT_INFIX):
 				self.write_comment('Resolve GOSUB call to ' + e.call.id.name)
@@ -402,7 +402,7 @@ class HAULWriter_bas(HAULWriter):
 	
 	def write_expression_list(self, es, start, level):
 		i = 0
-		for i in xrange(len(es)-start):
+		for i in range(len(es)-start):
 			e = es[start+i]
 			if (i > 0): self.write(', ')
 			

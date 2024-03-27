@@ -19,7 +19,7 @@ class HAULWriter_json(HAULWriter):
 		
 	def write_indent(self, num):
 		r = ''
-		for i in xrange(num):
+		for i in range(num):
 			r += '\t'
 		self.write(r)
 	

@@ -280,7 +280,7 @@ class HAULNamespace:
 		#@var i int
 		
 		indent = ''
-		for i in xrange(level):
+		for i in range(level):
 			indent = indent + ': '	#'\t'
 			
 		
@@ -725,7 +725,7 @@ ns.add_id('String', kind=K_TYPE, data_type=T_STRING)
 ns.add_id('Dict', kind=K_TYPE, data_type=T_OBJECT)
 
 
-ns.add_id('xrange', kind=K_FUNCTION, data_type=T_INTEGER)
+ns.add_id('range', kind=K_FUNCTION, data_type=T_INTEGER)
 
 
 #T_NONE = '#none'

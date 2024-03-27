@@ -1577,7 +1577,7 @@ class HAULReader_py(HAULReader):
 				#put('read_module():	Doc-Comment: "' + str(comment.value) + '"')
 				#self.get_next()	# Skip EOL
 				
-			elif (t.data[0] == L_COMMENT):
+			elif ((len(t.data) > 0) and (t.data[0] == L_COMMENT)):
 				#o = self.ofsGet
 				
 				self.get_next()
@@ -1598,6 +1598,7 @@ class HAULReader_py(HAULReader):
 				
 			else:
 				put('read_module():	Skipping unknown ' + str(t))
+				#@FIXME: Quit if file is over!
 				self.get_next()
 		return m
 		
