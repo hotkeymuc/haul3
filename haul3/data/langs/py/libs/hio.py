@@ -22,3 +22,5 @@ def fetch():
 
 def int_str(i):
 	return str(i)
+def float_str(i):
+	return str(i)
