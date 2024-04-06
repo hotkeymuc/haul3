@@ -19,7 +19,7 @@ import os	# for checking file existence
 import re	# For quickly searching for qualifiers/full words
 
 MAX_STRING_LENGTH = 2000	# Throw exception if string gets too big
-MAX_DEFINE_REAPPLY = 3	# Max. recursion depth of define resolution
+MAX_DEFINE_REAPPLY = 5	# Max. recursion depth of define resolution
 SHOW_CODE_WHILE_PROCESSING = False
 STRIP_BLOCK_COMMENTS = True	# Strip all block comments
 STRIP_LINE_COMMENTS = True	# Strip away comments at end of lines
@@ -32,7 +32,7 @@ def put(t):
 # Specify file mapping for "#include" statement. All files which are not found are just ignored.
 PATH_TRANSLATE = {
 	#'py/': ''
-	'py/grammar.h': './grammar.h'
+	'py/grammar.h': './__test_micropython.git/grammar.h'
 }
 def translate_path(p):
 	for s,t in PATH_TRANSLATE.items():
@@ -109,7 +109,10 @@ def replace_word(t, src, repl):
 
 #put('"%s"' % replace_word('This-is---a test for the replacer, for everyone,for the people and fortune.', 'for', 'FOUR'))
 #put('"%s"' % replace_word('1_for 1', 'for', 'FOUR'))
-
+s = 'DEF_RULE(file_input_2, c(generic_all_nodes), one_or_more, rule(file_input_3))'
+#if contains_word(s, 'one_or_more'): put('YES')
+#else: put('NO')
+#put(replace_word(s, 'one_or_more', ''))
 
 
 class MacroExpander:
@@ -191,18 +194,20 @@ class MacroExpander:
 				r = ''	# Do not output anything
 			elif ' ' in r:
 				# Regular define
-				def_name = r[:r.index(' ')]
+				def_name = r[:r.index(' ')].strip()
 				def_args = None
 				def_rep = r[r.index(' ')+1:]
+				#put('DEFINE: name="%s", rep="%s"' % (def_name, def_rep))
 				# Check if it is "simple" (e.g. a decimal or hex number, optionally in brackets
 				#if KEEP_SIMPLE_DEFINES and re.match(r'^\(?\s*(0x)?\d+\s*\)?$', def_rep.strip()):
 				if KEEP_SIMPLE_DEFINES and re.match(r'^\(?\s*(0x)?[0-9a-fA-F]+\s*\)?$', def_rep.strip()):
 					# Do not create a define, but keep the original line
+					put('Keeping simple define: "%s"' % t)
 					r = t	# +  '	// Kept as define, because KEEP_SIMPLE_DEFINES'
 					def_name = None
 			else:
 				# Empty define
-				def_name = r
+				def_name = r.strip()
 				def_args = None
 				def_rep = ''
 				r = ''	# Do not output anything
@@ -310,8 +315,11 @@ class MacroExpander:
 			for def_id, def_v in defs_sorted:	# Longest first!
 				def_name, def_args, def_rep = def_v
 				
+				
 				#if not def_name in r:
 				if not contains_word(r, def_name):
+					#if def_name == 'one_or_more' and def_name in r:
+					#	put('INTERNAL ERROR! r="%s" DOES contain def_name="%s", but contains_word failed!' % (r, def_name))
 					continue
 				
 				#put('Define "%s" matches: "%s"' % (def_name, r))
@@ -322,7 +330,8 @@ class MacroExpander:
 				
 				if def_args is None:
 					# Do simple replace (no args)
-					r = r.replace(def_name, def_rep)
+					#r = r.replace(def_name, def_rep)
+					r = replace_word(r, def_name, def_rep)
 				else:
 					# Define has args!
 					#put('Applying define-args for "%s" in line "%s"...' % (def_name, r))
@@ -432,7 +441,12 @@ if __name__ == '__main__':
 				if l.startswith('}'):
 					in_enum = False
 				else:
-					l += '	// enum_index=%d'%enum_index
+					#l += '	// enum_index=%d'%enum_index
+					extra = '	= %d'%enum_index
+					if l.endswith(','):
+						l = l[:-1] + extra + ','
+					else:
+						l += extra
 					enum_index += 1
 		
 		# Re-apply indent
