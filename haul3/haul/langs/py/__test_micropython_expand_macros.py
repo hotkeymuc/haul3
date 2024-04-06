@@ -19,7 +19,7 @@ import os	# for checking file existence
 import re	# For quickly searching for qualifiers/full words
 
 MAX_STRING_LENGTH = 2000	# Throw exception if string gets too big
-MAX_DEFINE_REAPPLY = 5	# Max. recursion depth of define resolution
+MAX_DEFINE_REAPPLY = 10	# Max. recursion depth of define resolution
 SHOW_CODE_WHILE_PROCESSING = False
 STRIP_BLOCK_COMMENTS = True	# Strip all block comments
 STRIP_LINE_COMMENTS = True	# Strip away comments at end of lines
@@ -84,6 +84,7 @@ def contains_word(t, src):
 	return False
 	"""
 	return src in re.split('\W', t)
+
 
 def replace_word(t, src, repl):
 	"""Replace the given src word with repl, but only in full words."""
@@ -205,6 +206,8 @@ class MacroExpander:
 					put('Keeping simple define: "%s"' % t)
 					r = t	# +  '	// Kept as define, because KEEP_SIMPLE_DEFINES'
 					def_name = None
+				else:
+					r = ''	# Do not output anything
 			else:
 				# Empty define
 				def_name = r.strip()

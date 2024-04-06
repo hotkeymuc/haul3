@@ -32,12 +32,12 @@ def strcmp(s, t):
 
 
 # Define some types
+size_t = int
 unichar = str
 byte = str
 char = str
 qstr = str
 vstr_t = str
-size_t = int
 mp_int_t = int
 mp_token_kind_t = int
 
@@ -1275,4 +1275,6 @@ if __name__ == '__main__':
 		put(lex)
 		mp_lexer_to_next(lex)
 	put('-' * 40)
+	
+	put('EOF')
 	
