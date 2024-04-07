@@ -13,26 +13,100 @@ from __test_micropython_lexer import *
 def put(t):
 	print(t)
 
+
+MICROPY_ALLOC_PARSE_RULE_INIT = 64	# ???
+MICROPY_ALLOC_PARSE_RESULT_INIT = 64	# ???
+
+
 # Define some types
 size_t = int
 uint8_t = int
 uint16_t = int
 uint32_t = int
+
+
+# a mp_parse_node_t is:
+#  - 0000...0000: no node
+#  - xxxx...xxx1: a small integer; bits 1 and above are the signed value, 2's complement
+#  - xxxx...xx00: pointer to mp_parse_node_struct_t
+#  - xx...xx0010: an identifier; bits 4 and above are the qstr
+#  - xx...xx0110: a string; bits 4 and above are the qstr holding the value
+#  - xx...xx1010: a token; bits 4 and above are mp_token_kind_t
 mp_parse_node_t = int	#uintptr_t
-mp_parse_chunk_t = None	# See later
-mp_map_t = dict
-mp_obj_t = None
+MP_PARSE_NODE_NULL      = 0
+MP_PARSE_NODE_SMALL_INT = 0x1
+MP_PARSE_NODE_ID        = 0x02
+MP_PARSE_NODE_STRING    = 0x06
+MP_PARSE_NODE_TOKEN     = 0x0a
+#typedef uintptr_t mp_parse_node_t; // must be pointer size
+
+
+class mp_parse_node_struct_t:
+	source_line:uint32_t = 0	# line number in source file
+	kind_num_nodes:uint32_t = 0	# parse node kind, and number of nodes
+	nodes = []	#nodes
+	def __init__(self, num_args):
+		self.nodes = [ mp_parse_node_t() for i in range(num_args) ]
+
+
+# macros for mp_parse_node_t usage
+# some of these evaluate their argument more than once
+
+def MP_PARSE_NODE_IS_NULL(pn): return ((pn) == MP_PARSE_NODE_NULL)
+def MP_PARSE_NODE_IS_LEAF(pn): return ((pn) & 3)
+def MP_PARSE_NODE_IS_STRUCT(pn): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0)
+def MP_PARSE_NODE_IS_STRUCT_KIND(pn, k): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0 and MP_PARSE_NODE_STRUCT_KIND((pn)) == (k))
+
+def MP_PARSE_NODE_IS_SMALL_INT(pn): return (((pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
+def MP_PARSE_NODE_IS_ID(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_ID)
+def MP_PARSE_NODE_IS_TOKEN(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
+def MP_PARSE_NODE_IS_TOKEN_KIND(pn, k): return ((pn) == (MP_PARSE_NODE_TOKEN | ((k) << 4)))
+
+def MP_PARSE_NODE_LEAF_KIND(pn): return ((pn) & 0x0f)
+def MP_PARSE_NODE_LEAF_ARG(pn): return (((uintptr_t)(pn)) >> 4)
+def MP_PARSE_NODE_LEAF_SMALL_INT(pn): return (((mp_int_t)(intptr_t)(pn)) >> 1)
+def MP_PARSE_NODE_STRUCT_KIND(pns): return ((pns).kind_num_nodes & 0xff)
+def MP_PARSE_NODE_STRUCT_NUM_NODES(pns): return ((pns).kind_num_nodes >> 8)
+
+
+def mp_parse_node_new_small_int(v):
+	#put('mp_parse_node_new_small_int: %s (%s)' % (str(v), str(type(v))))
+	return v
+
+def mp_parse_node_new_leaf(kind:size_t, arg:mp_int_t) -> mp_parse_node_t:
+	#return (mp_parse_node_t)(kind | ((mp_uint_t)arg << 4));
+	return kind | (arg << 4)
+
+
+def mp_obj_is_small_int(o):
+	return type(o) is int
+def MP_OBJ_SMALL_INT_VALUE(o):
+	return int(o)
+
+
+class mp_dynamic_compiler_t:
+	small_int_bits:int = 32
+mp_dynamic_compiler = mp_dynamic_compiler_t()
+
+mp_parse_input_kind_t:int = 0
+MP_PARSE_SINGLE_INPUT = 0
+MP_PARSE_FILE_INPUT = 1
+MP_PARSE_EVAL_INPUT = 2
+
+mp_parse_chunk_t = int	# See later
+
 
 #typedef struct _mp_parse_t {
 class mp_parse_tree_t:
 	root:mp_parse_node_t = None
 	#struct _mp_parse_chunk_t *chunk;
 	chunk:mp_parse_chunk_t = None
-class mp_parse_node_struct_t:
-	source_line:uint32_t = 0	# line number in source file
-	kind_num_nodes:uint32_t = 0	# parse node kind, and number of nodes
-	nodes:[mp_parse_node_t] = []	#nodes
 
+mp_map_t = dict
+mp_obj_t = None
+
+
+### Constants
 
 if True:	# Allow folding all that stuff away
 	### parse.c constants/enums
@@ -48,12 +122,12 @@ if True:	# Allow folding all that stuff away
 	RULE_ARG_TOK = 0x1000
 	RULE_ARG_RULE = 0x2000
 	RULE_ARG_OPT_RULE = 0x3000
-
+	
+	
 	# enum
 	RULE_file_input	= 0
 	RULE_file_input_2	= 1
 	RULE_decorated	= 2
-
 	RULE_funcdef	= 3
 	RULE_simple_stmt_2	= 4
 	RULE_expr_stmt	= 5
@@ -100,6 +174,7 @@ if True:	# Allow folding all that stuff away
 	RULE_power	= 42
 	#if MICROPY_PY_ASYNC_AWAIT
 	RULE_atom_expr_await	= 43
+	#else
 	#endif
 	RULE_atom_expr_normal	= 44
 	RULE_atom_paren	= 45
@@ -115,161 +190,162 @@ if True:	# Allow folding all that stuff away
 	#else
 	#RULE_subscriptlist	= 54
 	#endif
-	RULE_testlist	= 55
+	RULE_testlist	= 54
 	#if MICROPY_PY_BUILTINS_SET
-	RULE_dictorsetmaker_item	= 56
+	RULE_dictorsetmaker_item	= 55
 	#else
 	#RULE_dictorsetmaker_item	= 57
 	#endif
-	RULE_classdef	= 58
+	RULE_classdef	= 56
 	#if MICROPY_PY_ASSIGN_EXPR
 	#else
 	#endif
-	RULE_yield_expr	= 59
-	RULE_const_object	= 60
-	RULE_generic_colon_test	= 61
-	RULE_generic_equal_test	= 62
-	RULE_single_input	= 63
-	RULE_file_input_3	= 64
-	RULE_eval_input	= 65
-	RULE_eval_input_2	= 66
-	RULE_decorator	= 67
-	RULE_decorators	= 68
+	RULE_yield_expr	= 57
+	RULE_const_object	= 58	# special node for a constant, generic Python object
+	RULE_generic_colon_test	= 59
+	RULE_generic_equal_test	= 60
+	RULE_single_input	= 61
+	RULE_file_input_3	= 62
+	RULE_eval_input	= 63
+	RULE_eval_input_2	= 64
+	RULE_decorator	= 65
+	RULE_decorators	= 66
 	#if MICROPY_PY_ASYNC_AWAIT
-	RULE_decorated_body	= 69
-	RULE_async_funcdef	= 70
+	RULE_decorated_body	= 67
+	RULE_async_funcdef	= 68
 	#else
 	#RULE_decorated_body	= 71
 	#endif
-	RULE_funcdefrettype	= 72
-	RULE_typedargslist	= 73
-	RULE_typedargslist_item	= 74
-	RULE_typedargslist_name	= 75
-	RULE_typedargslist_star	= 76
-	RULE_typedargslist_dbl_star	= 77
-	RULE_tfpdef	= 78
-	RULE_varargslist	= 79
-	RULE_varargslist_item	= 80
-	RULE_varargslist_name	= 81
-	RULE_varargslist_star	= 82
-	RULE_varargslist_dbl_star	= 83
-	RULE_vfpdef	= 84
-	RULE_stmt	= 85
-	RULE_simple_stmt	= 86
-	RULE_small_stmt	= 87
-	RULE_expr_stmt_2	= 88
-	RULE_expr_stmt_augassign	= 89
-	RULE_expr_stmt_assign_list	= 90
-	RULE_expr_stmt_assign	= 91
-	RULE_expr_stmt_6	= 92
-	RULE_testlist_star_expr_2	= 93
-	RULE_annassign	= 94
-	RULE_augassign	= 95
-	RULE_flow_stmt	= 96
-	RULE_raise_stmt_arg	= 97
-	RULE_raise_stmt_from	= 98
-	RULE_import_stmt	= 99
-	RULE_import_from_2	= 100
-	RULE_import_from_2b	= 101
-	RULE_import_from_3	= 102
-	RULE_import_as_names_paren	= 103
-	RULE_one_or_more_period_or_ellipsis	= 104
-	RULE_period_or_ellipsis	= 105
-	RULE_import_as_name	= 106
-	RULE_dotted_as_name	= 107
-	RULE_as_name	= 108
-	RULE_import_as_names	= 109
-	RULE_dotted_as_names	= 110
-	RULE_dotted_name	= 111
-	RULE_name_list	= 112
-	RULE_assert_stmt_extra	= 113
+	RULE_funcdefrettype	= 69
+	RULE_typedargslist	= 70
+	RULE_typedargslist_item	= 71
+	RULE_typedargslist_name	= 72
+	RULE_typedargslist_star	= 73
+	RULE_typedargslist_dbl_star	= 74
+	RULE_tfpdef	= 75
+	RULE_varargslist	= 76
+	RULE_varargslist_item	= 77
+	RULE_varargslist_name	= 78
+	RULE_varargslist_star	= 79
+	RULE_varargslist_dbl_star	= 80
+	RULE_vfpdef	= 81
+	RULE_stmt	= 82
+	RULE_simple_stmt	= 83
+	RULE_small_stmt	= 84
+	RULE_expr_stmt_2	= 85
+	RULE_expr_stmt_augassign	= 86
+	RULE_expr_stmt_assign_list	= 87
+	RULE_expr_stmt_assign	= 88
+	RULE_expr_stmt_6	= 89
+	RULE_testlist_star_expr_2	= 90
+	RULE_annassign	= 91
+	RULE_augassign	= 92
+	RULE_flow_stmt	= 93
+	RULE_raise_stmt_arg	= 94
+	RULE_raise_stmt_from	= 95
+	RULE_import_stmt	= 96
+	RULE_import_from_2	= 97
+	RULE_import_from_2b	= 98
+	RULE_import_from_3	= 99
+	RULE_import_as_names_paren	= 100
+	RULE_one_or_more_period_or_ellipsis	= 101
+	RULE_period_or_ellipsis	= 102
+	RULE_import_as_name	= 103
+	RULE_dotted_as_name	= 104
+	RULE_as_name	= 105
+	RULE_import_as_names	= 106
+	RULE_dotted_as_names	= 107
+	RULE_dotted_name	= 108
+	RULE_name_list	= 109
+	RULE_assert_stmt_extra	= 110
 	#if MICROPY_PY_ASYNC_AWAIT
-	RULE_compound_stmt	= 114
-	RULE_async_stmt_2	= 115
+	RULE_compound_stmt	= 111
+	RULE_async_stmt_2	= 112
 	#else
 	#RULE_compound_stmt	= 116
 	#endif
-	RULE_if_stmt_elif_list	= 117
-	RULE_if_stmt_elif	= 118
-	RULE_try_stmt_2	= 119
-	RULE_try_stmt_except_and_more	= 120
-	RULE_try_stmt_except	= 121
-	RULE_try_stmt_as_name	= 122
-	RULE_try_stmt_except_list	= 123
-	RULE_try_stmt_finally	= 124
-	RULE_else_stmt	= 125
-	RULE_with_stmt_list	= 126
-	RULE_with_item	= 127
-	RULE_with_item_as	= 128
-	RULE_suite	= 129
-	RULE_suite_block	= 130
+	RULE_if_stmt_elif_list	= 113
+	RULE_if_stmt_elif	= 114
+	RULE_try_stmt_2	= 115
+	RULE_try_stmt_except_and_more	= 116
+	RULE_try_stmt_except	= 117
+	RULE_try_stmt_as_name	= 118
+	RULE_try_stmt_except_list	= 119
+	RULE_try_stmt_finally	= 120
+	RULE_else_stmt	= 121
+	RULE_with_stmt_list	= 122
+	RULE_with_item	= 123
+	RULE_with_item_as	= 124
+	RULE_suite	= 125
+	RULE_suite_block	= 126
 	#if MICROPY_PY_ASSIGN_EXPR
-	RULE_namedexpr_test_2	= 131
+	RULE_namedexpr_test_2	= 127
 	#else
 	#RULE_namedexpr_test	= 132
 	#endif
-	RULE_test	= 133
-	RULE_test_if_else	= 134
-	RULE_test_nocond	= 135
-	RULE_not_test	= 136
-	RULE_comp_op	= 137
-	RULE_comp_op_not_in	= 138
-	RULE_comp_op_is	= 139
-	RULE_comp_op_is_not	= 140
-	RULE_shift_op	= 141
-	RULE_arith_op	= 142
-	RULE_term_op	= 143
-	RULE_factor	= 144
-	RULE_factor_op	= 145
+	RULE_test	= 128
+	RULE_test_if_else	= 129
+	RULE_test_nocond	= 130
+	RULE_not_test	= 131
+	RULE_comp_op	= 132
+	RULE_comp_op_not_in	= 133
+	RULE_comp_op_is	= 134
+	RULE_comp_op_is_not	= 135
+	RULE_shift_op	= 136
+	RULE_arith_op	= 137
+	RULE_term_op	= 138
+	RULE_factor	= 139
+	RULE_factor_op	= 140
 	#if MICROPY_PY_ASYNC_AWAIT
-	RULE_atom_expr	= 146
+	RULE_atom_expr	= 141
 	#else
 	#RULE_atom_expr	= 147
 	#endif
-	RULE_atom_expr_trailers	= 148
-	RULE_power_dbl_star	= 149
-	RULE_atom	= 150
-	RULE_atom_2b	= 151
-	RULE_testlist_comp	= 152
-	RULE_testlist_comp_2	= 153
-	RULE_testlist_comp_3	= 154
-	RULE_testlist_comp_3b	= 155
-	RULE_testlist_comp_3c	= 156
-	RULE_trailer	= 157
+	RULE_atom_expr_trailers	= 142
+	RULE_power_dbl_star	= 143
+	RULE_atom	= 144
+	RULE_atom_2b	= 145
+	RULE_testlist_comp	= 146
+	RULE_testlist_comp_2	= 147
+	RULE_testlist_comp_3	= 148
+	RULE_testlist_comp_3b	= 149
+	RULE_testlist_comp_3c	= 150
+	RULE_trailer	= 151
 	#if MICROPY_PY_BUILTINS_SLICE
-	RULE_subscript	= 158
-	RULE_subscript_3b	= 159
-	RULE_subscript_3c	= 160
-	RULE_subscript_3d	= 161
-	RULE_sliceop	= 162
+	RULE_subscript	= 152
+	RULE_subscript_3b	= 153
+	RULE_subscript_3c	= 154
+	RULE_subscript_3d	= 155
+	RULE_sliceop	= 156
 	#else
 	#endif
-	RULE_exprlist	= 163
-	RULE_exprlist_2	= 164
-	RULE_dictorsetmaker	= 165
+	RULE_exprlist	= 157
+	RULE_exprlist_2	= 158
+	RULE_dictorsetmaker	= 159
 	#if MICROPY_PY_BUILTINS_SET
 	#else
 	#endif
-	RULE_dictorsetmaker_tail	= 166
-	RULE_dictorsetmaker_list	= 167
-	RULE_dictorsetmaker_list2	= 168
-	RULE_classdef_2	= 169
-	RULE_arglist	= 170
-	RULE_arglist_2	= 171
-	RULE_arglist_star	= 172
-	RULE_arglist_dbl_star	= 173
-	RULE_argument	= 174
+	RULE_dictorsetmaker_tail	= 160
+	RULE_dictorsetmaker_list	= 161
+	RULE_dictorsetmaker_list2	= 162
+	RULE_classdef_2	= 163
+	RULE_arglist	= 164
+	RULE_arglist_2	= 165
+	RULE_arglist_star	= 166
+	RULE_arglist_dbl_star	= 167
+	RULE_argument	= 168
 	#if MICROPY_PY_ASSIGN_EXPR
-	RULE_argument_2	= 175
-	RULE_argument_3	= 176
+	RULE_argument_2	= 169
+	RULE_argument_3	= 170
 	#else
 	#RULE_argument_2	= 177
 	#endif
-	RULE_comp_iter	= 178
-	RULE_comp_for	= 179
-	RULE_comp_if	= 180
-	RULE_yield_arg	= 181
-	RULE_yield_arg_from	= 182
+	RULE_comp_iter	= 171
+	RULE_comp_for	= 172
+	RULE_comp_if	= 173
+	RULE_yield_arg	= 174
+	RULE_yield_arg_from	= 175
+	
 	
 	#static const uint8_t rule_act_table[]
 	rule_act_table:[uint8_t] = [
@@ -354,7 +430,7 @@ if True:	# Allow folding all that stuff away
 		#else
 		#endif
 		(RULE_ACT_AND | 2),
-		0,
+		0,	# special node for a constant, generic Python object
 		(RULE_ACT_AND | 2 | RULE_ACT_ALLOW_IDENT),
 		(RULE_ACT_AND | 2 | RULE_ACT_ALLOW_IDENT),
 		(RULE_ACT_OR | 3),
@@ -749,230 +825,246 @@ if True:	# Allow folding all that stuff away
 	]
 	
 	#enum
-	PAD1_file_input	= 0
-	PAD1_file_input_2	= 1
-	PAD2_decorated	= 2
+	# Fixed offsets with this script:
+	#	s = ...
+	#	o = 0
+	#	for l in s.split('\n'):
+	#		if l.strip() == '': continue
+	#		if l.startswith('#'):
+	#			print(l)
+	#			continue
+	#		#print(l)
+	#		name = l.split('=')[0].strip()
+	#		pad = int(name.split('_')[0][3:])
+	#		l2 = '%s = %d' % (name, o)
+	#		o += pad
+	#		print(l2)
+	PAD1_file_input = 0
+	PAD1_file_input_2 = 1
+	PAD2_decorated = 2
 	#if MICROPY_PY_ASYNC_AWAIT
 	#else
 	#endif
-	PAD8_funcdef	= 3
-	PAD2_simple_stmt_2	= 4
-	PAD2_expr_stmt	= 5
-	PAD2_testlist_star_expr	= 6
-	PAD2_del_stmt	= 7
-	PAD1_pass_stmt	= 8
-	PAD1_break_stmt	= 9
-	PAD1_continue_stmt	= 10
-	PAD2_return_stmt	= 11
-	PAD1_yield_stmt	= 12
-	PAD2_raise_stmt	= 13
-	PAD2_import_name	= 14
-	PAD4_import_from	= 15
-	PAD2_global_stmt	= 16
-	PAD2_nonlocal_stmt	= 17
-	PAD3_assert_stmt	= 18
+	PAD8_funcdef = 4
+	PAD2_simple_stmt_2 = 12
+	PAD2_expr_stmt = 14
+	PAD2_testlist_star_expr = 16
+	PAD2_del_stmt = 18
+	PAD1_pass_stmt = 20
+	PAD1_break_stmt = 21
+	PAD1_continue_stmt = 22
+	PAD2_return_stmt = 23
+	PAD1_yield_stmt = 25
+	PAD2_raise_stmt = 26
+	PAD2_import_name = 28
+	PAD4_import_from = 30
+	PAD2_global_stmt = 34
+	PAD2_nonlocal_stmt = 36
+	PAD3_assert_stmt = 38
 	#if MICROPY_PY_ASYNC_AWAIT
-	PAD2_async_stmt	= 19
+	PAD2_async_stmt = 41
 	#else
 	#endif
-	PAD6_if_stmt	= 20
-	PAD5_while_stmt	= 21
-	PAD7_for_stmt	= 22
-	PAD4_try_stmt	= 23
-	PAD4_with_stmt	= 24
-	PAD1_suite_block_stmts	= 25
+	PAD6_if_stmt = 43
+	PAD5_while_stmt = 49
+	PAD7_for_stmt = 54
+	PAD4_try_stmt = 61
+	PAD4_with_stmt = 65
+	PAD1_suite_block_stmts = 69
 	#if MICROPY_PY_ASSIGN_EXPR
-	PAD2_namedexpr_test	= 26
+	PAD2_namedexpr_test = 70
 	#else
 	#endif
-	PAD2_test_if_expr	= 27
-	PAD4_lambdef	= 28
-	PAD4_lambdef_nocond	= 29
-	PAD2_or_test	= 30
-	PAD2_and_test	= 31
-	PAD2_not_test_2	= 32
-	PAD2_comparison	= 33
-	PAD2_star_expr	= 34
-	PAD2_expr	= 35
-	PAD2_xor_expr	= 36
-	PAD2_and_expr	= 37
-	PAD2_shift_expr	= 38
-	PAD2_arith_expr	= 39
-	PAD2_term	= 40
-	PAD2_factor_2	= 41
-	PAD2_power	= 42
+	PAD2_test_if_expr = 72
+	PAD4_lambdef = 74
+	PAD4_lambdef_nocond = 78
+	PAD2_or_test = 82
+	PAD2_and_test = 84
+	PAD2_not_test_2 = 86
+	PAD2_comparison = 88
+	PAD2_star_expr = 90
+	PAD2_expr = 92
+	PAD2_xor_expr = 94
+	PAD2_and_expr = 96
+	PAD2_shift_expr = 98
+	PAD2_arith_expr = 100
+	PAD2_term = 102
+	PAD2_factor_2 = 104
+	PAD2_power = 106
 	#if MICROPY_PY_ASYNC_AWAIT
-	PAD3_atom_expr_await	= 43
+	PAD3_atom_expr_await = 108
 	#else
 	#endif
-	PAD2_atom_expr_normal	= 44
-	PAD3_atom_paren	= 45
-	PAD3_atom_bracket	= 46
-	PAD3_atom_brace	= 47
-	PAD3_trailer_paren	= 48
-	PAD3_trailer_bracket	= 49
-	PAD2_trailer_period	= 50
+	PAD2_atom_expr_normal = 111
+	PAD3_atom_paren = 113
+	PAD3_atom_bracket = 116
+	PAD3_atom_brace = 119
+	PAD3_trailer_paren = 122
+	PAD3_trailer_bracket = 125
+	PAD2_trailer_period = 128
 	#if MICROPY_PY_BUILTINS_SLICE
-	PAD2_subscriptlist	= 51
-	PAD2_subscript_2	= 52
-	PAD2_subscript_3	= 53
+	PAD2_subscriptlist = 130
+	PAD2_subscript_2 = 132
+	PAD2_subscript_3 = 134
 	#else
 	#PAD2_subscriptlist	= 54
 	#endif
-	PAD2_testlist	= 55
+	PAD2_testlist = 136
 	#if MICROPY_PY_BUILTINS_SET
-	PAD2_dictorsetmaker_item	= 56
+	PAD2_dictorsetmaker_item = 138
 	#else
 	#PAD3_dictorsetmaker_item	= 57
 	#endif
-	PAD5_classdef	= 58
+	PAD5_classdef = 140
 	#if MICROPY_PY_ASSIGN_EXPR
 	#else
 	#endif
-	PAD2_yield_expr	= 59
-	PAD2_generic_colon_test	= 60
-	PAD2_generic_equal_test	= 61
-	PAD3_single_input	= 62
-	PAD2_file_input_3	= 63
-	PAD2_eval_input	= 64
-	PAD1_eval_input_2	= 65
-	PAD4_decorator	= 66
-	PAD1_decorators	= 67
+	PAD2_yield_expr = 145
+	# RULES have "const_object" here: special node for a constant, generic Python object
+	PAD2_generic_colon_test = 147
+	PAD2_generic_equal_test = 149
+	PAD3_single_input = 151
+	PAD2_file_input_3 = 154
+	PAD2_eval_input = 156
+	PAD1_eval_input_2 = 158
+	PAD4_decorator = 159
+	PAD1_decorators = 163
 	#if MICROPY_PY_ASYNC_AWAIT
-	PAD3_decorated_body	= 68
-	PAD2_async_funcdef	= 69
+	PAD3_decorated_body = 164
+	PAD2_async_funcdef = 167
 	#else
 	#PAD2_decorated_body	= 70
 	#endif
-	PAD2_funcdefrettype	= 71
-	PAD2_typedargslist	= 72
-	PAD3_typedargslist_item	= 73
-	PAD3_typedargslist_name	= 74
-	PAD2_typedargslist_star	= 75
-	PAD3_typedargslist_dbl_star	= 76
-	PAD2_tfpdef	= 77
-	PAD2_varargslist	= 78
-	PAD3_varargslist_item	= 79
-	PAD2_varargslist_name	= 80
-	PAD2_varargslist_star	= 81
-	PAD2_varargslist_dbl_star	= 82
-	PAD1_vfpdef	= 83
-	PAD2_stmt	= 84
-	PAD2_simple_stmt	= 85
-	PAD8_small_stmt	= 86
-	PAD3_expr_stmt_2	= 87
-	PAD2_expr_stmt_augassign	= 88
-	PAD1_expr_stmt_assign_list	= 89
-	PAD2_expr_stmt_assign	= 90
-	PAD2_expr_stmt_6	= 91
-	PAD2_testlist_star_expr_2	= 92
-	PAD3_annassign	= 93
-	PAD13_augassign	= 94
-	PAD5_flow_stmt	= 95
-	PAD2_raise_stmt_arg	= 96
-	PAD2_raise_stmt_from	= 97
-	PAD2_import_stmt	= 98
-	PAD2_import_from_2	= 99
-	PAD2_import_from_2b	= 100
-	PAD3_import_from_3	= 101
-	PAD3_import_as_names_paren	= 102
-	PAD1_one_or_more_period_or_ellipsis	= 103
-	PAD2_period_or_ellipsis	= 104
-	PAD2_import_as_name	= 105
-	PAD2_dotted_as_name	= 106
-	PAD2_as_name	= 107
-	PAD2_import_as_names	= 108
-	PAD2_dotted_as_names	= 109
-	PAD2_dotted_name	= 110
-	PAD2_name_list	= 111
-	PAD2_assert_stmt_extra	= 112
+	PAD2_funcdefrettype = 169
+	PAD2_typedargslist = 171
+	PAD3_typedargslist_item = 173
+	PAD3_typedargslist_name = 176
+	PAD2_typedargslist_star = 179
+	PAD3_typedargslist_dbl_star = 181
+	PAD2_tfpdef = 184
+	PAD2_varargslist = 186
+	PAD3_varargslist_item = 188
+	PAD2_varargslist_name = 191
+	PAD2_varargslist_star = 193
+	PAD2_varargslist_dbl_star = 195
+	PAD1_vfpdef = 197
+	PAD2_stmt = 198
+	PAD2_simple_stmt = 200
+	PAD8_small_stmt = 202
+	PAD3_expr_stmt_2 = 210
+	PAD2_expr_stmt_augassign = 213
+	PAD1_expr_stmt_assign_list = 215
+	PAD2_expr_stmt_assign = 216
+	PAD2_expr_stmt_6 = 218
+	PAD2_testlist_star_expr_2 = 220
+	PAD3_annassign = 222
+	PAD13_augassign = 225
+	PAD5_flow_stmt = 238
+	PAD2_raise_stmt_arg = 243
+	PAD2_raise_stmt_from = 245
+	PAD2_import_stmt = 247
+	PAD2_import_from_2 = 249
+	PAD2_import_from_2b = 251
+	PAD3_import_from_3 = 253
+	PAD3_import_as_names_paren = 256
+	PAD1_one_or_more_period_or_ellipsis = 259
+	PAD2_period_or_ellipsis = 260
+	PAD2_import_as_name = 262
+	PAD2_dotted_as_name = 264
+	PAD2_as_name = 266
+	PAD2_import_as_names = 268
+	PAD2_dotted_as_names = 270
+	PAD2_dotted_name = 272
+	PAD2_name_list = 274
+	PAD2_assert_stmt_extra = 276
 	#if MICROPY_PY_ASYNC_AWAIT
-	PAD9_compound_stmt	= 113
-	PAD3_async_stmt_2	= 114
+	PAD9_compound_stmt = 278
+	PAD3_async_stmt_2 = 287
 	#else
 	#PAD8_compound_stmt	= 115
 	#endif
-	PAD1_if_stmt_elif_list	= 116
-	PAD4_if_stmt_elif	= 117
-	PAD2_try_stmt_2	= 118
-	PAD3_try_stmt_except_and_more	= 119
-	PAD4_try_stmt_except	= 120
-	PAD2_try_stmt_as_name	= 121
-	PAD1_try_stmt_except_list	= 122
-	PAD3_try_stmt_finally	= 123
-	PAD3_else_stmt	= 124
-	PAD2_with_stmt_list	= 125
-	PAD2_with_item	= 126
-	PAD2_with_item_as	= 127
-	PAD2_suite	= 128
-	PAD4_suite_block	= 129
+	PAD1_if_stmt_elif_list = 290
+	PAD4_if_stmt_elif = 291
+	PAD2_try_stmt_2 = 295
+	PAD3_try_stmt_except_and_more = 297
+	PAD4_try_stmt_except = 300
+	PAD2_try_stmt_as_name = 304
+	PAD1_try_stmt_except_list = 306
+	PAD3_try_stmt_finally = 307
+	PAD3_else_stmt = 310
+	PAD2_with_stmt_list = 313
+	PAD2_with_item = 315
+	PAD2_with_item_as = 317
+	PAD2_suite = 319
+	PAD4_suite_block = 321
 	#if MICROPY_PY_ASSIGN_EXPR
-	PAD2_namedexpr_test_2	= 130
+	PAD2_namedexpr_test_2 = 325
 	#else
 	#PAD1_namedexpr_test	= 131
 	#endif
-	PAD2_test	= 132
-	PAD4_test_if_else	= 133
-	PAD2_test_nocond	= 134
-	PAD2_not_test	= 135
-	PAD9_comp_op	= 136
-	PAD2_comp_op_not_in	= 137
-	PAD2_comp_op_is	= 138
-	PAD1_comp_op_is_not	= 139
-	PAD2_shift_op	= 140
-	PAD2_arith_op	= 141
-	PAD5_term_op	= 142
-	PAD2_factor	= 143
-	PAD3_factor_op	= 144
+	PAD2_test = 327
+	PAD4_test_if_else = 329
+	PAD2_test_nocond = 333
+	PAD2_not_test = 335
+	PAD9_comp_op = 337
+	PAD2_comp_op_not_in = 346
+	PAD2_comp_op_is = 348
+	PAD1_comp_op_is_not = 350
+	PAD2_shift_op = 351
+	PAD2_arith_op = 353
+	PAD5_term_op = 355
+	PAD2_factor = 360
+	PAD3_factor_op = 362
 	#if MICROPY_PY_ASYNC_AWAIT
-	PAD2_atom_expr	= 145
+	PAD2_atom_expr = 365
 	#else
 	#PAD1_atom_expr	= 146
 	#endif
-	PAD1_atom_expr_trailers	= 147
-	PAD2_power_dbl_star	= 148
-	PAD12_atom	= 149
-	PAD2_atom_2b	= 150
-	PAD2_testlist_comp	= 151
-	PAD2_testlist_comp_2	= 152
-	PAD2_testlist_comp_3	= 153
-	PAD2_testlist_comp_3b	= 154
-	PAD2_testlist_comp_3c	= 155
-	PAD3_trailer	= 156
+	PAD1_atom_expr_trailers = 367
+	PAD2_power_dbl_star = 368
+	PAD12_atom = 370
+	PAD2_atom_2b = 382
+	PAD2_testlist_comp = 384
+	PAD2_testlist_comp_2 = 386
+	PAD2_testlist_comp_3 = 388
+	PAD2_testlist_comp_3b = 390
+	PAD2_testlist_comp_3c = 392
+	PAD3_trailer = 394
 	#if MICROPY_PY_BUILTINS_SLICE
-	PAD2_subscript	= 157
-	PAD2_subscript_3b	= 158
-	PAD2_subscript_3c	= 159
-	PAD2_subscript_3d	= 160
-	PAD2_sliceop	= 161
+	PAD2_subscript = 397
+	PAD2_subscript_3b = 399
+	PAD2_subscript_3c = 401
+	PAD2_subscript_3d = 403
+	PAD2_sliceop = 405
 	#else
 	#endif
-	PAD2_exprlist	= 162
-	PAD2_exprlist_2	= 163
-	PAD2_dictorsetmaker	= 164
+	PAD2_exprlist = 407
+	PAD2_exprlist_2 = 409
+	PAD2_dictorsetmaker = 411
 	#if MICROPY_PY_BUILTINS_SET
 	#else
 	#endif
-	PAD2_dictorsetmaker_tail	= 165
-	PAD2_dictorsetmaker_list	= 166
-	PAD2_dictorsetmaker_list2	= 167
-	PAD3_classdef_2	= 168
-	PAD2_arglist	= 169
-	PAD3_arglist_2	= 170
-	PAD2_arglist_star	= 171
-	PAD2_arglist_dbl_star	= 172
-	PAD2_argument	= 173
+	PAD2_dictorsetmaker_tail = 413
+	PAD2_dictorsetmaker_list = 415
+	PAD2_dictorsetmaker_list2 = 417
+	PAD3_classdef_2 = 419
+	PAD2_arglist = 422
+	PAD3_arglist_2 = 424
+	PAD2_arglist_star = 427
+	PAD2_arglist_dbl_star = 429
+	PAD2_argument = 431
 	#if MICROPY_PY_ASSIGN_EXPR
-	PAD3_argument_2	= 174
-	PAD2_argument_3	= 175
+	PAD3_argument_2 = 433
+	PAD2_argument_3 = 436
 	#else
 	#PAD2_argument_2	= 176
 	#endif
-	PAD2_comp_iter	= 177
-	PAD5_comp_for	= 178
-	PAD3_comp_if	= 179
-	PAD2_yield_arg	= 180
-	PAD2_yield_arg_from	= 181
+	PAD2_comp_iter = 438
+	PAD5_comp_for = 440
+	PAD3_comp_if = 445
+	PAD2_yield_arg = 448
+	PAD2_yield_arg_from = 450
+	
 	
 	#static const uint8_t rule_arg_offset_table[]
 	rule_arg_offset_table:[uint8_t] = [
@@ -1205,7 +1297,7 @@ if True:	# Allow folding all that stuff away
 	
 	#@FIXME: This checks all "PADx_xxx" if it is >= 0x100. If it is, it is set to the first "RULE_xxx"
 	# e.g. = (PAD2_yield_arg >= 0x100 ? RULE_yield_arg : 0)
-	FIRST_RULE_WITH_OFFSET_ABOVE_255 = 0
+	FIRST_RULE_WITH_OFFSET_ABOVE_255 = RULE_import_as_names_paren
 	
 	#if MICROPY_DEBUG_PARSE_RULE_NAME
 	#static const char *const rule_name_table[]
@@ -1438,6 +1530,17 @@ if True:	# Allow folding all that stuff away
 	]
 
 ### Code
+#rule_id = RULE_yield_arg_from
+#print('rule_id=%d' % rule_id)
+#print('rule_name="%s"' % rule_name_table[rule_id])
+#o = rule_arg_offset_table[rule_id] + 0x100 if rule_id >= FIRST_RULE_WITH_OFFSET_ABOVE_255 else 0
+#print('rule_act=%d' % rule_act_table[rule_id])
+#print('rule_arg=%s...' % ', '.join([ '0x%04X'%a for a in rule_arg_combined_table[o:o+6] ]))
+#print('rule_arg_offset=%d' % o)
+#print('PAD=%d' % PAD2_yield_arg_from)
+
+
+
 
 #typedef struct _rule_stack_t
 class rule_stack_t:
@@ -1459,11 +1562,12 @@ class parser_t:
 	rule_stack_alloc:size_t = 0
 	rule_stack_top:size_t = 0
 	rule_stack:rule_stack_t = None
+	
 	result_stack_alloc:size_t = 0
 	result_stack_top:size_t = 0
 	result_stack:mp_parse_node_t = None
 	lexer:mp_lexer_t = None
-	tree:mp_parse_tree_t = None
+	tree:mp_parse_tree_t = mp_parse_tree_t()
 	cur_chunk:mp_parse_chunk_t = None
 	#if MICROPY_COMP_CONST
 	consts:mp_map_t = {}
@@ -1476,7 +1580,8 @@ def get_rule_arg(r_id:uint8_t) -> uint16_t:
 	off:size_t = rule_arg_offset_table[r_id]
 	if (r_id >= FIRST_RULE_WITH_OFFSET_ABOVE_255):
 		off |= 0x100
-	return rule_arg_combined_table[off]	#&rule_arg_combined_table[off];
+	#return rule_arg_combined_table[off]	#&rule_arg_combined_table[off];
+	return off	#&rule_arg_combined_table[off];
 
 #static void *parser_alloc(parser_t *parser, size_t num_bytes) {
 #@FIXME: Change calling convention on caller to TWO return values
@@ -1550,7 +1655,6 @@ def push_rule_from_arg(parser:parser_t, arg:size_t):
 	push_rule(parser, parser.lexer.tok_line, rule_id, 0)
 
 #def pop_rule(parser:parser_t, size_t *arg_i, size_t *src_line) -> uint8_t:
-#@FIXME: Change calling convention on caller to TWO return values
 def pop_rule(parser:parser_t) -> (uint8_t, size_t, size_t):
 	parser.rule_stack_top -= 1
 	rule_id:uint8_t = parser.rule_stack[parser.rule_stack_top].rule_id
@@ -1799,19 +1903,23 @@ def push_result_token(parser:parser_t, rule_id:uint8_t):
 	pn:mp_parse_node_t = None
 	lex:mp_lexer_t = parser.lexer
 	if (lex.tok_kind == MP_TOKEN_NAME):
-		id:qstr = qstr_from_strn(lex.vstr.buf, le(nlex.vstr))
+		id:qstr = lex.vstr	#@FIXME: qstr_from_strn(lex.vstr.buf, le(nlex.vstr))
 		#if MICROPY_COMP_CONST
-		elem:mp_map_elem_t = mp_map_lookup(parser.consts, MP_OBJ_NEW_QSTR(id), MP_MAP_LOOKUP) if rule_id == RULE_atom else None
+		# if name is a standalone identifier, look it up in the table of dynamic constants
+		#elem:mp_map_elem_t = mp_map_lookup(parser.consts, MP_OBJ_NEW_QSTR(id), MP_MAP_LOOKUP) if rule_id == RULE_atom else None
+		elem:mp_map_elem_t = parser.consts[id] if id in parser.consts else None
+		
 		if ((rule_id == RULE_atom) and (elem is not None)):
 			pn = make_node_const_object_optimised(parser, lex.tok_line, elem.value)
 		else:
-			pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, id)
+			pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, hash(id))
 		#else
 		#(void)rule_id;
-		pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, id)
+		#pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, id)
 		#endif
 	elif (lex.tok_kind == MP_TOKEN_INTEGER):
-		o:mp_obj_t = mp_parse_num_integer(lex.vstr.buf, str(lex.vstr), 0, lex)
+		#o:mp_obj_t = mp_parse_num_integer(lex.vstr.buf, str(lex.vstr), 0, lex)
+		o:mp_obj_t = int(lex.vstr)
 		pn = make_node_const_object_optimised(parser, lex.tok_line, o)
 	elif (lex.tok_kind == MP_TOKEN_FLOAT_OR_IMAG):
 		o:mp_obj_t = mp_parse_num_float(lex.vstr.buf, lex.vstr.len, True, lex)
@@ -2172,7 +2280,8 @@ def push_result_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args
 		return
 	
 	#endif
-	pn:mp_parse_node_struct_t = parser_alloc(parser, sizeof(mp_parse_node_struct_t) + sizeof(mp_parse_node_t) * num_args)
+	#pn:mp_parse_node_struct_t = parser_alloc(parser, sizeof(mp_parse_node_struct_t) + sizeof(mp_parse_node_t) * num_args)
+	pn:mp_parse_node_struct_t = mp_parse_node_struct_t(num_args)
 	pn.source_line = src_line
 	pn.kind_num_nodes = (rule_id & 0xff) | (num_args << 8)
 	i:size_t = num_args
@@ -2186,22 +2295,22 @@ def push_result_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args
 	push_result_node(parser, pn)	#(mp_parse_node_t)pn);
 #
 
-def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_t:
+def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_t:
 	###MP_DEFINE_NLR_JUMP_CALLBACK_FUNCTION_1(ctx, mp_lexer_free, lex)
 	###nlr_push_jump_callback(&ctx.callback, mp_call_function_1_from_nlr_jump_callback)
 	
 	parser:parser_t = parser_t()
 	parser.rule_stack_alloc = MICROPY_ALLOC_PARSE_RULE_INIT
 	parser.rule_stack_top = 0
-	parser.rule_stack = m_new(rule_stack_t, parser.rule_stack_alloc)
+	parser.rule_stack = [ rule_stack_t() for i in range(parser.rule_stack_alloc) ]	#@FIXME: m_new(rule_stack_t, parser.rule_stack_alloc)
 	parser.result_stack_alloc = MICROPY_ALLOC_PARSE_RESULT_INIT
 	parser.result_stack_top = 0
-	parser.result_stack = m_new(mp_parse_node_t, parser.result_stack_alloc)
+	parser.result_stack = [ MP_PARSE_NODE_NULL for i in range(parser.result_stack_alloc) ]	#@FIXME: m_new(mp_parse_node_t, parser.result_stack_alloc)
 	parser.lexer = lex
 	parser.tree.chunk = None
 	parser.cur_chunk = None
 	#if MICROPY_COMP_CONST
-	mp_map_init(parser.consts, 0)
+	parser.consts = {}	#@FIXME: mp_map_init(parser.consts, 0)
 	#endif
 	top_level_rule:size_t
 	"""
@@ -2226,18 +2335,26 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 	backtrack:bool = False
 	while (True):
 		#next_rule:
+		#put('next_rule')
 		next_rule:bool = False
 		
 		if (parser.rule_stack_top == 0):
+			put('Reached end of rule_stack')
 			break
 		
-		rule_id:uint8_t = 0
+		# Pop the next rule to process it
 		i:size_t = 0
 		rule_src_line:size_t = 0
+		rule_id:uint8_t = 0
 		#uint8_t rule_id = pop_rule(&parser, &i, &rule_src_line);
 		rule_id, i, rule_src_line = pop_rule(parser)
+		
+		#put('rule_id=%d / len=%d' % (rule_id, len(rule_act_table)))
 		rule_act:uint8_t = rule_act_table[rule_id]
-		rule_arg:uint16_t = get_rule_arg(rule_id)
+		
+		#rule_arg:uint16_t = get_rule_arg(rule_id)
+		rule_arg_idx:uint16_t = get_rule_arg(rule_id)
+		
 		n:size_t = rule_act & RULE_ACT_ARG_MASK
 		"""
 		#if 0
@@ -2248,6 +2365,8 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 		printf("%s n=" UINT_FMT " i=" UINT_FMT " bt=%d\n", rule_name_table[rule_id], n, i, backtrack);
 		#endif
 		"""
+		put('depth=%d %s %s (%d) n=%d, i=%d, bt=%s, at	%s' % (parser.rule_stack_top, ' '*parser.rule_stack_top, rule_name_table[rule_id], rule_id, n, i, str(backtrack), str(lex)))
+		
 		#match(rule_act & RULE_ACT_KIND_MASK):
 		rule_act_masked = rule_act & RULE_ACT_KIND_MASK
 		#match(rule_act & RULE_ACT_KIND_MASK):
@@ -2261,21 +2380,31 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 			
 			#for (; i < n; ++i) {
 			while(i < n):
-				kind:uint16_t = rule_arg[i] & RULE_ARG_KIND_MASK
+				#kind:uint16_t = rule_arg[i] & RULE_ARG_KIND_MASK
+				kind:uint16_t = rule_arg_combined_table[rule_arg_idx + i] & RULE_ARG_KIND_MASK
+				
+				#put('%d / %d, rule_arg_idx=%d, kind=%04x' % (i, n, rule_arg_idx, kind))
+				
 				if (kind == RULE_ARG_TOK):
-					if (lex.tok_kind == (rule_arg[i] & RULE_ARG_ARG_MASK)):
+					#put('TOK current=%s' % lex.tok_kind)
+					#if (lex.tok_kind == (rule_arg[i] & RULE_ARG_ARG_MASK)):
+					if (lex.tok_kind == (rule_arg_combined_table[rule_arg_idx + i] & RULE_ARG_ARG_MASK)):
+						#put('TOK match for rule_id=%d' % rule_id)
 						push_result_token(parser, rule_id)
+						
+						put('mp_lexer_to_next...')
 						mp_lexer_to_next(lex)
 						#goto next_rule;
 						next_rule = True
 						break
 					#
 				else:
-					assert(kind == RULE_ARG_RULE);
+					assert(kind == RULE_ARG_RULE)
 					if (i + 1 < n):
-						push_rule(parser, rule_src_line, rule_id, i + 1)
+						push_rule(parser, rule_src_line, rule_id, i + 1)	# save this or-rule
 					
-					push_rule_from_arg(parser, rule_arg[i])
+					#push_rule_from_arg(parser, rule_arg[i])
+					push_rule_from_arg(parser, rule_arg_combined_table[rule_arg_idx + i])	# push child of or-rule
 					#goto next_rule;
 					next_rule = True
 					break
@@ -2286,13 +2415,20 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 			backtrack = True
 			
 		elif rule_act_masked == RULE_ACT_AND:
+			
+			# failed, backtrack if we can, else syntax error
+			
 			if (backtrack):
 				assert(i > 0)
-				if ((rule_arg[i - 1] & RULE_ARG_KIND_MASK) == RULE_ARG_OPT_RULE):
+				#if ((rule_arg[i - 1] & RULE_ARG_KIND_MASK) == RULE_ARG_OPT_RULE):
+				if ((rule_arg_combined_table[rule_arg_idx + i - 1] & RULE_ARG_KIND_MASK) == RULE_ARG_OPT_RULE):
+					# an optional rule that failed, so continue with next arg
 					push_result_node(parser, MP_PARSE_NODE_NULL)
 					backtrack = False
 				else:
+					# a mandatory rule that failed, so propagate backtrack
 					if (i > 1):
+						# already eaten tokens so can't backtrack
 						#goto syntax_error
 						mp_raise_syntax_error(lex)
 					else:
@@ -2304,8 +2440,10 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 			#
 			#for (; i < n; ++i) {
 			while(i < n):
-				if ((rule_arg[i] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
-					tok_kind:mp_token_kind_t = rule_arg[i] & RULE_ARG_ARG_MASK
+				#if ((rule_arg[i] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
+				if ((rule_arg_combined_table[rule_arg_idx + i] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
+					#tok_kind:mp_token_kind_t = rule_arg[i] & RULE_ARG_ARG_MASK
+					tok_kind:mp_token_kind_t = rule_arg_combined_table[rule_arg_idx + i] & RULE_ARG_ARG_MASK
 					if (lex.tok_kind == tok_kind):
 						if (tok_kind == MP_TOKEN_NAME):
 							push_result_token(parser, rule_id)
@@ -2324,7 +2462,8 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 					#
 				else:
 					push_rule(parser, rule_src_line, rule_id, i + 1)
-					push_rule_from_arg(parser, rule_arg[i])
+					#push_rule_from_arg(parser, rule_arg[i])
+					push_rule_from_arg(parser, rule_arg_combined_table[rule_arg_idx + i])
 					#goto next_rule
 					next_rule = True
 					break
@@ -2352,8 +2491,10 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 			x:size_t = n
 			while(x > 0):
 				x -= 1
-				if ((rule_arg[x] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
-					tok_kind:mp_token_kind_t = rule_arg[x] & RULE_ARG_ARG_MASK
+				#if ((rule_arg[x] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
+				if ((rule_arg_combined_table[rule_arg_idx + x] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
+					#tok_kind:mp_token_kind_t = rule_arg[x] & RULE_ARG_ARG_MASK
+					tok_kind:mp_token_kind_t = rule_arg_combined_table[rule_arg_idx + x] & RULE_ARG_ARG_MASK
 					if (tok_kind == MP_TOKEN_NAME):
 						i += 1
 						num_not_nil += 1
@@ -2420,7 +2561,8 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 			else:
 				# Not backtracking
 				while True:
-					arg:size_t = rule_arg[i & 1 & n]
+					#arg:size_t = rule_arg[i & 1 & n]
+					arg:size_t = rule_arg_combined_table[rule_arg_idx + (i & 1 & n)]
 					if ((arg & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
 						if (lex.tok_kind == (arg & RULE_ARG_ARG_MASK)):
 							if (i & 1 & n):
@@ -2482,7 +2624,8 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 			
 			assert(i >= 1)
 			i -= 1
-			if ((n & 1) and (rule_arg[1] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
+			#if ((n & 1) and (rule_arg[1] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
+			if ((n & 1) and (rule_arg_combined_table[rule_arg_idx + 1] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
 				i = (i + 1) // 2
 			
 			if (i == 1):
@@ -2499,7 +2642,7 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 	# end of next_rule-loop
 	
 	#if MICROPY_COMP_CONST
-	mp_map_deinit(parser.consts)
+	parser.consts = None	#@FIXME: mp_map_deinit(parser.consts)
 	#endif
 	if (parser.cur_chunk is not None):
 		m_renew_maybe(byte, parser.cur_chunk,
@@ -2511,8 +2654,8 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 		parser.tree.chunk = parser.cur_chunk
 	#
 	if (
-		lex.tok_kind != MP_TOKEN_END
-		or parser.result_stack_top == 0
+		lex.tok_kind != MP_TOKEN_END	# check we are at the end of the token stream
+		or parser.result_stack_top == 0	# check that we got a node (can fail on empty input)
 	):
 		"""
 		syntax_error:;
@@ -2542,26 +2685,26 @@ def mp_parse(lex_mp_lexer_t, input_kind_mp_parse_input_kind_t) -> mp_parse_tree_
 	#
 	assert(parser.result_stack_top == 1)
 	parser.tree.root = parser.result_stack[0]
-	m_del(rule_stack_t, parser.rule_stack, parser.rule_stack_alloc)
-	m_del(mp_parse_node_t, parser.result_stack, parser.result_stack_alloc)
-	nlr_pop_jump_callback(true)
+	#m_del(rule_stack_t, parser.rule_stack, parser.rule_stack_alloc)
+	#m_del(mp_parse_node_t, parser.result_stack, parser.result_stack_alloc)
+	#nlr_pop_jump_callback(true)
 	return parser.tree
 #
 
 # This is my version for Python
 def mp_raise_syntax_error(lex):
 	if (lex.tok_kind == MP_TOKEN_INDENT):
-		raise Exception('mp_type_IndentationError: unexpected indent')
+		raise Exception('mp_type_IndentationError: unexpected indent at %s' % str(lex))
 	elif (lex.tok_kind == MP_TOKEN_DEDENT_MISMATCH):
-		raise Exception('mp_type_IndentationError: unindent doesn\'t match any outer indent level')
+		raise Exception('mp_type_IndentationError: unindent doesn\'t match any outer indent level at %s' % str(lex))
 		#if MICROPY_PY_FSTRINGS
 	elif (lex.tok_kind == MP_TOKEN_MALFORMED_FSTRING):
-		raise Exception('mp_type_SyntaxError: malformed f-string')
+		raise Exception('mp_type_SyntaxError: malformed f-string at %s' % str(lex))
 	elif (lex.tok_kind == MP_TOKEN_FSTRING_RAW):
-		raise Exception('mp_type_SyntaxError: raw f-strings are not supported')
+		raise Exception('mp_type_SyntaxError: raw f-strings are not supported at %s' % str(lex))
 		#endif
 	else:
-		raise Exception('mp_type_SyntaxError: invalid syntax')
+		raise Exception('mp_type_SyntaxError: invalid syntax at %s' % str(lex))
 #
 
 def mp_parse_tree_clear(tree:mp_parse_tree_t):
@@ -2577,6 +2720,20 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 ###
 
 if __name__ == '__main__':
+	#filename = '__test_micropython_lexer.py'
+	#put('Loading "%s"...' % filename)
+	#with open(filename, 'r') as h: code = h.read()
+	
+	filename = 'test_input'
+	code = 'a=1'
+	
+	put('Setting up reader and lexer...')
+	reader = mp_reader_t(code)
+	lex = mp_lexer_new(src_name=filename, reader=reader)
+	
+	put('Parsing...')
+	mp_parse(lex, MP_PARSE_FILE_INPUT)
+	#mp_parse(lex, MP_PARSE_SINGLE_INPUT)
 	
 	put('EOF')
 	
