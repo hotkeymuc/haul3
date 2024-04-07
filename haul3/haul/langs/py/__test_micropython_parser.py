@@ -25,8 +25,8 @@ def put(t):
 	print(t)
 
 
-MICROPY_ALLOC_PARSE_RULE_INIT = 64	# ???
-MICROPY_ALLOC_PARSE_RESULT_INIT = 64	# ???
+MICROPY_ALLOC_PARSE_RULE_INIT = 128	# ???
+MICROPY_ALLOC_PARSE_RESULT_INIT = 128	# ???
 MICROPY_ALLOC_PARSE_INTERN_STRING_LEN = 1024 * 16
 
 # Define some types
@@ -37,6 +37,15 @@ uint32_t = int
 
 MP_QSTRnull = None	#@FIXME: ???
 MP_QSTR_const = 'const'	#@FIXME: ????
+
+MP_UNARY_OP_INVERT = -1	#@FIXME: ???
+MP_UNARY_OP_POSITIVE = 1	#@FIXME: ???
+def mp_unary_op(op, arg):
+	return arg	#@FIXME: ????
+
+def mp_parse_num_integer(t):
+	if t.startswith('0x'): return int(t, 16)
+	return int(t)
 
 # a mp_parse_node_t is:
 #  - 0000...0000: no node
@@ -100,11 +109,13 @@ def mp_parse_node_new_leaf(kind:size_t, arg:mp_int_t) -> mp_parse_node_t:
 	#return (mp_parse_node_t)(kind | ((mp_uint_t)arg << 4));
 	return kind | (arg << 4)
 
-
 def mp_obj_is_small_int(o):
 	return (type(o) is int) and (o < 16)
 def MP_OBJ_SMALL_INT_VALUE(o):
 	return int(o)
+
+MP_OBJ_NEW_SMALL_INT = mp_parse_node_new_small_int
+MP_PARSE_NODE_LEAF_SMALL_INT = lambda o: o
 
 
 class mp_dynamic_compiler_t:
@@ -1888,7 +1899,8 @@ def push_result_node(parser:parser_t, pn:mp_parse_node_t):
 #
 
 def make_node_const_object(parser:parser_t, src_line:size_t, obj:mp_obj_t) -> mp_parse_node_t:
-	pn:mp_parse_node_struct_t = parser_alloc(parser, sizeof(mp_parse_node_struct_t) + sizeof(mp_obj_t))
+	#pn:mp_parse_node_struct_t = parser_alloc(parser, sizeof(mp_parse_node_struct_t) + sizeof(mp_obj_t))
+	pn:mp_parse_node_struct_t = mp_parse_node_struct_t(16)	#@FIXME: How big?
 	pn.source_line = src_line
 	
 	#@FIXME: Which one is it?
@@ -1941,7 +1953,7 @@ def push_result_token(parser:parser_t, rule_id:uint8_t):
 		#endif
 	elif (lex.tok_kind == MP_TOKEN_INTEGER):
 		#o:mp_obj_t = mp_parse_num_integer(lex.vstr, str(lex.vstr), 0, lex)
-		o:mp_obj_t = int(lex.vstr)
+		o:mp_obj_t = mp_parse_num_integer(lex.vstr)
 		pn = make_node_const_object_optimised(parser, lex.tok_line, o)
 	elif (lex.tok_kind == MP_TOKEN_FLOAT_OR_IMAG):
 		o:mp_obj_t = mp_parse_num_float(lex.vstr, len(lex.vstr), True, lex)
@@ -1988,6 +2000,9 @@ mp_constants_table:[mp_rom_map_elem_t] = [
 
 static MP_DEFINE_CONST_MAP(mp_constants_map, mp_constants_table);
 """
+mp_constants_map = {
+	#@TODO: Constants??
+}
 
 #endif
 
@@ -2180,7 +2195,8 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 		assert(MP_PARSE_NODE_IS_ID(pns1.nodes[0]))
 		q_base:qstr = MP_PARSE_NODE_LEAF_ARG(pn0)
 		q_attr:qstr = MP_PARSE_NODE_LEAF_ARG(pns1.nodes[0])
-		elem:mp_map_elem_t = mp_map_lookup(mp_constants_map, MP_OBJ_NEW_QSTR(q_base), MP_MAP_LOOKUP)
+		#elem:mp_map_elem_t = mp_map_lookup(mp_constants_map, MP_OBJ_NEW_QSTR(q_base), MP_MAP_LOOKUP)
+		elem = mp_constants_map[q_base] if q_base in mp_constants_map else None
 		if (elem is None):
 			return False
 		
@@ -2194,7 +2210,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 	else:
 		return False
 	
-	i = size_t
+	i:size_t = num_args
 	while (i > 0):
 		pop_result(parser)
 		i -= 1
@@ -2749,8 +2765,9 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 ###
 
 if __name__ == '__main__':
-	#filename = '__test_micropython_lexer.py'
-	filename = '__t.py'
+	#filename = '__t.py'
+	filename = '__test_micropython_lexer.py'
+	#filename = '__test_micropython_parser.py'
 	
 	put('Loading "%s"...' % filename)
 	with open(filename, 'r') as h: code = h.read()
