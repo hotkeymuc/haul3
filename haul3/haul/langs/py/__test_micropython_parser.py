@@ -733,7 +733,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 			if (not r):
 				return False
 			
-			if (op == MP_BINARY_OP_POWER and mp_obj_int_sign(arg1) < 0):
+			if (op == MP_BINARY_OP_POWER) and (mp_obj_int_sign(arg1) < 0):
 				return False
 			
 			arg0 = mp_binary_op(op, arg0, arg1)
