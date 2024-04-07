@@ -11,7 +11,7 @@ It is based on the "expand_macros" processed "grammar.h".
 LEXER_VERBOSE = True	# Show tokens as they are streamed in
 PARSER_VERBOSE_RULES = not True	# Show rule matching
 PARSER_VERBOSE_RESULT_TOKEN = not True	# Show result tokens as they are pushed
-PARSER_VERBOSE_RESULT_NODE = True	# Show result nodes as they are pushed
+PARSER_VERBOSE_RESULT_NODE = not True	# Show result nodes as they are pushed
 PARSER_VERBOSE_RESULT_POP = not True	# Show parse nodes as they are popped
 DUMP_INDENT = '  '	#'\t'
 ### Glue code
@@ -147,6 +147,9 @@ class mp_parse_node_id_t(mp_parse_node_t):
 		self.id_value = id_value
 	def get_arg(self) -> qstr:
 		return self.id_value
+	def __repr__(self):
+		#return '%s (0x%02x), %s' % (self.__class__.__name__[len('mp_parse_node_'):-2].upper(), self.typ, ', '.join([ '%s=%s'%(k[:-len('_value')],str(v)) if k.endswith('_value') else '' for k,v in self.__dict__.items() ]))
+		return 'ID: %s' % self.id_value
 
 class mp_parse_node_string_t(mp_parse_node_t):
 	typ:size_t = MP_PARSE_NODE_STRING
@@ -155,6 +158,9 @@ class mp_parse_node_string_t(mp_parse_node_t):
 		self.string_value = string_value
 	def get_arg(self) -> qstr:
 		return self.string_value
+	def __repr__(self):
+		#return '%s (0x%02x), %s' % (self.__class__.__name__[len('mp_parse_node_'):-2].upper(), self.typ, ', '.join([ '%s=%s'%(k[:-len('_value')],str(v)) if k.endswith('_value') else '' for k,v in self.__dict__.items() ]))
+		return 'STRING: "%s"' % self.string_value
 
 class mp_parse_node_token_t(mp_parse_node_t):
 	typ:size_t = MP_PARSE_NODE_TOKEN
@@ -163,6 +169,9 @@ class mp_parse_node_token_t(mp_parse_node_t):
 		self.token_value = token_value
 	def get_arg(self) -> mp_token_kind_t:
 		return self.token_value
+	def __repr__(self):
+		#return 'TOKEN (0x%02x), token=%d / %s' % (self.typ, self.token_value, mp_token_kind_names[self.token_value])
+		return 'TOKEN: %s (%d)' % (mp_token_kind_names[self.token_value], self.token_value)
 
 MP_PARSE_NODE_STRUCT = 0x10	# Must follow xxxx...xx00 rule to be recognized
 class mp_parse_node_struct_t(mp_parse_node_t):
@@ -178,11 +187,14 @@ class mp_parse_node_struct_t(mp_parse_node_t):
 	def dump(self, indent=0):
 		#return '%sstruct (line %d)%s' % (source_line, )
 		kind = self.kind_num_nodes & 0xff
-		r = '%sSTRUCT %s (in line %d) {' % (
+		#r = '%sSTRUCT %s (in line %d) {' % (
+		#r = '%s%s (0x%02x) (in line %d) {' % (
+		r = '%sSTRUCT: %s {\t// line %d' % (
 			DUMP_INDENT * indent,
 			#mp_token_kind_names[kind] if kind in mp_token_kind_names else '???',
 			rule_name_table[kind] if kind < len(rule_name_table) else '0x%02X'%kind,
 			#kind,
+			#self.typ,
 			self.source_line
 		)
 		for pn in self.nodes:

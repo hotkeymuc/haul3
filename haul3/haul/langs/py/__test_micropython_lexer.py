@@ -53,6 +53,8 @@ class mp_reader_t:
 		r = self.data[self.ofs]
 		self.ofs += 1
 		return r
+	def __repr__(self):
+		return 'byte %d / %d' % (self.ofs, len(self.data))
 
 def unichar_isspace(c):
 	return c in [' ', '\t']
