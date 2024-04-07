@@ -1,10 +1,9 @@
 #!/bin/python3
-"""
-Translation of MicroPython's "py/lexer.h/c" to Python
-
-2024-04-05 Bernhard "HotKey" Slawik
-"""
-
+#"""
+#	Translation of MicroPython's "py/lexer.h/c" to Python
+#	
+#	2024-04-05 Bernhard "HotKey" Slawik
+#"""
 ### Glue code
 def put(t):
 	print(t)
@@ -407,7 +406,8 @@ def is_following_digit(lex:mp_lexer_t) -> bool:
 
 def is_following_base_char(lex:mp_lexer_t) -> bool:
 	#chr1:unichar = lex.chr1 | 0x20
-	chr1:unichar = lex.chr1 if lex.chr1 != '\x00' else ' '
+	#chr1:unichar = lex.chr1 if lex.chr1 != '\x00' else ' '
+	chr1:unichar = lex.chr1 if ord(lex.chr1) > 0 else ' '
 	return chr1 == 'b' or chr1 == 'o' or chr1 == 'x'
 
 def is_following_odigit(lex:mp_lexer_t) -> bool:
@@ -732,68 +732,68 @@ def parse_string_literal(lex:mp_lexer_t, is_raw:bool, is_fstring:bool):
 					# raw strings allow escaping of quotes, but the backslash is also emitted
 					lex.vstr += '\\'	#vstr_add_char(&lex.vstr, '\\');
 				else:
-					match(c):
-						# note: "c" can never be MP_LEXER_EOF because next_char
-						# always inserts a newline at the end of the input stream
-						case '\n':	c = MP_LEXER_EOF;	# backslash escape the newline, just ignore it
-						case '\\':	pass
-						case '\'':	pass
-						case '"':	pass
-						case 'a':	c = chr(0x07)
-						case 'b':	c = chr(0x08)
-						case 't':	c = chr(0x09)
-						case 'n':	c = chr(0x0a)
-						case 'v':	c = chr(0x0b)
-						case 'f':	c = chr(0x0c)
-						case 'r':	c = chr(0x0d)
-						
-						case 'u' | 'U':
-							if (lex.tok_kind == MP_TOKEN_BYTES):
-								# b'\u1234' == b'\\u1234'
-								lex.vstr += '\\'	#vstr_add_char(&lex.vstr, '\\');
-							else:
-								# Otherwise fall through.
-								#MP_FALLTHROUGH
-								num:mp_uint_t = 0
-								if c == 'u': num = get_hex(lex, 4)
-								else: num = get_hex(lex, 8)
-								if num is None:	# not enough hex chars for escape sequence
-									num = 0
-									lex.tok_kind = MP_TOKEN_INVALID
-								c = chr(num)
-						case 'x':
-							num:mp_uint_t = get_hex(lex, 2)
+					#match(c):
+					# note: "c" can never be MP_LEXER_EOF because next_char
+					# always inserts a newline at the end of the input stream
+					if c == '\n':	c = MP_LEXER_EOF	# backslash escape the newline, just ignore it
+					elif c == '\\':	pass
+					elif c == '\'':	pass
+					elif c == '"':	pass
+					elif c == 'a':	c = chr(0x07)
+					elif c == 'b':	c = chr(0x08)
+					elif c == 't':	c = chr(0x09)
+					elif c == 'n':	c = chr(0x0a)
+					elif c == 'v':	c = chr(0x0b)
+					elif c == 'f':	c = chr(0x0c)
+					elif c == 'r':	c = chr(0x0d)
+					
+					elif c in ['u', 'U']:
+						if (lex.tok_kind == MP_TOKEN_BYTES):
+							# b'\u1234' == b'\\u1234'
+							lex.vstr += '\\'	#vstr_add_char(&lex.vstr, '\\');
+						else:
+							# Otherwise fall through.
+							#MP_FALLTHROUGH
+							num:mp_uint_t = 0
+							if c == 'u': num = get_hex(lex, 4)
+							else: num = get_hex(lex, 8)
 							if num is None:	# not enough hex chars for escape sequence
 								num = 0
 								lex.tok_kind = MP_TOKEN_INVALID
-							#
 							c = chr(num)
-							break;
+					elif c == 'x':
+						num:mp_uint_t = get_hex(lex, 2)
+						if num is None:	# not enough hex chars for escape sequence
+							num = 0
+							lex.tok_kind = MP_TOKEN_INVALID
 						#
-						case 'N':
-							# Supporting '\\N{LATIN SMALL LETTER A#' == 'a' would require keeping the
-							# entire Unicode name table in the core. As of Unicode 6.3.0, that's nearly
-							# 3MB of text; even gzip-compressed and with minimal structure, it'll take
-							# roughly half a meg of storage. This form of Unicode escape may be added
-							# later on, but it's definitely not a priority right now. -- CJA 20140607
-							raise Exception('NotImplementedError(MP_ERROR_TEXT("unicode name escapes")')
-							
-						case _:
-							if (c >= '0' and c <= '7'):
-								# Octal sequence, 1-3 chars
-								digits:size_t = 3
-								num:mp_uint_t = ord(c) - ord('0')
-								while (is_following_odigit(lex)):	# and --digits != 0):
-									digits -= 1
-									if digits == 0: break
-									
-									next_char(lex)
-									num = num * 8 + (ord(CUR_CHAR(lex)) - ord('0'))
-								c = chr(num)
-							else:
-								# unrecognised escape character; CPython lets this through verbatim as '\' and then the character
-								lex.vstr += '\\'	#vstr_add_char(&lex.vstr, '\\');
-							#
+						c = chr(num)
+						#break;
+					
+					elif c == 'N':
+						# Supporting '\\N{LATIN SMALL LETTER A#' == 'a' would require keeping the
+						# entire Unicode name table in the core. As of Unicode 6.3.0, that's nearly
+						# 3MB of text; even gzip-compressed and with minimal structure, it'll take
+						# roughly half a meg of storage. This form of Unicode escape may be added
+						# later on, but it's definitely not a priority right now. -- CJA 20140607
+						raise Exception('NotImplementedError(MP_ERROR_TEXT("unicode name escapes")')
+						
+					else:
+						if (c >= '0' and c <= '7'):
+							# Octal sequence, 1-3 chars
+							digits:size_t = 3
+							num:mp_uint_t = ord(c) - ord('0')
+							while (is_following_odigit(lex)):	# and --digits != 0):
+								digits -= 1
+								if digits == 0: break
+								
+								next_char(lex)
+								num = num * 8 + (ord(CUR_CHAR(lex)) - ord('0'))
+							c = chr(num)
+						else:
+							# unrecognised escape character; CPython lets this through verbatim as '\' and then the character
+							lex.vstr += '\\'	#vstr_add_char(&lex.vstr, '\\');
+						#
 					# end of match
 				#
 				if (not c == MP_LEXER_EOF):
@@ -1087,7 +1087,7 @@ def mp_lexer_to_next(lex:mp_lexer_t):
 		tok_enc_index:size_t = 0
 		
 		#for (; *t != 0 and !is_char(lex, *t); t += 1):
-		while ((not tok_enc[t] == 0) and (not is_char(lex, tok_enc[t]))):
+		while ((t < len(tok_enc)) and (not tok_enc[t] == 0) and (not is_char(lex, tok_enc[t]))):
 			if (tok_enc[t] == 'e' or tok_enc[t] == 'c'):
 				t += 1
 			#
@@ -1097,7 +1097,7 @@ def mp_lexer_to_next(lex:mp_lexer_t):
 		
 		next_char(lex)
 		
-		if (tok_enc[t] == 0):
+		if ((t >= len(tok_enc)) or (tok_enc[t] == 0)):
 			# didn't match any delimiter or operator characters
 			lex.tok_kind = MP_TOKEN_INVALID;
 		
