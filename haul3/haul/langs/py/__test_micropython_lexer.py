@@ -3,7 +3,6 @@
 Translation of MicroPython's "py/lexer.h/c" to Python
 
 2024-04-05 Bernhard "HotKey" Slawik
-
 """
 
 ### Glue code
@@ -14,6 +13,7 @@ MICROPY_ALLOC_LEXER_INDENT_INIT = 8	#@FIXME: ?
 MICROPY_ALLOC_LEXEL_INDENT_INC = 1	#@FIXME: ?
 
 MP_LEXER_EOF = chr(0x1a)	# = MP_READER_EOF
+MP_LEXER_VERBOSE = False
 
 def MP_ARRAY_SIZE(a):	return len(a)
 def CUR_CHAR(lex):	return lex.chr0
@@ -861,6 +861,8 @@ def skip_whitespace(lex:mp_lexer_t, stop_at_newline:bool) -> bool:
 #
 
 def mp_lexer_to_next(lex:mp_lexer_t):
+	#if MP_LEXER_VERBOSE: put('mp_lexer_to_next')
+	
 	#if MICROPY_PY_FSTRINGS
 	if (len(lex.fstring_args) and lex.fstring_args_idx == 0):
 		# moving onto the next token means the literal string is complete.
@@ -1033,10 +1035,10 @@ def mp_lexer_to_next(lex:mp_lexer_t):
 				if (lex.tok_kind == MP_TOKEN_KW___DEBUG__):
 					lex.tok_kind = MP_TOKEN_KW_TRUE if (MP_STATE_VM(mp_optimise_value) == 0) else MP_TOKEN_KW_FALSE
 				#
-				break;
+				break
 			elif (cmp < 0):
 				# Table is sorted and comparison was less-than, so stop searching
-				break;
+				break
 			#
 		#
 	
@@ -1045,7 +1047,7 @@ def mp_lexer_to_next(lex:mp_lexer_t):
 		if (is_char(lex, '.')):
 			lex.tok_kind = MP_TOKEN_FLOAT_OR_IMAG
 		else:
-			lex.tok_kind = MP_TOKEN_INTEGER;
+			lex.tok_kind = MP_TOKEN_INTEGER
 			if (is_char(lex, '0') and is_following_base_char(lex)):
 				forced_integer = True
 			#
@@ -1074,7 +1076,7 @@ def mp_lexer_to_next(lex:mp_lexer_t):
 			elif (is_char(lex, '_')):
 				next_char(lex)
 			else:
-				break;
+				break
 			#
 		#
 		
@@ -1149,6 +1151,9 @@ def mp_lexer_to_next(lex:mp_lexer_t):
 			#
 		#
 	#
+	if MP_LEXER_VERBOSE:
+		#put('mp_lexer_to_next: %s' % str(lex))
+		put(str(lex))
 #
 
 def mp_lexer_new(src_name:qstr, reader:mp_reader_t) -> mp_lexer_t:

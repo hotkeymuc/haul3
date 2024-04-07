@@ -7,7 +7,18 @@ It is based on the "expand_macros" processed "grammar.h".
 
 """
 
+# Verbosity options
+LEXER_VERBOSE = True	# Show tokens as they are requested
+PARSER_VERBOSE_RULES = not True	# Show rule matching
+
+
 ### Glue code
+
+# Set lexer to verbose
+if LEXER_VERBOSE:
+	import __test_micropython_lexer
+	__test_micropython_lexer.MP_LEXER_VERBOSE = True
+
 from __test_micropython_lexer import *
 
 def put(t):
@@ -16,7 +27,7 @@ def put(t):
 
 MICROPY_ALLOC_PARSE_RULE_INIT = 64	# ???
 MICROPY_ALLOC_PARSE_RESULT_INIT = 64	# ???
-
+MICROPY_ALLOC_PARSE_INTERN_STRING_LEN = 1024 * 16
 
 # Define some types
 size_t = int
@@ -24,6 +35,8 @@ uint8_t = int
 uint16_t = int
 uint32_t = int
 
+MP_QSTRnull = None	#@FIXME: ???
+MP_QSTR_const = 'const'	#@FIXME: ????
 
 # a mp_parse_node_t is:
 #  - 0000...0000: no node
@@ -52,10 +65,20 @@ class mp_parse_node_struct_t:
 # macros for mp_parse_node_t usage
 # some of these evaluate their argument more than once
 
-def MP_PARSE_NODE_IS_NULL(pn): return ((pn) == MP_PARSE_NODE_NULL)
-def MP_PARSE_NODE_IS_LEAF(pn): return ((pn) & 3)
-def MP_PARSE_NODE_IS_STRUCT(pn): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0)
-def MP_PARSE_NODE_IS_STRUCT_KIND(pn, k): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0 and MP_PARSE_NODE_STRUCT_KIND((pn)) == (k))
+def MP_PARSE_NODE_IS_NULL(pn):
+	return ((pn) == MP_PARSE_NODE_NULL)
+
+def MP_PARSE_NODE_IS_LEAF(pn):
+	#return ((pn) & 3)
+	return type(pn) is int	#mp_parse_node_struct_t
+	
+def MP_PARSE_NODE_IS_STRUCT(pn):
+	#return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0)
+	return (pn is not None) and (type(pn) is mp_parse_node_struct_t)
+	
+def MP_PARSE_NODE_IS_STRUCT_KIND(pn, k):
+	#return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0 and MP_PARSE_NODE_STRUCT_KIND((pn)) == (k))
+	return MP_PARSE_NODE_IS_STRUCT(pn) and (MP_PARSE_NODE_STRUCT_KIND(pn) == k)
 
 def MP_PARSE_NODE_IS_SMALL_INT(pn): return (((pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
 def MP_PARSE_NODE_IS_ID(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_ID)
@@ -63,8 +86,8 @@ def MP_PARSE_NODE_IS_TOKEN(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
 def MP_PARSE_NODE_IS_TOKEN_KIND(pn, k): return ((pn) == (MP_PARSE_NODE_TOKEN | ((k) << 4)))
 
 def MP_PARSE_NODE_LEAF_KIND(pn): return ((pn) & 0x0f)
-def MP_PARSE_NODE_LEAF_ARG(pn): return (((uintptr_t)(pn)) >> 4)
-def MP_PARSE_NODE_LEAF_SMALL_INT(pn): return (((mp_int_t)(intptr_t)(pn)) >> 1)
+def MP_PARSE_NODE_LEAF_ARG(pn): return (((pn)) >> 4)
+def MP_PARSE_NODE_LEAF_SMALL_INT(pn): return (((pn)) >> 1)
 def MP_PARSE_NODE_STRUCT_KIND(pns): return ((pns).kind_num_nodes & 0xff)
 def MP_PARSE_NODE_STRUCT_NUM_NODES(pns): return ((pns).kind_num_nodes >> 8)
 
@@ -79,7 +102,7 @@ def mp_parse_node_new_leaf(kind:size_t, arg:mp_int_t) -> mp_parse_node_t:
 
 
 def mp_obj_is_small_int(o):
-	return type(o) is int
+	return (type(o) is int) and (o < 16)
 def MP_OBJ_SMALL_INT_VALUE(o):
 	return int(o)
 
@@ -1670,7 +1693,6 @@ def peek_rule(parser:parser_t, n:size_t) -> uint8_t:
 #endif
 
 #def mp_parse_node_get_int_maybe(pn:mp_parse_node_t, mp_obj_t *o) -> bool:
-#@FIXME: Change calling convention on caller to TWO return values
 def mp_parse_node_get_int_maybe(pn:mp_parse_node_t) -> (bool, mp_obj_t):
 	if (MP_PARSE_NODE_IS_SMALL_INT(pn)):
 		return True, MP_OBJ_NEW_SMALL_INT(MP_PARSE_NODE_LEAF_SMALL_INT(pn))
@@ -1903,7 +1925,7 @@ def push_result_token(parser:parser_t, rule_id:uint8_t):
 	pn:mp_parse_node_t = None
 	lex:mp_lexer_t = parser.lexer
 	if (lex.tok_kind == MP_TOKEN_NAME):
-		id:qstr = lex.vstr	#@FIXME: qstr_from_strn(lex.vstr.buf, le(nlex.vstr))
+		id:qstr = lex.vstr	#@FIXME: qstr_from_strn(lex.vstr, le(nlex.vstr))
 		#if MICROPY_COMP_CONST
 		# if name is a standalone identifier, look it up in the table of dynamic constants
 		#elem:mp_map_elem_t = mp_map_lookup(parser.consts, MP_OBJ_NEW_QSTR(id), MP_MAP_LOOKUP) if rule_id == RULE_atom else None
@@ -1918,27 +1940,28 @@ def push_result_token(parser:parser_t, rule_id:uint8_t):
 		#pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, id)
 		#endif
 	elif (lex.tok_kind == MP_TOKEN_INTEGER):
-		#o:mp_obj_t = mp_parse_num_integer(lex.vstr.buf, str(lex.vstr), 0, lex)
+		#o:mp_obj_t = mp_parse_num_integer(lex.vstr, str(lex.vstr), 0, lex)
 		o:mp_obj_t = int(lex.vstr)
 		pn = make_node_const_object_optimised(parser, lex.tok_line, o)
 	elif (lex.tok_kind == MP_TOKEN_FLOAT_OR_IMAG):
-		o:mp_obj_t = mp_parse_num_float(lex.vstr.buf, lex.vstr.len, True, lex)
+		o:mp_obj_t = mp_parse_num_float(lex.vstr, len(lex.vstr), True, lex)
 		pn = make_node_const_object(parser, lex.tok_line, o)
 	elif (lex.tok_kind == MP_TOKEN_STRING):
 		qst:qstr = MP_QSTRnull
-		if (lex.vstr.len <= MICROPY_ALLOC_PARSE_INTERN_STRING_LEN):
-			qst = qstr_from_strn(lex.vstr.buf, lex.vstr.len)
+		if (len(lex.vstr) <= MICROPY_ALLOC_PARSE_INTERN_STRING_LEN):
+			qst = str(lex.vstr)	#qstr_from_strn(lex.vstr, len(lex.vstr))
 		else:
-			qst = qstr_find_strn(lex.vstr.buf, lex.vstr.len);
+			#qst = qstr_find_strn(lex.vstr, len(lex.vstr));
+			raise Exception('String too long (%d > max %d)' % (len(lex.vstr), MICROPY_ALLOC_PARSE_INTERN_STRING_LEN))
 		
 		if (qst != MP_QSTRnull):
-			pn = mp_parse_node_new_leaf(MP_PARSE_NODE_STRING, qst)
+			pn = mp_parse_node_new_leaf(MP_PARSE_NODE_STRING, hash(qst))
 		else:
-			o:mp_obj_t = mp_obj_new_str_copy(mp_type_str, lex.vstr.buf, lex.vstr.len)
+			o:mp_obj_t = mp_obj_new_str_copy(mp_type_str, lex.vstr, len(lex.vstr))
 			pn = make_node_const_object(parser, lex.tok_line, o)
 		#
 	elif (lex.tok_kind == MP_TOKEN_BYTES):
-		o:mp_obj_t = mp_obj_new_bytes(lex.vstr.buf, lex.vstr.len)
+		o:mp_obj_t = mp_obj_new_bytes(lex.vstr, len(lex.vstr))
 		pn = make_node_const_object(parser, lex.tok_line, o)
 	else:
 		pn = mp_parse_node_new_leaf(MP_PARSE_NODE_TOKEN, lex.tok_kind)
@@ -2024,7 +2047,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 	or rule_id == RULE_power):
 		pn:mp_parse_node_t = peek_result(parser, num_args - 1)
 		#if (not mp_parse_node_get_int_maybe(pn, &arg0)) {
-		r,arg0 = mp_parse_node_get_int_maybe(pn, arg0)
+		r,arg0 = mp_parse_node_get_int_maybe(pn)
 		if (not r):
 			return False
 		
@@ -2044,7 +2067,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 			pn = peek_result(parser, i)
 			arg1:mp_obj_t = None
 			#if (!mp_parse_node_get_int_maybe(pn, &arg1)) {
-			r, arg1 = mp_parse_node_get_int_maybe(pn, arg1)
+			r, arg1 = mp_parse_node_get_int_maybe(pn)
 			if (not r):
 				return False
 			
@@ -2059,7 +2082,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 		or rule_id == RULE_term):
 		pn:mp_parse_node_t = peek_result(parser, num_args - 1)
 		#if (!mp_parse_node_get_int_maybe(pn, &arg0)) {
-		r, arg0 = mp_parse_node_get_int_maybe(pn, arg0)
+		r, arg0 = mp_parse_node_get_int_maybe(pn)
 		if (not r):
 			return False
 		
@@ -2069,7 +2092,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 			pn = peek_result(parser, i - 1)
 			arg1:mp_obj_t
 			#if (!mp_parse_node_get_int_maybe(pn, &arg1)) {
-			r, arg1 = mp_parse_node_get_int_maybe(pn, arg1) 
+			r, arg1 = mp_parse_node_get_int_maybe(pn)
 			if (not r):
 				return False
 			
@@ -2092,7 +2115,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 	elif (rule_id == RULE_factor_2):
 		pn:mp_parse_node_t = peek_result(parser, 0)
 		#if (!mp_parse_node_get_int_maybe(pn, &arg0)) {
-		r, arg0 = mp_parse_node_get_int_maybe(pn, arg0)
+		r, arg0 = mp_parse_node_get_int_maybe(pn)
 		if (not r):
 			return False
 		
@@ -2148,7 +2171,7 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 		#if MICROPY_COMP_MODULE_CONST
 	elif (rule_id == RULE_atom_expr_normal):
 		pn0:mp_parse_node_t = peek_result(parser, 1)
-		pn1_mp_parse_node_t = peek_result(parser, 0)
+		pn1:mp_parse_node_t = peek_result(parser, 0)
 		if (not (MP_PARSE_NODE_IS_ID(pn0)
 		and MP_PARSE_NODE_IS_STRUCT_KIND(pn1, RULE_trailer_period))):
 			return False
@@ -2365,7 +2388,8 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 		printf("%s n=" UINT_FMT " i=" UINT_FMT " bt=%d\n", rule_name_table[rule_id], n, i, backtrack);
 		#endif
 		"""
-		put('depth=%d %s %s (%d) n=%d, i=%d, bt=%s, at	%s' % (parser.rule_stack_top, ' '*parser.rule_stack_top, rule_name_table[rule_id], rule_id, n, i, str(backtrack), str(lex)))
+		if PARSER_VERBOSE_RULES:
+			put('depth=%d %s %s (%d) n=%d, i=%d, bt=%s, at	%s' % (parser.rule_stack_top, ' '*parser.rule_stack_top, rule_name_table[rule_id], rule_id, n, i, str(backtrack), str(lex)))
 		
 		#match(rule_act & RULE_ACT_KIND_MASK):
 		rule_act_masked = rule_act & RULE_ACT_KIND_MASK
@@ -2392,8 +2416,10 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 						#put('TOK match for rule_id=%d' % rule_id)
 						push_result_token(parser, rule_id)
 						
-						put('mp_lexer_to_next...')
+						#put('mp_lexer_to_next...')
 						mp_lexer_to_next(lex)
+						#put(str(lex))
+						
 						#goto next_rule;
 						next_rule = True
 						break
@@ -2438,7 +2464,6 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 					#
 				#
 			#
-			#for (; i < n; ++i) {
 			while(i < n):
 				#if ((rule_arg[i] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
 				if ((rule_arg_combined_table[rule_arg_idx + i] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK):
@@ -2448,7 +2473,9 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 						if (tok_kind == MP_TOKEN_NAME):
 							push_result_token(parser, rule_id)
 						#
+						#put('mp_lexer_to_next...')
 						mp_lexer_to_next(lex)
+						#put(str(lex))
 					else:
 						if (i > 0):
 							#goto syntax_error
@@ -2570,7 +2597,9 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 							else:
 								push_result_token(parser, rule_id)
 							#
+							#put('mp_lexer_to_next...')
 							mp_lexer_to_next(lex)
+							#put(str(lex))
 							i += 1
 						else:
 							i += 1;
@@ -2721,11 +2750,13 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 
 if __name__ == '__main__':
 	#filename = '__test_micropython_lexer.py'
-	#put('Loading "%s"...' % filename)
-	#with open(filename, 'r') as h: code = h.read()
+	filename = '__t.py'
 	
-	filename = 'test_input'
-	code = 'a=1'
+	put('Loading "%s"...' % filename)
+	with open(filename, 'r') as h: code = h.read()
+	
+	#filename = 'test_input'
+	#code = 'a=1'
 	
 	put('Setting up reader and lexer...')
 	reader = mp_reader_t(code)
