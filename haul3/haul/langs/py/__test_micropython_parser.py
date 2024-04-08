@@ -1,4 +1,5 @@
 #!/bin/python3
+#!/bin/python3
 """
 Translation of MicroPython's "py/parser.h/c" to Python
 It is based on the "expand_macros" processed "grammar.h".
@@ -7,10 +8,11 @@ It is based on the "expand_macros" processed "grammar.h".
 """
 
 # Verbosity options
-LEXER_VERBOSE = True	# Show tokens as they are streamed in
+LEXER_VERBOSE = not True	# Show tokens as they are streamed in
 PARSER_VERBOSE_RULES = not True	# Show rule matching
+PARSER_VERBOSE_RESULT_RULE = True	# Show result rules as they are pushed
 PARSER_VERBOSE_RESULT_TOKEN = not True	# Show result tokens as they are pushed
-PARSER_VERBOSE_RESULT_NODE = not True	# Show result nodes as they are pushed
+PARSER_VERBOSE_RESULT_NODE = True	# Show result nodes as they are pushed
 PARSER_VERBOSE_RESULT_POP = not True	# Show parse nodes as they are popped
 DUMP_INDENT = '  '	#'\t'
 
@@ -84,10 +86,10 @@ MP_PARSE_NODE_TOKEN     = 0x0a
 
 	def MP_PARSE_NODE_IS_STRUCT(pn): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0)
 	#return (pn is not None) and (type(pn) is mp_parse_node_struct_t)
-		
+	
 	def MP_PARSE_NODE_IS_STRUCT_KIND(pn, k): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0 and MP_PARSE_NODE_STRUCT_KIND((pn)) == (k))
 	#return MP_PARSE_NODE_IS_STRUCT(pn) and (MP_PARSE_NODE_STRUCT_KIND(pn) == k)
-
+	
 	def MP_PARSE_NODE_IS_SMALL_INT(pn): return (((pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
 	def MP_PARSE_NODE_IS_ID(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_ID)
 	def MP_PARSE_NODE_IS_TOKEN(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
@@ -127,7 +129,8 @@ class mp_parse_node_t:
 class mp_parse_node_null_t(mp_parse_node_t):
 	typ:size_t = MP_PARSE_NODE_NULL
 	def __repr__(self):
-		return 'NULL (0x%02x)' % self.typ
+		#return 'NULL (0x%02x)' % self.typ
+		return 'NULL'
 
 class mp_parse_node_small_int_t(mp_parse_node_t):
 	typ:size_t = MP_PARSE_NODE_SMALL_INT
@@ -181,7 +184,11 @@ class mp_parse_node_struct_t(mp_parse_node_t):
 		self.nodes = [ mp_parse_node_t() for i in range(num_args) ]
 	
 	def __repr__(self):
-		return '%s (0x%02x), kind_num_nodes=0x%04x' % (self.__class__.__name__, self.typ, self.kind_num_nodes)
+		#return '%s (0x%02x), kind_num_nodes=0x%04x' % (self.__class__.__name__, self.typ, self.kind_num_nodes)
+		kind = self.kind_num_nodes & 0xff
+		num_nodes = self.kind_num_nodes >> 8
+		#return '%s (0x%02x), kind=%s (%d), num_nodes=%d' % (self.__class__.__name__, self.typ, rule_name_table[kind] if kind < len(rule_name_table) else '0x%02X'%kind, kind, num_nodes)
+		return 'STRUCT: kind=%s (%d), num_nodes=%d' % (rule_name_table[kind] if kind < len(rule_name_table) else '0x%02X'%kind, kind, num_nodes)
 	
 	def dump(self, indent=0):
 		kind = self.kind_num_nodes & 0xff
@@ -238,7 +245,7 @@ def mp_parse_node_new_leaf(kind:size_t, arg:mp_int_t) -> mp_parse_node_t:
 	#return (mp_parse_node_t)(kind | ((mp_uint_t)arg << 4));
 	#return kind | (arg << 4)
 	if kind == MP_PARSE_NODE_NULL:
-		return mp_parse_node_t()
+		return mp_parse_node_null_t()
 	elif kind == MP_PARSE_NODE_SMALL_INT:
 		return mp_parse_node_small_int_t(arg)
 	elif kind == MP_PARSE_NODE_ID:
@@ -669,6 +676,7 @@ def fold_logical_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) ->
 			pn:mp_parse_node_t = peek_result(parser, i)
 			parser.result_stack[parser.result_stack_top - copy_to] = pn
 			if (i == 0):
+				# always need to keep the last value
 				break
 			
 			if (rule_id == RULE_or_test):
@@ -683,12 +691,18 @@ def fold_logical_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) ->
 					copy_to -= 1
 			#
 		#
-		copy_to -= 1
+		copy_to -= 1	# copy_to now contains number of args to pop
+		
+		# pop and discard all the short-circuited expressions
 		for i in range(copy_to):
+			#put("    pop... i=%d, copy_to=%d\n" % (i, copy_to));
 			pop_result(parser)
+		
 		num_args -= copy_to
 		return num_args == 1, num_args
+		
 	elif (rule_id == RULE_not_test_2):
+		# folding for unary logical op: not
 		pn:mp_parse_node_t = peek_result(parser, 0)
 		if (mp_parse_node_is_const_false(pn)):
 			pn = mp_parse_node_new_leaf(MP_PARSE_NODE_TOKEN, MP_TOKEN_KW_TRUE)
@@ -801,23 +815,36 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 			and MP_PARSE_NODE_LEAF_ARG(pn1.nodes[0]) == MP_QSTR_const	#((mp_parse_node_struct_t *)pn1).nodes[0]) == MP_QSTR_const
 			and MP_PARSE_NODE_IS_STRUCT_KIND(pn1.nodes[1], RULE_trailer_paren)	# ((mp_parse_node_struct_t *)pn1).nodes[1], RULE_trailer_paren
 			):
+				# code to assign dynamic constants: id = const(value)
+				
+				# get the id
 				id:qstr = MP_PARSE_NODE_LEAF_ARG(pn0)
+				
+				# get the value
 				pn_value:mp_parse_node_t = pn1.nodes[1].nodes[0]
 				if (not mp_parse_node_is_const(pn_value)):
 					raise Exception('SyntaxError: not a constant at line %s' % str(pn1.source_line))
 				#
 				value:mp_obj_t = mp_parse_node_convert_to_obj(pn_value)
+				
+				# store the value in the table of dynamic constants
 				elem:mp_map_elem_t = mp_map_lookup(parser.consts, MP_OBJ_NEW_QSTR(id), MP_MAP_LOOKUP_ADD_IF_NOT_FOUND)
 				assert(elem.value == MP_OBJ_NULL)
 				elem.value = value
+				
+				# If the constant starts with an underscore then treat it as a private
+				# variable and don't emit any code to store the value to the id.
 				if (qstr_str(id)[0] == '_'):
-					pop_result(parser)
-					pop_result(parser)
-					push_result_rule(parser, 0, RULE_pass_stmt, 0)
+					pop_result(parser)	# pop const(value)
+					pop_result(parser)	# pop id
+					push_result_rule(parser, 0, RULE_pass_stmt, 0)	# replace with "pass"
 					return True
 				
+				# replace const(value) with value
 				pop_result(parser)
 				push_result_node(parser, pn_value)
+				
+				# finished folding this assignment, but we still want it to be part of the tree
 				return False
 			#
 		#
@@ -850,8 +877,11 @@ def fold_constants(parser:parser_t, rule_id:uint8_t, num_args:size_t) -> bool:
 	else:
 		return False
 	
+	# success folding this rule
+	
 	i:size_t = num_args
 	while (i > 0):
+		#put(" fold end: i=%d, num_args=%d" % (i, num_args));
 		pop_result(parser)
 		i -= 1
 	
@@ -908,37 +938,55 @@ def build_tuple(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args:size
 #endif
 
 def push_result_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args:size_t):
+	# Simplify and optimise certain rules, to reduce memory usage and simplify the compiler.
+	if PARSER_VERBOSE_RESULT_RULE:
+		put('push_result_rule rule_id=%d' % rule_id)
+	
 	if (rule_id == RULE_atom_paren):
+		# Remove parenthesis around a single expression if possible.
+		# This atom_paren rule always has a single argument, and after this
+		# optimisation that argument is either NULL or testlist_comp.
 		pn:mp_parse_node_t = peek_result(parser, 0)
 		if (MP_PARSE_NODE_IS_NULL(pn)):
+			# need to keep parenthesis for ()
 			pass
 		elif (MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_testlist_comp)):
+			# need to keep parenthesis for (a, b, ...)
 			pass
 		else:
+			# parenthesis around a single expression, so it's just the expression
 			return
 		#
 	elif (rule_id == RULE_testlist_comp):
+		# The testlist_comp rule can be the sole argument to either atom_parent
+		# or atom_bracket, for (...) and [...] respectively.
 		assert(num_args == 2)
 		pn:mp_parse_node_t = peek_result(parser, 0)
 		if (MP_PARSE_NODE_IS_STRUCT(pn)):
 			pns:mp_parse_node_struct_t = pn	#(mp_parse_node_struct_t *)pn;
 			if (MP_PARSE_NODE_STRUCT_KIND(pns) == RULE_testlist_comp_3b):
+				# tuple of one item, with trailing comma
 				pop_result(parser)
 				num_args -= 1
 			elif (MP_PARSE_NODE_STRUCT_KIND(pns) == RULE_testlist_comp_3c):
+				# tuple of many items, convert testlist_comp_3c to testlist_comp
 				pop_result(parser)
 				assert(pn == peek_result(parser, 0))
 				pns.kind_num_nodes = rule_id | MP_PARSE_NODE_STRUCT_NUM_NODES(pns) << 8
 				return
 			elif (MP_PARSE_NODE_STRUCT_KIND(pns) == RULE_comp_for):
+				# generator expression
 				pass
 			else:
+				# tuple with 2 items
 				pass
 			#
 		else:
+			# tuple with 2 items
 			pass
 		#
 	elif (rule_id == RULE_testlist_comp_3c):
+		# steal first arg of outer testlist_comp rule
 		num_args += 1
 	#
 	
@@ -946,27 +994,33 @@ def push_result_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args
 	#if (fold_logical_constants(parser, rule_id, &num_args)) {
 	r, num_args = fold_logical_constants(parser, rule_id, num_args)
 	if (r):
+		# we folded this rule so return straight away
 		return
-	
 	if (fold_constants(parser, rule_id, num_args)):
+		# we folded this rule so return straight away
 		return
 	
 	#endif
+	
 	#if MICROPY_COMP_CONST_TUPLE
 	if (build_tuple(parser, src_line, rule_id, num_args)):
+		# we built a tuple from this rule so return straight away
 		return
-	
 	#endif
+	
 	#pn:mp_parse_node_struct_t = parser_alloc(parser, sizeof(mp_parse_node_struct_t) + sizeof(mp_parse_node_t) * num_args)
 	pn:mp_parse_node_struct_t = mp_parse_node_struct_t(num_args)
 	pn.source_line = src_line
 	pn.kind_num_nodes = (rule_id & 0xff) | (num_args << 8)
 	i:size_t = num_args
+	#put(' 1048:  num_args=%d' % num_args)
 	while (i > 0):
+		#put(" 1049:  i=%d" % i)
 		pn.nodes[i - 1] = pop_result(parser)
 		i -= 1
 	
 	if (rule_id == RULE_testlist_comp_3c):
+		# need to push something non-null to replace stolen first arg of testlist_comp
 		push_result_node(parser, pn)	#(mp_parse_node_t)pn)
 	
 	push_result_node(parser, pn)	#(mp_parse_node_t)pn);
@@ -982,7 +1036,7 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 	parser.rule_stack = [ rule_stack_t() for i in range(parser.rule_stack_alloc) ]	#@FIXME: m_new(rule_stack_t, parser.rule_stack_alloc)
 	parser.result_stack_alloc = MICROPY_ALLOC_PARSE_RESULT_INIT
 	parser.result_stack_top = 0
-	parser.result_stack = [ MP_PARSE_NODE_NULL for i in range(parser.result_stack_alloc) ]	#@FIXME: m_new(mp_parse_node_t, parser.result_stack_alloc)
+	parser.result_stack = [ mp_parse_node_null_t() for i in range(parser.result_stack_alloc) ]	#@FIXME: m_new(mp_parse_node_t, parser.result_stack_alloc)
 	parser.lexer = lex
 	parser.tree.chunk = None
 	parser.cur_chunk = None
@@ -1099,8 +1153,8 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 						#
 					#
 				else:
-					push_rule(parser, rule_src_line, rule_id, i + 1)
-					push_rule_from_arg(parser, rule_arg_combined_table[rule_arg_idx + i])
+					push_rule(parser, rule_src_line, rule_id, i + 1)	# save this and-rule
+					push_rule_from_arg(parser, rule_arg_combined_table[rule_arg_idx + i])	# push child of and-rule
 					#goto next_rule
 					next_rule = True
 					break
@@ -1109,13 +1163,19 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 			if (next_rule): continue
 			
 			assert(i == n)
+			
+			# matched the rule, so now build the corresponding parse_node
+			
 			#if !MICROPY_ENABLE_DOC_STRING
-			if (input_kind != MP_PARSE_SINGLE_INPUT and rule_id == RULE_expr_stmt and peek_result(parser, 0) == MP_PARSE_NODE_NULL):
+			if (input_kind != MP_PARSE_SINGLE_INPUT and rule_id == RULE_expr_stmt and peek_result(parser, 0).typ == MP_PARSE_NODE_NULL):
 				p:mp_parse_node_t = peek_result(parser, 1)
-				if ((MP_PARSE_NODE_IS_LEAF(p) and not MP_PARSE_NODE_IS_ID(p))
+				if ((MP_PARSE_NODE_IS_LEAF(p) and (not MP_PARSE_NODE_IS_ID(p)))
 				or MP_PARSE_NODE_IS_STRUCT_KIND(p, RULE_const_object)):
-					pop_result(parser)
-					pop_result(parser)
+					pop_result(parser)	# MP_PARSE_NODE_NULL
+					pop_result(parser)	# const expression (leaf or RULE_const_object)
+					# Pushing the "pass" rule here will overwrite any RULE_const_object
+					# entry that was on the result stack, allowing the GC to reclaim
+					# the memory from the const object when needed.
 					push_result_rule(parser, rule_src_line, RULE_pass_stmt, 0)
 					break
 				#
@@ -1133,23 +1193,27 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 						num_not_nil += 1
 					#
 				else:
-					if (peek_result(parser, i) != MP_PARSE_NODE_NULL):
+					if (peek_result(parser, i).typ != MP_PARSE_NODE_NULL):
 						num_not_nil += 1
 					#
 					i += 1
 				#
 			#
 			if (num_not_nil == 1 and (rule_act & RULE_ACT_ALLOW_IDENT)):
-				pn:mp_parse_node_t = MP_PARSE_NODE_NULL
+				# this rule has only 1 argument and should not be emitted
+				pn:mp_parse_node_t = mp_parse_node_null_t()	#MP_PARSE_NODE_NULL
 				for x in range(i):
 					pn2:mp_parse_node_t = pop_result(parser)
-					if (pn2 != MP_PARSE_NODE_NULL):
+					if (pn2.typ != MP_PARSE_NODE_NULL):
 						pn = pn2
 					#
 				#
 				push_result_node(parser, pn)
 			else:
+				# this rule must be emitted
+				
 				if (rule_act & RULE_ACT_ADD_BLANK):
+					# and add an extra blank node at the end (used by the compiler to store data)
 					push_result_node(parser, mp_parse_node_null_t())	#push_result_node(parser, MP_PARSE_NODE_NULL)
 					i += 1
 				#
@@ -1316,11 +1380,12 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 
 if __name__ == '__main__':
 	#filename = '__test_micropython_lexer.py'
-	filename = '__test_micropython_parser.py'
+	#filename = '__test_micropython_parser.py'
+	filename = 'micropython_minimal/test.py'
 	
 	put('Loading "%s"...' % filename)
 	with open(filename, 'r') as h: code = h.read()
-	
+	if code[-1] == '\x04': code = code[:-1]
 	#filename = 'test_input'
 	#code = 'a=1'
 	
@@ -1329,7 +1394,8 @@ if __name__ == '__main__':
 	lex = mp_lexer_new(src_name=filename, reader=reader)
 	
 	put('Parsing...')
-	t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_FILE_INPUT)
+	#t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_FILE_INPUT)
+	t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_SINGLE_INPUT)
 	put('Result Tree:')
 	put(str(t))
 	

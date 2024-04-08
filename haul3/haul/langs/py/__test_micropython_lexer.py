@@ -338,6 +338,7 @@ class mp_lexer_t:
 	tok_column:size_t = 0	# token source column
 	tok_kind = 0	# token kind
 	vstr:vstr_t = None	# token data
+	
 	#if MICROPY_PY_FSTRINGS
 	fstring_args:vstr_t = None	# extracted arguments to pass to .format()
 	fstring_args_idx:size_t = 0	# how many bytes of fstring_args have been read
@@ -346,7 +347,10 @@ class mp_lexer_t:
 	def __repr__(self):
 		#return str(self.__dict__)
 		#return '%s: %s' % (mp_token_kind_names[self.tok_kind], str(self.__dict__))
-		return '%d: %s	"%s"		%s' % (self.tok_line, mp_token_kind_names[self.tok_kind], self.vstr, str(self.__dict__))
+		#return '%d: %s	"%s"		%s' % (self.tok_line, mp_token_kind_names[self.tok_kind], self.vstr, str(self.__dict__))
+		clean = lambda t: '\\n' if t == '\n' else '\\r' if t == '\r' else '\\t' if t == '\t' else t
+		#return 'Line %d, Col %d: "%s" + "%s%s%s", tok=%s (%d)' % (self.tok_line, self.tok_column, clean(self.vstr), clean(self.chr0), clean(self.chr1), clean(self.chr2), mp_token_kind_names[self.tok_kind], self.tok_kind)
+		return 'Line %d, Col %d: "%s" (%d) = %s (%d)' % (self.tok_line, self.tok_column, clean(self.vstr), len(self.vstr), mp_token_kind_names[self.tok_kind], self.tok_kind)
 
 #} mp_lexer_t
 
