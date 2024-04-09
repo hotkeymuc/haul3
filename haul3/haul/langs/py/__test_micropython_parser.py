@@ -1,18 +1,17 @@
 #!/bin/python3
-#!/bin/python3
-"""
-Translation of MicroPython's "py/parser.h/c" to Python
-It is based on the "expand_macros" processed "grammar.h".
-
-2024-04-07 Bernhard "HotKey" Slawik
-"""
+#	"""
+#	Translation of MicroPython's "py/parser.h/c" to Python
+#	It is based on the "expand_macros" processed "grammar.h".
+#	
+#	2024-04-07 Bernhard "HotKey" Slawik
+#	"""
 
 # Verbosity options
 LEXER_VERBOSE = not True	# Show tokens as they are streamed in
 PARSER_VERBOSE_RULES = not True	# Show rule matching
-PARSER_VERBOSE_RESULT_RULE = True	# Show result rules as they are pushed
+PARSER_VERBOSE_RESULT_RULE = not True	# Show result rules as they are pushed
 PARSER_VERBOSE_RESULT_TOKEN = not True	# Show result tokens as they are pushed
-PARSER_VERBOSE_RESULT_NODE = True	# Show result nodes as they are pushed
+PARSER_VERBOSE_RESULT_NODE = not True	# Show result nodes as they are pushed
 PARSER_VERBOSE_RESULT_POP = not True	# Show parse nodes as they are popped
 DUMP_INDENT = '  '	#'\t'
 
@@ -31,7 +30,7 @@ from __test_micropython_lexer import *
 
 from __test_micropython_grammar import *
 
-def put(t):
+def put(t:str):
 	print(t)
 
 
@@ -41,11 +40,110 @@ uint8_t = int
 uint16_t = int
 uint32_t = int
 
+qstr = str
 MP_QSTRnull = None	#@FIXME: ???
 MP_QSTR_const = 'const'	#@FIXME: ????
+def qstr_from_strn(s, l) -> qstr:
+	return s[:l]
 
-MP_UNARY_OP_INVERT = -1	#@FIXME: ???
-MP_UNARY_OP_POSITIVE = 1	#@FIXME: ???
+### Part of runtime
+mp_binary_op_t = int
+# mp_unary_op_t enum:
+# These ops may appear in the bytecode. Changing this group
+# in any way requires changing the bytecode version.
+MP_UNARY_OP_POSITIVE = 0
+MP_UNARY_OP_NEGATIVE = 1
+MP_UNARY_OP_INVERT = 2
+MP_UNARY_OP_NOT = 3
+
+# Following ops cannot appear in the bytecode
+MP_UNARY_OP_BOOL = 4	# __bool__
+MP_UNARY_OP_LEN = 5	# __len__
+MP_UNARY_OP_HASH = 6	# __hash__; must return a small int
+MP_UNARY_OP_ABS = 7	# __abs__
+MP_UNARY_OP_INT_MAYBE = 8	# __int__; must return MP_OBJ_NULL, or an object satisfying mp_obj_is_int()
+MP_UNARY_OP_FLOAT_MAYBE = 9	# __float__
+MP_UNARY_OP_COMPLEX_MAYBE = 10	# __complex__
+MP_UNARY_OP_SIZEOF = 11	# for sys.getsizeof()
+#} mp_unary_op_t;
+
+#typedef enum {
+# The following 9+13+13 ops are used in bytecode and changing
+# them requires changing the bytecode version.
+
+# 9 relational operations, should return a bool; order of first 6 matches corresponding mp_token_kind_t
+MP_BINARY_OP_LESS	= 0
+MP_BINARY_OP_MORE	= 1
+MP_BINARY_OP_EQUAL	= 2
+MP_BINARY_OP_LESS_EQUAL	= 3
+MP_BINARY_OP_MORE_EQUAL	= 4
+MP_BINARY_OP_NOT_EQUAL	= 5
+MP_BINARY_OP_IN	 = 6
+MP_BINARY_OP_IS	 = 7
+MP_BINARY_OP_EXCEPTION_MATCH	 = 8
+
+# 13 inplace arithmetic operations; order matches corresponding mp_token_kind_t
+MP_BINARY_OP_INPLACE_OR	 = 9
+MP_BINARY_OP_INPLACE_XOR	 = 10
+MP_BINARY_OP_INPLACE_AND	 = 11
+MP_BINARY_OP_INPLACE_LSHIFT	 = 12
+MP_BINARY_OP_INPLACE_RSHIFT	 = 13
+MP_BINARY_OP_INPLACE_ADD	 = 14
+MP_BINARY_OP_INPLACE_SUBTRACT	 = 15
+MP_BINARY_OP_INPLACE_MULTIPLY	 = 16
+MP_BINARY_OP_INPLACE_MAT_MULTIPLY	 = 17
+MP_BINARY_OP_INPLACE_FLOOR_DIVIDE	 = 18
+MP_BINARY_OP_INPLACE_TRUE_DIVIDE	 = 19
+MP_BINARY_OP_INPLACE_MODULO	 = 20
+MP_BINARY_OP_INPLACE_POWER	 = 21
+
+# 13 normal arithmetic operations; order matches corresponding mp_token_kind_t
+MP_BINARY_OP_OR	 = 22
+MP_BINARY_OP_XOR	 = 23
+MP_BINARY_OP_AND	 = 24
+MP_BINARY_OP_LSHIFT	 = 25
+MP_BINARY_OP_RSHIFT	 = 26
+MP_BINARY_OP_ADD	 = 27
+MP_BINARY_OP_SUBTRACT	 = 28
+MP_BINARY_OP_MULTIPLY	 = 29
+MP_BINARY_OP_MAT_MULTIPLY	 = 30
+MP_BINARY_OP_FLOOR_DIVIDE	 = 31
+MP_BINARY_OP_TRUE_DIVIDE	 = 32
+MP_BINARY_OP_MODULO	 = 33
+MP_BINARY_OP_POWER	 = 34
+
+# Operations below this line don't appear in bytecode, they
+# just identify special methods.
+
+# This is not emitted by the compiler but is supported by the runtime.
+# It must follow immediately after MP_BINARY_OP_POWER.
+MP_BINARY_OP_DIVMOD	 = 35
+
+# The runtime will convert MP_BINARY_OP_IN to this operator with swapped args.
+# A type should implement this containment operator instead of MP_BINARY_OP_IN.
+MP_BINARY_OP_CONTAINS	 = 36
+
+# 13 MP_BINARY_OP_REVERSE_* operations must be in the same order as MP_BINARY_OP_*	 = 0
+# and be the last ones supported by the runtime.
+MP_BINARY_OP_REVERSE_OR	 = 37
+MP_BINARY_OP_REVERSE_XOR	 = 38
+MP_BINARY_OP_REVERSE_AND	 = 39
+MP_BINARY_OP_REVERSE_LSHIFT	 = 40
+MP_BINARY_OP_REVERSE_RSHIFT	 = 41
+MP_BINARY_OP_REVERSE_ADD	 = 42
+MP_BINARY_OP_REVERSE_SUBTRACT	 = 43
+MP_BINARY_OP_REVERSE_MULTIPLY	 = 44
+MP_BINARY_OP_REVERSE_MAT_MULTIPLY	 = 45
+MP_BINARY_OP_REVERSE_FLOOR_DIVIDE	 = 46
+MP_BINARY_OP_REVERSE_TRUE_DIVIDE	 = 47
+MP_BINARY_OP_REVERSE_MODULO	 = 48
+MP_BINARY_OP_REVERSE_POWER	 = 49
+
+# These 2 are not supported by the runtime and must be synthesised by the emitter
+MP_BINARY_OP_NOT_IN	 = 50
+MP_BINARY_OP_IS_NOT	 = 51
+#} mp_binary_op_t;
+
 def mp_unary_op(op, arg):
 	return arg	#@FIXME: ????
 
@@ -67,55 +165,47 @@ MP_PARSE_NODE_STRING    = 0x06
 MP_PARSE_NODE_TOKEN     = 0x0a
 #typedef uintptr_t mp_parse_node_t; // must be pointer size
 
-"""
-	### Original C implementation stores parse_nodes as numbers. The lowest bits determine the type, the upper bits are the data/pointer
-	
-	class mp_parse_node_struct_t:
-		source_line:uint32_t = 0	# line number in source file
-		kind_num_nodes:uint32_t = 0	# parse node kind, and number of nodes
-		nodes = []	#nodes
-		def __init__(self, num_args):
-			self.nodes = [ mp_parse_node_t() for i in range(num_args) ]
-	
-	# macros for mp_parse_node_t usage
-	# some of these evaluate their argument more than once
-	
-	def MP_PARSE_NODE_IS_NULL(pn):	return ((pn) == MP_PARSE_NODE_NULL)
-	def MP_PARSE_NODE_IS_LEAF(pn):	return ((pn) & 3)
-	#return type(pn) is int	#mp_parse_node_struct_t
 
-	def MP_PARSE_NODE_IS_STRUCT(pn): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0)
-	#return (pn is not None) and (type(pn) is mp_parse_node_struct_t)
-	
-	def MP_PARSE_NODE_IS_STRUCT_KIND(pn, k): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0 and MP_PARSE_NODE_STRUCT_KIND((pn)) == (k))
-	#return MP_PARSE_NODE_IS_STRUCT(pn) and (MP_PARSE_NODE_STRUCT_KIND(pn) == k)
-	
-	def MP_PARSE_NODE_IS_SMALL_INT(pn): return (((pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
-	def MP_PARSE_NODE_IS_ID(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_ID)
-	def MP_PARSE_NODE_IS_TOKEN(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
-	def MP_PARSE_NODE_IS_TOKEN_KIND(pn, k): return ((pn) == (MP_PARSE_NODE_TOKEN | ((k) << 4)))
-	
-	def MP_PARSE_NODE_LEAF_KIND(pn): return ((pn) & 0x0f)
-	def MP_PARSE_NODE_LEAF_ARG(pn): return (((pn)) >> 4)
-	def MP_PARSE_NODE_LEAF_SMALL_INT(pn): return (((pn)) >> 1)
-	def MP_PARSE_NODE_STRUCT_KIND(pns): return ((pns).kind_num_nodes & 0xff)
-	def MP_PARSE_NODE_STRUCT_NUM_NODES(pns): return ((pns).kind_num_nodes >> 8)
-	
-	def mp_parse_node_new_small_int(v):
-		return v
-	
-	def mp_parse_node_new_leaf(kind:size_t, arg:mp_int_t) -> mp_parse_node_t:
-		return kind | (arg << 4)
-	
-	def mp_obj_is_small_int(o):
-		return (type(o) is int) and (o < 16)
-	
-	def MP_OBJ_SMALL_INT_VALUE(o):
-		return int(o)
-	
-	MP_OBJ_NEW_SMALL_INT = mp_parse_node_new_small_int
-	MP_PARSE_NODE_LEAF_SMALL_INT = lambda o: o
-"""
+#	### Original C implementation stores parse_nodes as numbers. The lowest bits determine the type, the upper bits are the data/pointer
+#	
+#	class mp_parse_node_struct_t:
+#		source_line:uint32_t = 0	# line number in source file
+#		kind_num_nodes:uint32_t = 0	# parse node kind, and number of nodes
+#		nodes = []	#nodes
+#		def __init__(self, num_args):
+#			self.nodes = [ mp_parse_node_t() for i in range(num_args) ]
+#	
+#	# macros for mp_parse_node_t usage
+#	# some of these evaluate their argument more than once
+#	
+#	def MP_PARSE_NODE_IS_NULL(pn):	return ((pn) == MP_PARSE_NODE_NULL)
+#	def MP_PARSE_NODE_IS_LEAF(pn):	return ((pn) & 3)
+#	#return type(pn) is int	#mp_parse_node_struct_t
+#
+#	def MP_PARSE_NODE_IS_STRUCT(pn): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0)
+#	#return (pn is not None) and (type(pn) is mp_parse_node_struct_t)
+#	
+#	def MP_PARSE_NODE_IS_STRUCT_KIND(pn, k): return ((pn) != MP_PARSE_NODE_NULL and ((pn) & 3) == 0 and MP_PARSE_NODE_STRUCT_KIND((pn)) == (k))
+#	#return MP_PARSE_NODE_IS_STRUCT(pn) and (MP_PARSE_NODE_STRUCT_KIND(pn) == k)
+#	
+#	def MP_PARSE_NODE_IS_SMALL_INT(pn): return (((pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
+#	def MP_PARSE_NODE_IS_ID(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_ID)
+#	def MP_PARSE_NODE_IS_TOKEN(pn): return (((pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
+#	def MP_PARSE_NODE_IS_TOKEN_KIND(pn, k): return ((pn) == (MP_PARSE_NODE_TOKEN | ((k) << 4)))
+#	
+#	def MP_PARSE_NODE_LEAF_KIND(pn): return ((pn) & 0x0f)
+#	def MP_PARSE_NODE_LEAF_ARG(pn): return (((pn)) >> 4)
+#	def MP_PARSE_NODE_LEAF_SMALL_INT(pn): return (((pn)) >> 1)
+#	def MP_PARSE_NODE_STRUCT_KIND(pns): return ((pns).kind_num_nodes & 0xff)
+#	def MP_PARSE_NODE_STRUCT_NUM_NODES(pns): return ((pns).kind_num_nodes >> 8)
+#	
+#	def mp_parse_node_new_small_int(v):
+#		return v
+#	
+#	def mp_parse_node_new_leaf(kind:size_t, arg:mp_int_t) -> mp_parse_node_t:
+#		return kind | (arg << 4)
+#	
+
 
 ### htk: "Python-ification" of mp_parse_node_t
 # Original uses numbers and re-interprets them. We are using class inheritance.
@@ -139,6 +229,9 @@ class mp_parse_node_small_int_t(mp_parse_node_t):
 		self.small_int_value = small_int_value
 	def get_arg(self) -> int:
 		return self.small_int_value
+	def __repr__(self):
+		#return '%s (0x%02x), %s' % (self.__class__.__name__[len('mp_parse_node_'):-2].upper(), self.typ, ', '.join([ '%s=%s'%(k[:-len('_value')],str(v)) if k.endswith('_value') else '' for k,v in self.__dict__.items() ]))
+		return 'SMALL_INT: %d / 0x%02x' % (self.small_int_value, self.small_int_value)
 
 class mp_parse_node_id_t(mp_parse_node_t):
 	typ:size_t = MP_PARSE_NODE_ID
@@ -174,13 +267,14 @@ class mp_parse_node_token_t(mp_parse_node_t):
 		return 'TOKEN: %s (%d)' % (mp_token_kind_names[self.token_value], self.token_value)
 
 MP_PARSE_NODE_STRUCT = 0x10	# Must follow xxxx...xx00 rule to be recognized
+MP_PARSE_NODE_STRUCT_DEFAULT_NODES = 8
 class mp_parse_node_struct_t(mp_parse_node_t):
 	typ:size_t = MP_PARSE_NODE_STRUCT	#htk
 	source_line:uint32_t = 0	# line number in source file
 	kind_num_nodes:uint32_t = 0	# parse node kind, and number of nodes	# Caution! This is BOTH in ONE value (low byte=kind / high byte=num_nodes)
 	nodes = []	#nodes
 	
-	def __init__(self, num_args):
+	def __init__(self, num_args=MP_PARSE_NODE_STRUCT_DEFAULT_NODES):
 		self.nodes = [ mp_parse_node_t() for i in range(num_args) ]
 	
 	def __repr__(self):
@@ -229,11 +323,53 @@ def MP_PARSE_NODE_LEAF_SMALL_INT(pn): return pn.small_int_value
 def MP_PARSE_NODE_STRUCT_KIND(pns): return (pns.kind_num_nodes & 0xff)
 def MP_PARSE_NODE_STRUCT_NUM_NODES(pns): return (pns.kind_num_nodes >> 8)
 
-def mp_obj_is_small_int(o):
-	put('mp_obj_is_small_int: o=%s (%s)' % (str(o), str(type(o))))
-	return (type(o) is int) and (o < 16)
+
+### mp_obj_t stuff...
+mp_obj_t = None
+mp_const_true = True
+mp_const_false = False
+mp_const_none = None
+
+def mp_obj_is_true(o:mp_obj_t) -> bool:
+	return o == mp_const_true
+def mp_obj_is_int(o:mp_obj_t) -> bool:
+	return type(o) is int
+def mp_obj_int_sign(o:mp_obj_t) -> int:
+	return 0 if o == 0 else 1 if o > 0 else -1
+def mp_obj_is_small_int(o) -> bool:
+	#@FIXME: When is it "small"?
+	#put('mp_obj_is_small_int: o=%s (%s)' % (str(o), str(type(o))))
+	return (type(o) is int)	and (o < 128)
+
+def mp_parse_node_extract_const_object(pns:mp_parse_node_struct_t) -> mp_obj_t:
+	#@FIXME: Don't know how to "wrap" mp_obj_t into mp_parse_node_struct_t
+	put('Dont know how to extract object, yet...')
+	return pns
+
+class mp_obj_tuple_t:
+	items:[mp_obj_t] = []
+	def __init__(self, n:size_t, items:[mp_obj_t]):
+		if items is None:
+			self.items = [ None for i in range(n) ]
+		else:
+			self.items = items
+def mp_obj_new_tuple(n:size_t, items:[mp_obj_t]) -> mp_obj_t:
+	return mp_obj_tuple_t(n, items)
+def mp_binary_op(op, arg0, arg1):
+	return (op, arg0, arg1)
+
+
 def MP_OBJ_SMALL_INT_VALUE(o):
 	return int(o)
+def MP_OBJ_NEW_SMALL_INT(i):
+	return i
+def MP_OBJ_NEW_QSTR(s) -> qstr:
+	return s
+def MP_OBJ_TO_PTR(o):
+	return o
+def MP_OBJ_FROM_PTR(p) -> mp_obj_t:
+	return p
+
 
 
 def mp_parse_node_new_small_int(v:int) -> mp_parse_node_small_int_t:	#mp_parse_node_t
@@ -296,7 +432,8 @@ class mp_parse_tree_t:
 	
 	def __repr__(self):
 		#return 'mp_parse_tree_t: root=%s%s' % ('--' if self.root is None else str(self.root), '' if self.chunk is None else '\n'+self.chunk.dump(indent=1))
-		r = 'mp_parse_tree_t: root=%s%s' % ('--' if self.root is None else str(self.root), '' if self.chunk is None else '\n'+self.chunk.dump(indent=1))
+		#r = 'mp_parse_tree_t: root=%s\n%s' % ('--' if self.root is None else str(self.root), '' if self.chunk is None else '\n'+self.chunk.dump(indent=1))
+		r = 'mp_parse_tree_t: chunk="%s"\n' % ('' if self.chunk is None else '\n'+self.chunk.dump(indent=1))
 		if self.root is None:
 			r += 'root=None'
 		elif MP_PARSE_NODE_IS_STRUCT(self.root):
@@ -325,7 +462,6 @@ def get_rule_arg_offset(r_id:uint8_t) -> uint16_t:
 	off:size_t = rule_arg_offset_table[r_id]
 	if (r_id >= FIRST_RULE_WITH_OFFSET_ABOVE_255):
 		off |= 0x100
-	#return rule_arg_combined_table[off]	#&rule_arg_combined_table[off];
 	return off	#&rule_arg_combined_table[off];
 
 #static void *parser_alloc(parser_t *parser, size_t num_bytes) {
@@ -380,12 +516,12 @@ def parser_free_parse_node_struct(parser:parser_t, pns:mp_parse_node_struct_t):
 #endif
 
 def push_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, arg_i:size_t):
-	"""
-	if (parser.rule_stack_top >= parser.rule_stack_alloc):
-		rs:rule_stack_t = m_renew(rule_stack_t, parser.rule_stack, parser.rule_stack_alloc, parser.rule_stack_alloc + MICROPY_ALLOC_PARSE_RULE_INC)
-		parser.rule_stack = rs
-		parser.rule_stack_alloc += MICROPY_ALLOC_PARSE_RULE_INC
-	"""
+	
+	#	if (parser.rule_stack_top >= parser.rule_stack_alloc):
+	#		rs:rule_stack_t = m_renew(rule_stack_t, parser.rule_stack, parser.rule_stack_alloc, parser.rule_stack_alloc + MICROPY_ALLOC_PARSE_RULE_INC)
+	#		parser.rule_stack = rs
+	#		parser.rule_stack_alloc += MICROPY_ALLOC_PARSE_RULE_INC
+	
 	while (parser.rule_stack_top >= parser.rule_stack_alloc):
 		parser.rule_stack.append(rule_stack_t())
 		parser.rule_stack_alloc += 1	#@TODO: Increase by MICROPY_ALLOC_PARSE_RULE_INC
@@ -436,10 +572,12 @@ def mp_parse_node_is_const(pn:mp_parse_node_t) -> bool:
 			return True
 		elif (kind == MP_PARSE_NODE_TOKEN):
 			arg:uintptr_t = MP_PARSE_NODE_LEAF_ARG(pn)
-			return (arg == MP_TOKEN_KW_NONE)\
-				or (arg == MP_TOKEN_KW_FALSE)\
-				or (arg == MP_TOKEN_KW_TRUE)\
+			return (
+				(arg == MP_TOKEN_KW_NONE)
+				or (arg == MP_TOKEN_KW_FALSE)
+				or (arg == MP_TOKEN_KW_TRUE)
 				or (arg == MP_TOKEN_ELLIPSIS)
+			)
 		#
 	elif (MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_const_object)):
 		return True
@@ -447,7 +585,7 @@ def mp_parse_node_is_const(pn:mp_parse_node_t) -> bool:
 		pns:mp_parse_node_struct_t = pn
 		return MP_PARSE_NODE_IS_NULL(pns.nodes[0])
 	
-	return False;
+	return False
 #
 
 def mp_parse_node_convert_to_obj(pn:mp_parse_node_t) -> mp_obj_t:
@@ -503,20 +641,20 @@ def mp_parse_node_is_const_false(pn:mp_parse_node_t) -> bool:
 def mp_parse_node_is_const_true(pn:mp_parse_node_t) -> bool:
 	return parse_node_is_const_bool(pn, True)
 
-#def mp_parse_node_extract_list(pn:mp_parse_node_t, pn_kind:size_t, nodes:[mp_parse_node_t]) -> size_t:
-def mp_parse_node_extract_list(pn:mp_parse_node_t, pn_kind:size_t) -> (size_t, [mp_parse_node_t]):
-	if (MP_PARSE_NODE_IS_NULL(pn)):
-		return 0, None
-	elif (MP_PARSE_NODE_IS_LEAF(pn)):
-		return 1, pn
-	else:
-		pns:mp_parse_node_struct_t = pn	#(mp_parse_node_struct_t *)(*pn);
-		if (MP_PARSE_NODE_STRUCT_KIND(pns) != pn_kind):
-			return 1, pn;
-		else:
-			return MP_PARSE_NODE_STRUCT_NUM_NODES(pns), pns.nodes
-	#
-#
+#	#def mp_parse_node_extract_list(pn:mp_parse_node_t, pn_kind:size_t, nodes:[mp_parse_node_t]) -> size_t:
+#	def mp_parse_node_extract_list(pn:mp_parse_node_t, pn_kind:size_t) -> (size_t, [mp_parse_node_t]):
+#		if (MP_PARSE_NODE_IS_NULL(pn)):
+#			return 0, None
+#		elif (MP_PARSE_NODE_IS_LEAF(pn)):
+#			return 1, pn
+#		else:
+#			pns:mp_parse_node_struct_t = pn
+#			if (MP_PARSE_NODE_STRUCT_KIND(pns) != pn_kind):
+#				return 1, pn
+#			else:
+#				return MP_PARSE_NODE_STRUCT_NUM_NODES(pns), pns.nodes
+#		#
+#	#
 
 
 def pop_result(parser:parser_t) -> mp_parse_node_t:
@@ -540,13 +678,12 @@ def push_result_node(parser:parser_t, pn:mp_parse_node_t):
 	if not isinstance(pn, mp_parse_node_t):
 		raise Exception('push_result_node: node is not a mp_parse_node_t, but %s: %s' % (str(type(pn)), str(pn)))
 	
-	"""
-	if (parser.result_stack_top >= parser.result_stack_alloc):
-		stack:mp_parse_node_t = m_renew(mp_parse_node_t, parser.result_stack, parser.result_stack_alloc, parser.result_stack_alloc + MICROPY_ALLOC_PARSE_RESULT_INC)
-		parser.result_stack = stack
-		parser.result_stack_alloc += MICROPY_ALLOC_PARSE_RESULT_INC
-	#
-	"""
+	
+	#	if (parser.result_stack_top >= parser.result_stack_alloc):
+	#		stack:mp_parse_node_t = m_renew(mp_parse_node_t, parser.result_stack, parser.result_stack_alloc, parser.result_stack_alloc + MICROPY_ALLOC_PARSE_RESULT_INC)
+	#		parser.result_stack = stack
+	#		parser.result_stack_alloc += MICROPY_ALLOC_PARSE_RESULT_INC
+	
 	while (parser.result_stack_top >= parser.result_stack_alloc):
 		parser.result_stack.append(mp_parse_node_t())	# * MICROPY_ALLOC_PARSE_RESULT_INC
 		parser.result_stack_alloc += 1	# MICROPY_ALLOC_PARSE_RESULT_INC
@@ -557,14 +694,13 @@ def push_result_node(parser:parser_t, pn:mp_parse_node_t):
 
 def make_node_const_object(parser:parser_t, src_line:size_t, obj:mp_obj_t) -> mp_parse_node_t:
 	#pn:mp_parse_node_struct_t = parser_alloc(parser, sizeof(mp_parse_node_struct_t) + sizeof(mp_obj_t))
-	pn:mp_parse_node_struct_t = mp_parse_node_struct_t(16)	#@FIXME: How big?
+	pn:mp_parse_node_struct_t = mp_parse_node_struct_t(2)
 	pn.source_line = src_line
 	
-	#@FIXME: Which one is it?
 	#if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D
-	pn.kind_num_nodes = RULE_const_object | (2 << 8)
-	pn.nodes[0] = obj % 0x100000000	#(uint64_t)obj
-	pn.nodes[1] = obj >> 32	#(uint64_t)obj >> 32;
+	#pn.kind_num_nodes = RULE_const_object | (2 << 8)
+	#pn.nodes[0] = obj % 0x100000000	#(uint64_t)obj
+	#pn.nodes[1] = obj >> 32	#(uint64_t)obj >> 32;
 	#else
 	pn.kind_num_nodes = RULE_const_object | (1 << 8)
 	pn.nodes[0] = obj	#(uintptr_t)obj
@@ -576,8 +712,8 @@ def make_node_const_object_optimised(parser:parser_t, src_line:size_t, obj:mp_ob
 	if (mp_obj_is_small_int(obj)):
 		val:mp_int_t = MP_OBJ_SMALL_INT_VALUE(obj)
 		#if MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D
-		if (((val ^ (val << 1)) & 0xffffffff80000000) != 0):
-			return make_node_const_object(parser, src_line, obj)
+		#if (((val ^ (val << 1)) & 0xffffffff80000000) != 0):
+		#	return make_node_const_object(parser, src_line, obj)
 		#endif
 		#if MICROPY_DYNAMIC_COMPILER
 		sign_mask:mp_uint_t = -(1 << (mp_dynamic_compiler.small_int_bits - 1))
@@ -622,7 +758,7 @@ def push_result_token(parser:parser_t, rule_id:uint8_t):
 	elif (lex.tok_kind == MP_TOKEN_STRING):
 		qst:qstr = MP_QSTRnull
 		if (len(lex.vstr) <= MICROPY_ALLOC_PARSE_INTERN_STRING_LEN):
-			qst = str(lex.vstr)	#qstr_from_strn(lex.vstr, len(lex.vstr))
+			qst = qstr_from_strn(lex.vstr, len(lex.vstr))
 		else:
 			#qst = qstr_find_strn(lex.vstr, len(lex.vstr));
 			raise Exception('String too long (%d > max %d)' % (len(lex.vstr), MICROPY_ALLOC_PARSE_INTERN_STRING_LEN))
@@ -646,18 +782,17 @@ def push_result_token(parser:parser_t, rule_id:uint8_t):
 #if MICROPY_COMP_MODULE_CONST
 
 #@FIXME: Constant table... For what and how?
-"""
-mp_constants_table:[mp_rom_map_elem_t] = [
-	#if MICROPY_PY_ERRNO
-	[ MP_ROM_QSTR(MP_QSTR_errno), MP_ROM_PTR(mp_module_errno) ],
-	#endif
-	#if MICROPY_PY_UCTYPES
-	[ MP_ROM_QSTR(MP_QSTR_uctypes), MP_ROM_PTR(mp_module_uctypes) ],
-	#endif
-	MICROPY_PORT_CONSTANTS
-]
-static MP_DEFINE_CONST_MAP(mp_constants_map, mp_constants_table);
-"""
+#	mp_constants_table:[mp_rom_map_elem_t] = [
+#		#if MICROPY_PY_ERRNO
+#		[ MP_ROM_QSTR(MP_QSTR_errno), MP_ROM_PTR(mp_module_errno) ],
+#		#endif
+#		#if MICROPY_PY_UCTYPES
+#		[ MP_ROM_QSTR(MP_QSTR_uctypes), MP_ROM_PTR(mp_module_uctypes) ],
+#		#endif
+#		MICROPY_PORT_CONSTANTS
+#	]
+#	static MP_DEFINE_CONST_MAP(mp_constants_map, mp_constants_table);
+
 mp_constants_map = dict()
 mp_constants_map[qstr('errno')] = None	# Pointer to something else
 
@@ -900,17 +1035,17 @@ def build_tuple_from_stack(parser:parser_t, src_line:size_t, num_args:size_t) ->
 			return False
 		#
 	#
-	tuple:mp_obj_tuple_t = MP_OBJ_TO_PTR(mp_obj_new_tuple(num_args, None))
+	tup:mp_obj_tuple_t = MP_OBJ_TO_PTR(mp_obj_new_tuple(num_args, None))
 	i = num_args
 	while (i > 0):
 		pn:mp_parse_node_t = pop_result(parser)
 		i -= 1
-		tuple.items[i] = mp_parse_node_convert_to_obj(pn)
+		tup.items[i] = mp_parse_node_convert_to_obj(pn)
 		if (MP_PARSE_NODE_IS_STRUCT(pn)):
 			parser_free_parse_node_struct(parser, pm)	#(mp_parse_node_struct_t *)pn);
 		#
 	#
-	push_result_node(parser, make_node_const_object(parser, src_line, MP_OBJ_FROM_PTR(tuple)))
+	push_result_node(parser, make_node_const_object(parser, src_line, MP_OBJ_FROM_PTR(tup)))
 	return True
 #
 
@@ -940,7 +1075,7 @@ def build_tuple(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args:size
 def push_result_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, num_args:size_t):
 	# Simplify and optimise certain rules, to reduce memory usage and simplify the compiler.
 	if PARSER_VERBOSE_RESULT_RULE:
-		put('push_result_rule rule_id=%d' % rule_id)
+		put('push_result_rule %s (%d)' % (rule_name_table[rule_id], rule_id))
 	
 	if (rule_id == RULE_atom_paren):
 		# Remove parenthesis around a single expression if possible.
@@ -1380,8 +1515,8 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 
 if __name__ == '__main__':
 	#filename = '__test_micropython_lexer.py'
-	#filename = '__test_micropython_parser.py'
-	filename = 'micropython_minimal/test.py'
+	filename = '__test_micropython_parser.py'
+	#filename = 'micropython_minimal/test.py'
 	
 	put('Loading "%s"...' % filename)
 	with open(filename, 'r') as h: code = h.read()
@@ -1394,8 +1529,8 @@ if __name__ == '__main__':
 	lex = mp_lexer_new(src_name=filename, reader=reader)
 	
 	put('Parsing...')
-	#t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_FILE_INPUT)
-	t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_SINGLE_INPUT)
+	t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_FILE_INPUT)
+	#t:mp_parse_tree_t = mp_parse(lex, MP_PARSE_SINGLE_INPUT)
 	put('Result Tree:')
 	put(str(t))
 	

@@ -1,11 +1,12 @@
 #!/bin/python3
-#"""
+#	"""
 #	Translation of MicroPython's "py/lexer.h/c" to Python
 #	
 #	2024-04-05 Bernhard "HotKey" Slawik
-#"""
+#	"""
+
 ### Glue code
-def put(t):
+def put(t:str):
 	print(t)
 
 MICROPY_ALLOC_LEXER_INDENT_INIT = 8	#@FIXME: ?
@@ -17,7 +18,7 @@ MP_LEXER_VERBOSE = False
 def MP_ARRAY_SIZE(a):	return len(a)
 def CUR_CHAR(lex):	return lex.chr0
 
-def strcmp(s, t):
+def strcmp(s:str, t:str) -> int:
 	for i in range(len(s)):
 		c1 = ord(s[i])
 		if i >= len(t): return 1	#+i
@@ -26,7 +27,6 @@ def strcmp(s, t):
 		elif c1 < c2: return -1	#-i
 	if len(t) > len(s): return -1	#-i
 	return 0
-
 #print(strcmp('aaXaa', 'aaYaa'))
 
 
@@ -46,14 +46,14 @@ class mp_reader_t:
 	def __init__(self, data):
 		self.data = data
 		self.ofs = 0
-	def readbyte(self, data):
+	def readbyte(self, data) -> str:
 		if self.ofs >= len(self.data):
 			return MP_LEXER_EOF
 		
 		r = self.data[self.ofs]
 		self.ofs += 1
 		return r
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return 'byte %d / %d' % (self.ofs, len(self.data))
 
 def unichar_isspace(c):
@@ -351,9 +351,7 @@ class mp_lexer_t:
 		clean = lambda t: '\\n' if t == '\n' else '\\r' if t == '\r' else '\\t' if t == '\t' else t
 		#return 'Line %d, Col %d: "%s" + "%s%s%s", tok=%s (%d)' % (self.tok_line, self.tok_column, clean(self.vstr), clean(self.chr0), clean(self.chr1), clean(self.chr2), mp_token_kind_names[self.tok_kind], self.tok_kind)
 		return 'Line %d, Col %d: "%s" (%d) = %s (%d)' % (self.tok_line, self.tok_column, clean(self.vstr), len(self.vstr), mp_token_kind_names[self.tok_kind], self.tok_kind)
-
-#} mp_lexer_t
-
+	
 
 ### lexer.c
 
@@ -420,12 +418,18 @@ def is_following_odigit(lex:mp_lexer_t) -> bool:
 	return lex.chr1 >= '0' and lex.chr1 <= '7'
 
 def is_string_or_bytes(lex:mp_lexer_t) -> bool:
-	return is_char_or(lex, '\'', '\"')\
-		or (is_char_or4(lex, 'r', 'u', 'b', 'f') and is_char_following_or(lex, '\'', '\"'))\
-		or (((is_char_and(lex, 'r', 'f') or is_char_and(lex, 'f', 'r'))\
-			and is_char_following_following_or(lex, '\'', '\"')))\
-		or ((is_char_and(lex, 'r', 'b') or is_char_and(lex, 'b', 'r'))\
+	return (
+		is_char_or(lex, '\'', '\"')
+		or (is_char_or4(lex, 'r', 'u', 'b', 'f') and is_char_following_or(lex, '\'', '\"'))
+		or (
+			((is_char_and(lex, 'r', 'f') or is_char_and(lex, 'f', 'r'))
 			and is_char_following_following_or(lex, '\'', '\"'))
+		)
+		or (
+			(is_char_and(lex, 'r', 'b') or is_char_and(lex, 'b', 'r'))
+			and is_char_following_following_or(lex, '\'', '\"')
+		)
+	)
 	#return is_char_or(lex, '\'', '\"')\
 	#	or (is_char_or3(lex, 'r', 'u', 'b') and is_char_following_or(lex, '\'', '\"'))\
 	#	or ((is_char_and(lex, 'r', 'b') or is_char_and(lex, 'b', 'r'))\
@@ -1246,30 +1250,29 @@ def mp_lexer_free(lex:mp_lexer_t):
 	lex = None
 #
 
-"""
-#if 0
-# This function is used to print the current token and should only be
-# needed to debug the lexer, so it's not available via a config option.
-def mp_lexer_show_token(lex:mp_lexer_t):
-	printf("(" UINT_FMT ":" UINT_FMT ") kind:%u str:%p len:%zu", lex.tok_line, lex.tok_column, lex.tok_kind, lex.vstr.buf, len(lex.vstr));
-	if (len(lex.vstr) > 0):
-		const byte *i = (const byte *)lex.vstr.buf
-		const byte *j = (const byte *)i + len(lex.vstr)
-		printf(" ");
-		while (i < j):
-			c:unichar = utf8_get_char(i)
-			i = utf8_next_char(i)
-			if (unichar_isprint(c)):
-				printf("%c", (int)c)
-			else:
-				printf("?")
-			#
-		#
-	#
-	printf("\n")
-#
-#endif
-"""
+#	#if 0
+#	# This function is used to print the current token and should only be
+#	# needed to debug the lexer, so it's not available via a config option.
+#	def mp_lexer_show_token(lex:mp_lexer_t):
+#		printf("(" UINT_FMT ":" UINT_FMT ") kind:%u str:%p len:%zu", lex.tok_line, lex.tok_column, lex.tok_kind, lex.vstr.buf, len(lex.vstr));
+#		if (len(lex.vstr) > 0):
+#			const byte *i = (const byte *)lex.vstr.buf
+#			const byte *j = (const byte *)i + len(lex.vstr)
+#			printf(" ");
+#			while (i < j):
+#				c:unichar = utf8_get_char(i)
+#				i = utf8_next_char(i)
+#				if (unichar_isprint(c)):
+#					printf("%c", (int)c)
+#				else:
+#					printf("?")
+#				#
+#			#
+#		#
+#		printf("\n")
+#	#
+#	#endif
+
 
 
 if __name__ == '__main__':

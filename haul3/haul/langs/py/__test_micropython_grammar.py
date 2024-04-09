@@ -252,7 +252,6 @@ RULE_yield_arg	= 174
 RULE_yield_arg_from	= 175
 
 
-#static const uint8_t rule_act_table[]
 rule_act_table:[uint8_t] = [
 	(RULE_ACT_AND | 1 | RULE_ACT_ALLOW_IDENT),
 	(RULE_ACT_LIST | 2),
