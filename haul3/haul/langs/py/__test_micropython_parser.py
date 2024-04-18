@@ -40,6 +40,8 @@ else:
 def put(t:str):
 	print(t)
 
+def put2(t:str, u:str) -> None:
+	print(t)
 
 # Define some types for interoperability
 size_t = int
@@ -50,7 +52,7 @@ uint32_t = int
 qstr = str
 MP_QSTRnull = None	#@FIXME: ???
 MP_QSTR_const = 'const'	#@FIXME: ????
-def qstr_from_strn(s, l) -> qstr:
+def qstr_from_strn(s:str, l:int) -> qstr:
 	return s[:l]
 
 ### Part of runtime

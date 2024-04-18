@@ -169,7 +169,8 @@ class HAULNamespace:
 				return i
 		
 		if (ignore_unknown == False):
-			raise Exception('Id "' + str(name) + '" (kind=' + str(kind) + ') is unknown at "' + str(self) + '"!')
+			#raise Exception('Id "' + str(name) + '" (kind=' + str(kind) + ') is unknown at "' + str(self) + '"!')
+			raise Exception('Id "' + str(name) + '" (kind=' + str(kind) + ') is unknown at "' + str(self) + '": ' + str(self.dump()))
 		
 		return None
 	
