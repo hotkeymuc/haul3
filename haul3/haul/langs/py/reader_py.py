@@ -68,8 +68,7 @@ L_INIT = '__init__'
 def put(t):
 	print('HAULReader_py:\t' + str(t))
 
-def put_debug(t):
-	"Very verbose output"
+def put_debug(t):	# Very verbose output
 	#put(t)
 	pass
 
@@ -85,8 +84,7 @@ class HAULReader_py(HAULReader):
 		self.lastFunction = None	#@FIXME: Used to infer function returnType based on the type of a return statement
 	
 	
-	def get_all_matching(self, pats):
-		"Return string as long as pattern matches"
+	def get_all_matching(self, pats):	# Return string as long as pattern matches
 		r = ''
 		c = self.peek()
 		while (self.eof() == False):
@@ -316,8 +314,7 @@ class HAULReader_py(HAULReader):
 		self.get_next()	# Skip EOL
 		return comment
 	
-	def read_args(self, namespace, bracket=')'):
-		"Read argument list"
+	def read_args(self, namespace, bracket=')'):	# Read argument list
 		r = []
 		t = self.peek_next()
 		
@@ -363,8 +360,7 @@ class HAULReader_py(HAULReader):
 		return r
 		#return copy.copy(r)
 	
-	def read_dict(self, namespace):
-		"Read dict entries"
+	def read_dict(self, namespace):	# Read dict entries
 		r = []
 		t = self.peek_next()
 		#while (self.eof() == False) and (not t.data == ')'):
@@ -504,7 +500,7 @@ class HAULReader_py(HAULReader):
 				# Skip bracket
 				self.get_next()
 				
-				e.call = HAULCall()	
+				e.call = HAULCall()
 				
 				e.call.id = ns.find_id(t.data, ignore_unknown=True)
 				if (e.call.id == None):
@@ -962,7 +958,7 @@ class HAULReader_py(HAULReader):
 		#elif (t.data == L_CLASS): self.raise_parse_error('HAULParseError: Cannot use inline classes, yet. Please put them before any main-block instruction ', t)
 		elif (t.data == L_FUNC):
 			put_debug('read_module():	reading root function block...')
-			module.addFunc(self.read_function(namespace=namespace, scan_only=scan_only))
+			module.add_func(self.read_function(namespace=namespace, scan_only=scan_only))
 			
 		elif (t.data == L_CLASS):
 			put_debug('read_module():	reading root class block...')
@@ -1387,7 +1383,7 @@ class HAULReader_py(HAULReader):
 			if (t.type == TOKEN_IDENT):
 				if (t.data == L_FUNC):
 					put_debug('read_class():	reading method...')
-					c.addFunc(self.read_function(namespace=ns, scan_only=scan_only))
+					c.add_func(self.read_function(namespace=ns, scan_only=scan_only))
 					put_debug('read_class():	finished method')
 				else:
 					# Out-of-bounds instructions
@@ -1480,7 +1476,7 @@ class HAULReader_py(HAULReader):
 				# Root level identifier
 				if (t.data == L_FUNC):
 					put_debug('read_module():	reading function block...')
-					m.addFunc(self.read_function(namespace=m.namespace, scan_only=scan_only))
+					m.add_func(self.read_function(namespace=m.namespace, scan_only=scan_only))
 					put_debug('read_module():	finished function block.')
 					#lastAnnotOrigin = -1
 					

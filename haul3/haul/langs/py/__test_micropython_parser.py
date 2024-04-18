@@ -26,9 +26,16 @@ if LEXER_VERBOSE:
 	import __test_micropython_lexer
 	__test_micropython_lexer.MP_LEXER_VERBOSE = True
 
-from __test_micropython_lexer import *
 
-from __test_micropython_grammar import *
+# When running as library:
+if __name__ == 'haul.langs.py.__test_micropython_parser':
+	from haul.langs.py.__test_micropython_lexer import *
+	from haul.langs.py.__test_micropython_grammar import *
+else:
+	# When running stand-alone:
+	from __test_micropython_lexer import *
+	from __test_micropython_grammar import *
+
 
 def put(t:str):
 	print(t)

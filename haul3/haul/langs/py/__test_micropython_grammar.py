@@ -6,13 +6,20 @@ It is based on the "expand_macros" processed file.
 2024-04-07 Bernhard "HotKey" Slawik
 """
 
+if __name__ == 'haul.langs.py.__test_micropython_grammar':
+	# When running as library:
+	from haul.langs.py.__test_micropython_lexer import *
+else:
+	# When running stand-alone:
+	from __test_micropython_lexer import *
+
+
 # Define some types for interoperability
 size_t = int
 uint8_t = int
 uint16_t = int
 uint32_t = int
 
-from __test_micropython_lexer import *
 
 ### parse.c constants/enums
 RULE_ACT_ARG_MASK = 0x0f

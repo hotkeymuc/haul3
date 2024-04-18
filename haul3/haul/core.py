@@ -380,7 +380,7 @@ class HAULClass:
 		self.origin = None	#HAULOrigin?
 		self.destination = None	# Record offset in output stream
 	
-	def addFunc(self, func):
+	def add_func(self, func):
 		self.funcs.append(func)
 	
 	def __repr__(self):
@@ -388,7 +388,9 @@ class HAULClass:
 		#r = r + '"_": "Class"'
 		r = r + '"id": "' + str(self.id) + '"'
 		#r = r + ', "vars": [' + (repr_array(self.vars)) + ']'
+		
 		r = r + ', "funcs": [' + (repr_array(self.funcs)) + ']'
+		
 		#if (self.block): r = r + ', ' + str(self.block)
 		r = r + '}'
 		return r
@@ -584,7 +586,9 @@ class HAULBlock:
 	def __repr__(self):
 		r = '{'
 		#r = r + '"_": "Block"'
+		
 		r = r + '"instrs": [' + (repr_array(self.instrs)) + ']'
+		
 		r = r + '}'
 		return r
 
@@ -631,9 +635,9 @@ class HAULModule:
 			self.classes.append(t)
 		
 	
-	#@fun addFunc
+	#@fun add_func
 	#@arg func HAULFunction
-	def addFunc(self, func):
+	def add_func(self, func):
 		if self.scan_only:
 			self.funcs_origins.append(func.origin)
 		else:
@@ -650,8 +654,11 @@ class HAULModule:
 		r = '{'
 		#r = r + '"_": "Module"'
 		r = r + '"name": "' + str(self.name) + '"'
+		
 		r = r + ', "classes": [' + (repr_array(self.classes)) + ']'
+		
 		r = r + ', "funcs": [' + (repr_array(self.funcs)) + ']'
+		
 		if (self.block):
 			r = r + ', "block": ' + str(self.block)
 		r = r + '}'
