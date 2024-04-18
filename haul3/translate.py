@@ -6,10 +6,9 @@
 	HotKey's Amphibious Unambiguous Language
 	
 	This program translates a given HAUL3/Python file into a different language.
-	
 """
 
-import os
+import os	# for checking/creating the output path
 
 from haul.utils import *
 
@@ -30,13 +29,13 @@ from haul.langs.vbs.writer_vbs import *
 from haul.project import HAULProject
 from haul.builder import HAULTranslator
 
+
 def put(t):
 	print(t)
 
 
-
 """
-### Manual translation (without using HAULTranslator)
+### Translate using Reader and Writer in stream mode (without using HAULTranslator)
 def translate(source_filename, WriterClass, output_path=None, dialect=None, libs=None):
 	"Translates the input file using the given language's Writer"
 	
@@ -46,7 +45,6 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	put('Preparing input...')
 	stream_in = StringReader(readFile(source_filename))
 	reader = HAULReader_py(stream=stream_in, filename=source_filename)
-	
 	
 	# Pre-scan libraries, so they are known
 	libs_ns = HAUL_ROOT_NAMESPACE
@@ -79,7 +77,7 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 	put('Translating input file "' + source_filename + '"...')
 	reader.seek(0)
 	monolithic = True	# Use simple (but good) monolithic version (True) or a smart multi-pass streaming method (False)
-	writer.stream(reader, namespace=libs_ns, monolithic=monolithic)	# That's where the magic happens!
+	writer.stream(name, reader, namespace=libs_ns, monolithic=monolithic)	# That's where the magic happens!
 	
 	put('Writing output file "' + output_filename + '"...')
 	writeFile(output_filename, stream_out.r)
@@ -108,7 +106,7 @@ except HAULParseError as e:
 """
 
 """
-### Do it manually, file by file
+### Do it using a HAULTranslator
 t = HAULTranslator(HAULReader_py, HAULWriter_js)
 try:
 	### First: Parse all potential libs (headers), so all the namespaces are known for importing
