@@ -141,6 +141,82 @@ mp_token_to_id = [
 	'->',	#' = MP_TOKEN_DEL_MINUS_MORE',	#95
 ]
 
+binary_op_to_id = [
+	# The following 9+13+13 ops are used in bytecode and changing
+	# them requires changing the bytecode version.
+
+	# 9 relational operations, should return a bool; order of first 6 matches corresponding mp_token_kind_t
+	'MP_BINARY_OP_LESS',	# 0
+	'MP_BINARY_OP_MORE',	# 1
+	'MP_BINARY_OP_EQUAL',	# 2
+	'MP_BINARY_OP_LESS_EQUAL',	# 3
+	'MP_BINARY_OP_MORE_EQUAL',	# 4
+	'MP_BINARY_OP_NOT_EQUAL',	# 5
+	'MP_BINARY_OP_IN',	# = 6
+	'MP_BINARY_OP_IS',	# = 7
+	'MP_BINARY_OP_EXCEPTION_MATCH',	# = 8
+	
+	# 13 inplace arithmetic operations; order matches corresponding mp_token_kind_t
+	'MP_BINARY_OP_INPLACE_OR',	# = 9
+	'MP_BINARY_OP_INPLACE_XOR',	# = 10
+	'MP_BINARY_OP_INPLACE_AND',	# = 11
+	'MP_BINARY_OP_INPLACE_LSHIFT',	# = 12
+	'MP_BINARY_OP_INPLACE_RSHIFT',	# = 13
+	'MP_BINARY_OP_INPLACE_ADD',	# = 14
+	'MP_BINARY_OP_INPLACE_SUBTRACT',	# = 15
+	'MP_BINARY_OP_INPLACE_MULTIPLY',	# = 16
+	'MP_BINARY_OP_INPLACE_MAT_MULTIPLY',	# = 17
+	'MP_BINARY_OP_INPLACE_FLOOR_DIVIDE',	# = 18
+	'MP_BINARY_OP_INPLACE_TRUE_DIVIDE',	# = 19
+	'MP_BINARY_OP_INPLACE_MODULO',	# = 20
+	'MP_BINARY_OP_INPLACE_POWER',	# = 21
+	
+	# 13 normal arithmetic operations; order matches corresponding mp_token_kind_t
+	'|',	#MP_BINARY_OP_OR',	# = 22
+	'^',	#MP_BINARY_OP_XOR',	# = 23
+	'&',	#MP_BINARY_OP_AND',	# = 24
+	'<<',	#MP_BINARY_OP_LSHIFT',	#  = 25
+	'>>',	#MP_BINARY_OP_RSHIFT',	# = 26
+	'+',	#'MP_BINARY_OP_ADD',	#  = 27
+	'-',	#MP_BINARY_OP_SUBTRACT',	#  = 28
+	'*',	#MP_BINARY_OP_MULTIPLY',	#  = 29
+	'MP_BINARY_OP_MAT_MULTIPLY',	# = 30
+	'//',	#MP_BINARY_OP_FLOOR_DIVIDE',	# = 31
+	'/',	#MP_BINARY_OP_TRUE_DIVIDE',	# = 32
+	'%',	#MP_BINARY_OP_MODULO',	# = 33
+	'^',	#MP_BINARY_OP_POWER',	# = 34
+	
+	# Operations below this line don't appear in bytecode, they
+	# just identify special methods.
+	
+	# This is not emitted by the compiler but is supported by the runtime.
+	# It must follow immediately after MP_BINARY_OP_POWER.
+	'MP_BINARY_OP_DIVMOD',	# = 35
+	
+	# The runtime will convert MP_BINARY_OP_IN to this operator with swapped args.
+	# A type should implement this containment operator instead of MP_BINARY_OP_IN.
+	'MP_BINARY_OP_CONTAINS',	# = 36
+	
+	# 13 MP_BINARY_OP_REVERSE_* operations must be in the same order as MP_BINARY_OP_*	 = 0
+	# and be the last ones supported by the runtime.
+	'MP_BINARY_OP_REVERSE_OR',	# = 37
+	'MP_BINARY_OP_REVERSE_XOR',	# = 38
+	'MP_BINARY_OP_REVERSE_AND',	# = 39
+	'MP_BINARY_OP_REVERSE_LSHIFT',	# = 40
+	'MP_BINARY_OP_REVERSE_RSHIFT',	# = 41
+	'MP_BINARY_OP_REVERSE_ADD',	# = 42
+	'MP_BINARY_OP_REVERSE_SUBTRACT',	# = 43
+	'MP_BINARY_OP_REVERSE_MULTIPLY',	# = 44
+	'MP_BINARY_OP_REVERSE_MAT_MULTIPLY',	# = 45
+	'MP_BINARY_OP_REVERSE_FLOOR_DIVIDE',	# = 46
+	'MP_BINARY_OP_REVERSE_TRUE_DIVIDE',	# = 47
+	'MP_BINARY_OP_REVERSE_MODULO',	# = 48
+	'MP_BINARY_OP_REVERSE_POWER',	# = 49
+	
+	# These 2 are not supported by the runtime and must be synthesised by the emitter
+	'MP_BINARY_OP_NOT_IN',	# = 50
+	'MP_BINARY_OP_IS_NOT',	# = 51
+]
 
 class HAULReader_micropy(HAULReader):
 	def __init__(self, stream, filename):
@@ -538,6 +614,16 @@ class HAULReader_micropy(HAULReader):
 					self.read_expression(pn.nodes[1].nodes[0], ns)
 				]
 			
+			elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_trailer_bracket):
+				# Array look-up, e.g. "ar[123]"
+				e.call = implicitCall(I_ARRAY_LOOKUP)
+				v = ns.find_id(str(pn.nodes[0].id_value), ignore_unknown=True)
+				assert(len(pn.nodes[1].nodes) == 1)	# Only one node inside the brackets... please?
+				e.call.args = [
+					HAULExpression(var=v),
+					self.read_expression(pn.nodes[1].nodes[0], ns)
+				]
+			
 			elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_atom_expr_trailers):
 				# Simple invoke, e.g. "foo.startswith(bar)"
 				put('expression: UNHANDLED atom_expr_trailers: ' + str(self.dump(pn)))
@@ -573,6 +659,14 @@ class HAULReader_micropy(HAULReader):
 			e.call.args.append(self.read_expression(pn.nodes[0], ns))
 			e.call.args.append(self.read_expression(pn.nodes[2], ns))
 		
+		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_atom_bracket):
+			# Array constructor, e.g. "[1, 2, 3]"
+			e.call = implicitCall(I_ARRAY_CONSTRUCTOR)
+			assert(len(pn.nodes) == 1)
+			assert(MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[0], RULE_testlist_comp))
+			for pnn in pn.nodes[0].nodes:
+				e.call.args.append(self.read_expression(pnn, ns))
+		
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_and_test):
 			e.call = HAULCall()
 			e.call.id = ns.find_id('and')
@@ -580,8 +674,7 @@ class HAULReader_micropy(HAULReader):
 				e.call.args.append(self.read_expression(pnn, ns))
 		
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_or_test):
-			e.call = HAULCall()
-			e.call.id = ns.find_id('or')
+			e.call = HAULCall(ns.find_id('or'))
 			for pnn in pn.nodes:
 				e.call.args.append(self.read_expression(pnn, ns))
 		
@@ -594,13 +687,26 @@ class HAULReader_micropy(HAULReader):
 		elif pn.kind_num_nodes & 0xff == RULE_const_object:
 			if type(pn.nodes[0]) is int:
 				e.value = HAULValue(T_INTEGER, data_int=str(pn.nodes[0]))
+			elif type(pn.nodes[0]) is str:
+				e.value = HAULValue(T_STRING, data_str=str(pn.nodes[0]))
+			elif type(pn.nodes[0]) is mp_binary_op_t_c:
+				# Binary operation, see parser.py:mp_binary_op(op, arg0, arg1)
+				#binary_op_id = pn.nodes[0].op
+				binary_op_id = binary_op_to_id[pn.nodes[0].op]
+				id = ns.find_id(binary_op_id, ignore_unknown=True)
+				if id is None:
+					put('Adding unknown binary op: "%s" in line %d' % (binary_op_id, self.last_line_num))
+					id = ns.add_id(binary_op_id, kind=K_FUNCTION)
+				e.call = HAULCall(id)
+				e.call.args.append(HAULExpression(value=HAULValue(T_INTEGER, data_int=pn.nodes[0].arg0)))
+				e.call.args.append(HAULExpression(value=HAULValue(T_INTEGER, data_int=pn.nodes[0].arg1)))
 			else:
 				put('expression: Unhandled const value: ' + self.dump(pn))
-				e.value = HAULValue(T_STRING, data_str=str(pn.nodes[0]))
 		else:
 			#put('UNKNOWN EXPRESSION: ' + str(self.dump(pn)))
-			put('expression: UNKNOWN (pn.kind_num_nodes=%d): %s' % (pn.kind_num_nodes & 0xff, str(self.dump(pn))))
+			put('expression: UNKNOWN (pn.kind=%d): %s' % (pn.kind_num_nodes & 0xff, str(self.dump(pn))))
 		return e
+	
 	
 	def read_block(self, pn:mp_parse_node_t, namespace:HAULNamespace) -> HAULBlock:
 		b:HAULBlock = HAULBlock()
@@ -636,50 +742,6 @@ class HAULReader_micropy(HAULReader):
 		elif MP_PARSE_NODE_IS_STRUCT(pn):
 			#r += 'root=%s' % pn.dump()
 			kind = pn.kind_num_nodes & 0xff
-			
-			"""
-			# Parse known rules
-			if kind == RULE_import_from:
-				#r += 'IMPORT %s.%s\n' % (pn.nodes[0].id_value, str(pn.nodes[1]))
-				r += 'IMPORT %s.%s\n' % (str(pn.nodes[0]), str(pn.nodes[1]))
-				return r
-			elif kind == RULE_term:
-				r += '(' + (', '.join([self.dump(pnn).strip() for pnn in pn.nodes])) + ')\n'
-				return r
-			elif kind == RULE_atom_bracket:
-				r += ' [ ' + (', '.join([self.dump(pnn).strip() for pnn in pn.nodes])) + ' ] \n'
-				return r
-				
-			elif kind == RULE_expr_stmt:
-				
-				if MP_PARSE_NODE_IS_STRUCT(pn.nodes[0]) and (pn.nodes[0].kind_num_nodes & 0xff == RULE_atom_expr_normal):
-					# Call!
-					r += 'CALL '
-					#assert(pn.nodes[0].nodes[1].kind_num_nodes & 0xff == RULE_trailer_paren)
-					if (pn.nodes[0].nodes[1].kind_num_nodes & 0xff == RULE_trailer_paren):
-						r += pn.nodes[0].nodes[0].id_value
-						r += '('
-						r += ', '.join([ self.dump(pnn, 0).strip() for pnn in pn.nodes[0].nodes[1].nodes ])
-						r += ')\n'
-					else:
-						r += 'UNKNOWN EXPRESSION:' + self.dump(pn.nodes[0], indent+1)	#indent+1)
-					
-				else:
-					# Set
-					r += 'SET '
-					r += '<'
-					#r += pn.nodes[0].id_value
-					r += str(pn.nodes[0])
-					#r += dump(pn.nodes[0])
-					r += '> := <'
-					# node[1] can be "annassign" to include a type
-					r += self.dump(pn.nodes[1], 0).strip()	#indent+1)
-					r += '>\n'
-				
-				return r
-				
-				#pass
-			"""
 			## Unhandled: Just dump
 			r += 'STRUCT %s (%d) {\t// line %d\n' % (
 				rule_name_table[kind] if kind < len(rule_name_table) else '0x%02X'%kind,
