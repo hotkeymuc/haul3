@@ -241,15 +241,6 @@ class HAULReader_micropy(HAULReader):
 		#put(self.dump(pn))
 		
 		pn:mp_parse_node_t = t.root
-		
-		put('Transforming...')
-		#ns:HAULNamespace = HAULNamespace(name='root', parent=None)
-		#assert(MP_PARSE_NODE_IS_STRUCT_KIND(pn, file_input_2))
-		#m:HAULModule = self.read_module(pn, ns)
-		
-		#put('HAULNamespace:')
-		#put(str(ns.dump()))
-		#return m
 		return pn
 	
 	def read_module(self, name:str, namespace:HAULNamespace, pn:mp_parse_node_t=None) -> HAULModule:
@@ -261,9 +252,6 @@ class HAULReader_micropy(HAULReader):
 		self.last_line_num = 0
 		
 		assert(MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_file_input_2))
-		#for i,pn2 in enumerate(pn.nodes):
-		#	put('pn.nodes[%d] = %s' % (i, str(self.dump(pn2))))
-		#pn:mp_parse_node_t = pn.nodes[0]
 		
 		if namespace is None:
 			namespace = HAUL_ROOT_NAMESPACE
@@ -298,36 +286,39 @@ class HAULReader_micropy(HAULReader):
 				pass
 			else:
 				# Treat as normal instruction
-				i:HAULInstruction = self.read_instruction(pnn, ns)
+				i:HAULInstruction = self.read_instruction(pnn, ns, cls=m)
 				m.block.add_instruction(i)
 			
 		return m
 	
 	def read_function(self, pn:mp_parse_node_t, namespace:HAULNamespace) -> HAULFunction:
-		#put('@TODO: Function')	#: ' + str(pn))
-		#put(self.dump(pn))
-		
 		f:HAULFunction = HAULFunction()
 		f.origin = pn.source_line	#self.loc()
 		name = str(pn.nodes[0].id_value)
 		f.id = namespace.add_id(name=name, kind=K_FUNCTION, data_type=T_UNKNOWN, origin=f.origin)
 		
-		ns = namespace.get_or_create_namespace(name)
+		if name == '__init__':
+			# __init__ must be able to write to class namespace
+			ns = namespace
+		else:
+			ns = namespace.get_or_create_namespace(name)
 		f.namespace = ns
 		
 		# Args
 		#put('args=' + str(self.dump(pn.nodes[1])))
 		if MP_PARSE_NODE_IS_ID(pn.nodes[1]):
+			# Single argument, e.g. "def foo(bar)"
 			i = ns.add_id(name=str(pn.nodes[1].id_value), kind=K_VARIABLE, data_type=T_UNKNOWN, origin=f.origin)
 			f.add_arg( i )
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_typedargslist_name):
-			#put('arglist_name=' + str(self.dump(pn.nodes[1])))
+			put('! RULE_typedargslist_name=' + str(self.dump(pn.nodes[1])))
 			#name = str(pn.nodes[1].nodes[0].id_value)
 			typ = T_UNKNOWN	#@TODO: str(pn.nodes[1].nodes[1].id_value)
 			#@TODO: def_value = str(pn.nodes[1].nodes[2])
 			i = ns.add_id(name=str(pn.nodes[1].nodes[0].id_value), kind=K_VARIABLE, data_type=typ, origin=f.origin)
 			f.add_arg( i )
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_typedargslist):
+			# Multiple arguments, e.g. "def someMethod(self, a,b,c):"
 			# typedargslist_name, typedargslist_name, ...
 			#put('arglist=' + str(self.dump(pn.nodes[1])))
 			for pnn in pn.nodes[1].nodes:
@@ -350,26 +341,29 @@ class HAULReader_micropy(HAULReader):
 			#@TODO: Set return type: f.returnType = self.parse_type( pn.nodes[2] )
 			pass
 		
-		#if MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[3], RULE_suite_block_stmts):
 		f.block = self.read_block(pn.nodes[3], ns)
-		#else:
-		#	# Single instruction: Wrap in block
-		#	f.block = HAULBlock()
-		#	f.block.add_instruction(self.read_instruction(pn.nodes[3], ns))
 		return f
 	
 	def read_class(self, pn:mp_parse_node_t, namespace:HAULNamespace) -> HAULClass:
-		put('@TODO: Class')	#: ' + str(pn))
+		#put('Class: ' + self.dump(pn))
 		c:HAULClass = HAULClass()
 		c.origin = pn.source_line	#self.loc()
-		ns = namespace
+		name = str(pn.nodes[0].id_value)
+		c.id = namespace.add_id(name=name, kind=K_CLASS, data_type=T_CLASS, origin=c.origin)
 		
-		c.id = ns.add_id(name=str(pn.nodes[0].id_value), kind=K_CLASS, data_type=T_CLASS, origin=c.origin)
-		#@TODO: Member variables
-		#@TODO: Methods
+		ns = namespace.get_or_create_namespace(name)
+		
+		#@TODO: Read inheritance
+		pn_inherit = pn.nodes[1]
+		
+		c.block = self.read_block(pn.nodes[2], ns, cls=c)
+		
+		#@FIXME: What's up with nodes[3]? It is always NULL in my test cases
+		assert(MP_PARSE_NODE_IS_NULL(pn.nodes[3]))
+		
 		return c
 	
-	def read_instruction(self, pn:mp_parse_node_t, namespace:HAULNamespace) -> HAULInstruction:
+	def read_instruction(self, pn:mp_parse_node_t, namespace:HAULNamespace, cls:HAULClass=None) -> HAULInstruction:
 		i = HAULInstruction()
 		i.origin = pn.source_line	#self.loc()
 		ns = namespace
@@ -385,6 +379,7 @@ class HAULReader_micropy(HAULReader):
 			
 			if MP_PARSE_NODE_IS_NULL(pn.nodes[1]):
 				# No "right side" => Function call
+				# Read as expression and turn it into a call
 				e_call = self.read_expression(pn.nodes[0], ns)
 				i.call = e_call.call
 				
@@ -406,7 +401,11 @@ class HAULReader_micropy(HAULReader):
 					e,	# HAULExpression()
 					e_right
 				]
-			
+		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_funcdef):
+			f:HAULFunction = self.read_function(pn, ns)
+			#@TODFO: This function must be "attributed" to the closest class or module in the hierarchy
+			cls.add_func(f)
+		
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_if_stmt):
 			# IF instruction
 			# if_stmt has 4 children: if-expression, then-block, elif-block, else-block
@@ -460,15 +459,8 @@ class HAULReader_micropy(HAULReader):
 			assert(MP_PARSE_NODE_IS_ID(pn.nodes[0]))
 			v = ns.find_id(pn.nodes[0].id_value, ignore_unknown=True)	# for can introduce new variables
 			if v is None:
-				put('Adding FOR iterator "%s", since it is not yet known' % str(pn.nodes[0].id_value))
+				put('Adding FOR iterator "%s", since it is not yet known in line %d' % (str(pn.nodes[0].id_value), self.last_line_num))
 				v = ns.add_id(name=str(pn.nodes[0].id_value), kind=K_VARIABLE, data_type=T_UNKNOWN, origin=i.origin)
-			# augment "in"-function call
-			#e_cond = HAULExpression()
-			#e_cond.call = HAULCall()
-			#e_cond.call.id = ns.find_id('in')
-			#e_cond.call.args.append(HAULExpression(var=v))
-			#e_cond.call.args.append(self.read_expression(pn.nodes[1], ns))
-			#ctrl.add_expression(e_cond)
 			ctrl.add_expression(HAULExpression(var=v))	# 1st expression: Iterator (i.e. variable)
 			ctrl.add_expression(self.read_expression(pn.nodes[1], ns))	# 2nd expression: range
 			
@@ -483,7 +475,7 @@ class HAULReader_micropy(HAULReader):
 			e = self.read_expression(pn.nodes[0], namespace=ns)
 			ctrl.add_expression(e)
 			
-			# Retro-actively infer functio return type:
+			# Retro-actively infer function's return type:
 			#if ((INFER_TYPE) and (e.returnType != T_UNKNOWN) and (i != None) and (i.data_type == T_UNKNOWN)):
 			#	put_debug('Inferring return type "' + str(e.returnType) + '" for function "' + str(iret) + '" from return statement')
 			#	i.data_type = e.returnType
@@ -506,7 +498,7 @@ class HAULReader_micropy(HAULReader):
 	
 	def read_expression(self, pn:mp_parse_node_t, namespace:HAULNamespace, allow_undefined=False):
 		e = HAULExpression()
-		#e.origin = pn.source_line	#self.loc()
+		e.origin = self.last_line_num	#pn.source_line	#self.loc()
 		ns = namespace
 		
 		e.returnType = T_UNKNOWN
@@ -515,10 +507,13 @@ class HAULReader_micropy(HAULReader):
 		if MP_PARSE_NODE_IS_ID(pn):
 			if allow_undefined:
 				#@TODO: Get type from augmented set!
-				e.var = ns.add_id(str(pn.id_value), kind=None)
-			else:
-				#e.var = ns.find_id(str(pn.id_value), ignore_unknown=False)	# Will stop translation if ID was not found
 				e.var = ns.find_id(str(pn.id_value), ignore_unknown=True)	# Just gloss over unknown ids
+				if e.var is None:
+					put('expression: Introducing previously unknown id "%s" at %d' % (str(pn.id_value), e.origin))
+					e.var = ns.add_id(str(pn.id_value), kind=None, origin=e.origin)
+			else:
+				e.var = ns.find_id(str(pn.id_value), ignore_unknown=False)	# Will stop translation if ID was not found
+				#
 			
 		elif MP_PARSE_NODE_IS_SMALL_INT(pn):
 			e.value = HAULValue(T_INTEGER, data_int=pn.small_int_value)
@@ -557,7 +552,7 @@ class HAULReader_micropy(HAULReader):
 			e.call.id = ns.find_id(token_id, ignore_unknown=True)
 			if e.call.id is None:
 				put('expression: Adding unknown infix token_id: "%s" (%d / "%s")' % (token_id, pn.nodes[1].token_value, mp_token_kind_names[pn.nodes[1].token_value]))
-				e.call.id = ns.add_id(token_id, kind=K_FUNCTION)
+				e.call.id = ns.add_id(token_id, kind=K_FUNCTION, origin=e.origin)
 			
 			e.call.args.append(self.read_expression(pn.nodes[0], ns))
 			e.call.args.append(self.read_expression(pn.nodes[2], ns))
@@ -586,7 +581,7 @@ class HAULReader_micropy(HAULReader):
 				e.call.id = ns.find_id(str(pn.nodes[0].id_value), ignore_unknown=True)
 				if e.call.id is None:
 					put('expression: Adding unknown function id: "%s"' % str(pn.nodes[0].id_value))
-					e.call.id = ns.add_id(str(pn.nodes[0].id_value), kind=K_FUNCTION)
+					e.call.id = ns.add_id(str(pn.nodes[0].id_value), kind=K_FUNCTION, origin=e.origin)
 				
 				# Add args
 				if MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1].nodes[0], RULE_arglist):
@@ -611,7 +606,7 @@ class HAULReader_micropy(HAULReader):
 				e_var.var = v
 				e.call.args = [
 					e_var,
-					self.read_expression(pn.nodes[1].nodes[0], ns)
+					self.read_expression(pn.nodes[1].nodes[0], ns, allow_undefined=allow_undefined)
 				]
 			
 			elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_trailer_bracket):
@@ -626,11 +621,27 @@ class HAULReader_micropy(HAULReader):
 			
 			elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_atom_expr_trailers):
 				# Simple invoke, e.g. "foo.startswith(bar)"
-				put('expression: UNHANDLED atom_expr_trailers: ' + str(self.dump(pn)))
+				put('expression: atom_expr_trailers: ' + str(self.dump(pn)))
+				
+				# Start with first item
+				e.var = ns.find_id(str(pn.nodes[0].id_value))
 				"""
-				e.call = HAULCall()
-				v = ns.find_id(str(pn.nodes[0].id_value), ignore_unknown=True)
-				e_var = HAULExpression()
+				# Work through the trailers...
+				for pnn in pn.nodes[1].nodes:
+					if MP_PARSE_NODE_IS_STRUCT_KIND(pnn, RULE_trailer_period):
+						# Object lookup
+						assert(len(pnn.nodes) == 1)
+						e_call = HAULCall()
+						e_call.call = implicitCall(I_OBJECT_LOOKUP)
+						e_call.args.append(e)
+						e_call.args.append(self.read_expression(pnn.nodes[0]))
+						e = e_call
+						
+					elif MP_PARSE_NODE_IS_STRUCT_KIND(pnn, RULE_trailer_paren):
+						# Call!
+						e_call = HAULCall()
+						e_call.ca
+				
 				e_var.var = v
 				e.call.args = [
 					e_var,
@@ -654,18 +665,22 @@ class HAULReader_micropy(HAULReader):
 			e.call.id = ns.find_id(token_id, ignore_unknown=True)
 			if e.call.id is None:
 				put('expression: Adding unknown term token_id: "%s" (%d / "%s")' % (token_id, pn.nodes[1].token_value, mp_token_kind_names[pn.nodes[1].token_value]))
-				e.call.id = ns.add_id(token_id, kind=K_FUNCTION)	# Mark as "INFIX"?
+				e.call.id = ns.add_id(token_id, kind=K_FUNCTION, origin=e.origin)	# Mark as "INFIX"?
 			
 			e.call.args.append(self.read_expression(pn.nodes[0], ns))
 			e.call.args.append(self.read_expression(pn.nodes[2], ns))
 		
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_atom_bracket):
 			# Array constructor, e.g. "[1, 2, 3]"
+			#put('atom_bracket: %s' % self.dump(pn))
 			e.call = implicitCall(I_ARRAY_CONSTRUCTOR)
 			assert(len(pn.nodes) == 1)
-			assert(MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[0], RULE_testlist_comp))
-			for pnn in pn.nodes[0].nodes:
-				e.call.args.append(self.read_expression(pnn, ns))
+			if MP_PARSE_NODE_IS_NULL(pn.nodes[0]):
+				pass
+			else:
+				assert(MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[0], RULE_testlist_comp))
+				for pnn in pn.nodes[0].nodes:
+					e.call.args.append(self.read_expression(pnn, ns))
 		
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_and_test):
 			e.call = HAULCall()
@@ -696,7 +711,7 @@ class HAULReader_micropy(HAULReader):
 				id = ns.find_id(binary_op_id, ignore_unknown=True)
 				if id is None:
 					put('Adding unknown binary op: "%s" in line %d' % (binary_op_id, self.last_line_num))
-					id = ns.add_id(binary_op_id, kind=K_FUNCTION)
+					id = ns.add_id(binary_op_id, kind=K_FUNCTION, origin=e.origin)
 				e.call = HAULCall(id)
 				e.call.args.append(HAULExpression(value=HAULValue(T_INTEGER, data_int=pn.nodes[0].arg0)))
 				e.call.args.append(HAULExpression(value=HAULValue(T_INTEGER, data_int=pn.nodes[0].arg1)))
@@ -708,18 +723,18 @@ class HAULReader_micropy(HAULReader):
 		return e
 	
 	
-	def read_block(self, pn:mp_parse_node_t, namespace:HAULNamespace) -> HAULBlock:
+	def read_block(self, pn:mp_parse_node_t, namespace:HAULNamespace, cls:HAULClass=None) -> HAULBlock:
 		b:HAULBlock = HAULBlock()
 		ns = namespace
 		
 		if MP_PARSE_NODE_IS_STRUCT_KIND(pn, RULE_suite_block_stmts):
 			# Block of code
 			for pnn in pn.nodes:	#pnn:mp_parse_node_t
-				i:HAULInstruction = self.read_instruction(pnn, ns)
+				i:HAULInstruction = self.read_instruction(pnn, ns, cls=cls)
 				b.add_instruction(i)
 		else:
 			# Single instruction
-			i:HAULInstruction = self.read_instruction(pn, ns)
+			i:HAULInstruction = self.read_instruction(pn, ns, cls=cls)
 			b.add_instruction(i)
 		
 		return b

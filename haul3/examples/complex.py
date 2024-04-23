@@ -144,7 +144,8 @@ for i in range(10):
 
 
 put('Testing function calls...')
-
+#unknownFunctionCall()	# Should raise a HALNamespaceError
+testFunc(123, 456)
 
 
 put('Testing class instantiation...')
@@ -152,10 +153,6 @@ put('Testing class instantiation...')
 v = TheSecond()
 #v.data = "Test"	# @FIXME: Accessing remote namespaces from outside is problematic at streaming translation...
 
-#unknownFunctionCall()	# Should raise a HALNamespaceError
-
-
-testFunc(123, 456)
 
 #@var e int
 e = 6

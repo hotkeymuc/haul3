@@ -15,9 +15,19 @@ PARSER_VERBOSE_RESULT_NODE = not True	# Show result nodes as they are pushed
 PARSER_VERBOSE_RESULT_POP = not True	# Show parse nodes as they are popped
 DUMP_INDENT = '  '	#'\t'
 
+MICROPY_ALLOC_PARSE_RULE_INC = 1
 MICROPY_ALLOC_PARSE_RULE_INIT = 16	# Initial size of rule stack (automatically incremented if more is needed)
 MICROPY_ALLOC_PARSE_RESULT_INIT = 16	# Initial size of result stack (automatically incremented if more is needed)
 MICROPY_ALLOC_PARSE_INTERN_STRING_LEN = 1024 * 16	# Maximum length of strings before raising an Exception
+MICROPY_ALLOC_PARSE_RESULT_INC = 1
+MICROPY_ENABLE_DOC_STRING = True
+#MICROPY_COMP_CONST = ???
+#MICROPY_COMP_CONST_TUPLE = ???
+#MICROPY_DYNAMIC_COMPILER = ???
+#MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D ???
+#MICROPY_COMP_CONST_FOLDING = ???
+#MICROPY_COMP_MODULE_CONST = ???
+#MICROPY_COMP_CONST = ???
 
 ### Glue code
 
@@ -56,7 +66,6 @@ def qstr_from_strn(s:str, l:int) -> qstr:
 	return s[:l]
 
 ### Part of runtime
-mp_binary_op_t = int
 # mp_unary_op_t enum:
 # These ops may appear in the bytecode. Changing this group
 # in any way requires changing the bytecode version.
@@ -76,6 +85,7 @@ MP_UNARY_OP_COMPLEX_MAYBE = 10	# __complex__
 MP_UNARY_OP_SIZEOF = 11	# for sys.getsizeof()
 #} mp_unary_op_t;
 
+mp_binary_op_t = int
 #typedef enum {
 # The following 9+13+13 ops are used in bytecode and changing
 # them requires changing the bytecode version.
@@ -364,8 +374,19 @@ class mp_obj_tuple_t:
 			self.items = items
 def mp_obj_new_tuple(n:size_t, items:[mp_obj_t]) -> mp_obj_t:
 	return mp_obj_tuple_t(n, items)
-def mp_binary_op(op, arg0, arg1):
-	return (op, arg0, arg1)
+
+class mp_binary_op_t_c:
+	op:mp_binary_op_t = 0
+	arg0 = None
+	arg1 = None
+	def __init__(self, op, arg0, arg1):
+		self.op = op
+		self.arg0 = arg0
+		self.arg1 = arg1
+
+def mp_binary_op(op:mp_binary_op_t, arg0:int, arg1:int) -> mp_binary_op_t_c:
+	#return (op, arg0, arg1)
+	return mp_binary_op_t_c(op, arg0, arg1)
 
 
 def MP_OBJ_SMALL_INT_VALUE(o):
@@ -533,7 +554,7 @@ def push_rule(parser:parser_t, src_line:size_t, rule_id:uint8_t, arg_i:size_t):
 	
 	while (parser.rule_stack_top >= parser.rule_stack_alloc):
 		parser.rule_stack.append(rule_stack_t())
-		parser.rule_stack_alloc += 1	#@TODO: Increase by MICROPY_ALLOC_PARSE_RULE_INC
+		parser.rule_stack_alloc += MICROPY_ALLOC_PARSE_RULE_INC
 	
 	rs:rule_stack_t = parser.rule_stack[parser.rule_stack_top]
 	parser.rule_stack_top += 1
@@ -695,7 +716,7 @@ def push_result_node(parser:parser_t, pn:mp_parse_node_t):
 	
 	while (parser.result_stack_top >= parser.result_stack_alloc):
 		parser.result_stack.append(mp_parse_node_t())	# * MICROPY_ALLOC_PARSE_RESULT_INC
-		parser.result_stack_alloc += 1	# MICROPY_ALLOC_PARSE_RESULT_INC
+		parser.result_stack_alloc += MICROPY_ALLOC_PARSE_RESULT_INC
 	
 	parser.result_stack[parser.result_stack_top] = pn
 	parser.result_stack_top += 1
@@ -1310,20 +1331,22 @@ def mp_parse(lex:mp_lexer_t, input_kind:mp_parse_input_kind_t) -> mp_parse_tree_
 			
 			# matched the rule, so now build the corresponding parse_node
 			
-			#if !MICROPY_ENABLE_DOC_STRING
-			if (input_kind != MP_PARSE_SINGLE_INPUT and rule_id == RULE_expr_stmt and peek_result(parser, 0).typ == MP_PARSE_NODE_NULL):
-				p:mp_parse_node_t = peek_result(parser, 1)
-				if ((MP_PARSE_NODE_IS_LEAF(p) and (not MP_PARSE_NODE_IS_ID(p)))
-				or MP_PARSE_NODE_IS_STRUCT_KIND(p, RULE_const_object)):
-					pop_result(parser)	# MP_PARSE_NODE_NULL
-					pop_result(parser)	# const expression (leaf or RULE_const_object)
-					# Pushing the "pass" rule here will overwrite any RULE_const_object
-					# entry that was on the result stack, allowing the GC to reclaim
-					# the memory from the const object when needed.
-					push_result_rule(parser, rule_src_line, RULE_pass_stmt, 0)
-					break
+			if not MICROPY_ENABLE_DOC_STRING:
+				if (input_kind != MP_PARSE_SINGLE_INPUT and rule_id == RULE_expr_stmt and peek_result(parser, 0).typ == MP_PARSE_NODE_NULL):
+					p:mp_parse_node_t = peek_result(parser, 1)
+					if ((MP_PARSE_NODE_IS_LEAF(p) and (not MP_PARSE_NODE_IS_ID(p)))
+					or MP_PARSE_NODE_IS_STRUCT_KIND(p, RULE_const_object)):
+						pop_result(parser)	# MP_PARSE_NODE_NULL
+						pop_result(parser)	# const expression (leaf or RULE_const_object)
+						# Pushing the "pass" rule here will overwrite any RULE_const_object
+						# entry that was on the result stack, allowing the GC to reclaim
+						# the memory from the const object when needed.
+						push_result_rule(parser, rule_src_line, RULE_pass_stmt, 0)
+						break
+					#
 				#
 			#endif
+			
 			i = 0
 			num_not_nil:size_t = 0
 			#for (size_t x = n; x > 0;) {
