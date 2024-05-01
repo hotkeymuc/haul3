@@ -5,6 +5,7 @@
 #	2024-04-05 Bernhard "HotKey" Slawik
 #	"""
 
+
 ### Glue code
 def put(t:str):
 	print(t)
@@ -42,19 +43,31 @@ mp_token_kind_t = int
 
 
 # Define a dummy reader
+#class mp_reader_t:
+#	def __init__(self, data):
+#		self.data = data
+#		self.ofs = 0
+#	def readbyte(self, data) -> str:
+#		if self.ofs >= len(self.data):
+#			return MP_LEXER_EOF
+#		
+#		r = self.data[self.ofs]
+#		self.ofs += 1
+#		return r
+#	def __repr__(self) -> str:
+#		return 'byte %d / %d' % (self.ofs, len(self.data))
+
 class mp_reader_t:
-	def __init__(self, data):
-		self.data = data
-		self.ofs = 0
-	def readbyte(self, data) -> str:
-		if self.ofs >= len(self.data):
+	def __init__(self, stream):
+		#put('mp_reader_t init with stream=' + str(stream))
+		self.stream = stream
+	
+	def readbyte(self) -> str:
+		r = self.stream.get()	# Will need one "get" in order to set eof flag!
+		if self.stream.eof():
 			return MP_LEXER_EOF
-		
-		r = self.data[self.ofs]
-		self.ofs += 1
 		return r
-	def __repr__(self) -> str:
-		return 'byte %d / %d' % (self.ofs, len(self.data))
+	
 
 def unichar_isspace(c):
 	return c in [' ', '\t']
@@ -482,7 +495,8 @@ def next_char(lex:mp_lexer_t):
 		#
 	#endif
 	#{
-	lex.chr2 = lex.reader.readbyte(lex.reader.data)
+	#lex.chr2 = lex.reader.readbyte(lex.reader.data)
+	lex.chr2 = lex.reader.readbyte()
 	#
 	
 	if (lex.chr1 == '\r'):
@@ -490,7 +504,8 @@ def next_char(lex:mp_lexer_t):
 		lex.chr1 = '\n'
 		if (lex.chr2 == '\n'):
 			# CR LF is a single new line, throw out the extra LF
-			lex.chr2 = lex.reader.readbyte(lex.reader.data)
+			#lex.chr2 = lex.reader.readbyte(lex.reader.data)
+			lex.chr2 = lex.reader.readbyte()
 		#
 	#
 	
@@ -1208,34 +1223,34 @@ def mp_lexer_new(src_name:qstr, reader:mp_reader_t) -> mp_lexer_t:
 	return lex
 #
 
-def mp_lexer_new_from_str_len(src_name:qstr, s:char, l:size_t, free_len:size_t) -> mp_lexer_t:
-	#mp_reader_t reader
-	#mp_reader_new_mem(&reader, s, l, free_len)
-	reader:mp_reader_t = mp_reader_new_mem(s, l, free_len)
-	return mp_lexer_new(src_name, reader)
-#
-
-#if MICROPY_READER_POSIX or MICROPY_READER_VFS
-
-def mp_lexer_new_from_file(filename:qstr) -> mp_lexer_t:
-	#mp_reader_t reader
-	#mp_reader_new_file(&reader, filename);
-	reader:mp_reader_t = mp_reader_new_file(filename)
-	return mp_lexer_new(filename, reader)
-#
-
-#if MICROPY_HELPER_LEXER_UNIX
-
-def mp_lexer_new_from_fd(filename:qstr, fd:int, close_fd:bool) -> mp_lexer_t:
-	#mp_reader_t reader;
-	#mp_reader_new_file_from_fd(&reader, fd, close_fd);
-	reader:mp_reader_t = mp_reader_new_file_from_fd(fd, close_fd)
-	return mp_lexer_new(filename, reader)
-#
-
-#endif
-
-#endif
+#	def mp_lexer_new_from_str_len(src_name:qstr, s:char, l:size_t, free_len:size_t) -> mp_lexer_t:
+#		#mp_reader_t reader
+#		#mp_reader_new_mem(&reader, s, l, free_len)
+#		reader:mp_reader_t = mp_reader_new_mem(s, l, free_len)
+#		return mp_lexer_new(src_name, reader)
+#	#
+#	
+#	#if MICROPY_READER_POSIX or MICROPY_READER_VFS
+#	
+#	def mp_lexer_new_from_file(filename:qstr) -> mp_lexer_t:
+#		#mp_reader_t reader
+#		#mp_reader_new_file(&reader, filename);
+#		reader:mp_reader_t = mp_reader_new_file(filename)
+#		return mp_lexer_new(filename, reader)
+#	#
+#	
+#	#if MICROPY_HELPER_LEXER_UNIX
+#	
+#	def mp_lexer_new_from_fd(filename:qstr, fd:int, close_fd:bool) -> mp_lexer_t:
+#		#mp_reader_t reader;
+#		#mp_reader_new_file_from_fd(&reader, fd, close_fd);
+#		reader:mp_reader_t = mp_reader_new_file_from_fd(fd, close_fd)
+#		return mp_lexer_new(filename, reader)
+#	#
+#	
+#	#endif
+#	
+#	#endif
 
 def mp_lexer_free(lex:mp_lexer_t):
 	if (lex):
@@ -1276,12 +1291,14 @@ def mp_lexer_free(lex:mp_lexer_t):
 
 
 if __name__ == '__main__':
-	filename = '__test_micropython_lexer.py'
+	from haul.utils import FileReader
 	
-	with open(filename, 'r') as h:
-		code = h.read()
+	filename = 'micropython_lexer.py'
 	
-	reader = mp_reader_t(code)
+	#with open(filename, 'r') as h:
+	#	code = h.read()
+	#reader = mp_reader_t(code)
+	reader = mp_reader_t(FileReader(filename))
 	lex = mp_lexer_new(src_name=filename, reader=reader)
 	
 	put('-' * 40)

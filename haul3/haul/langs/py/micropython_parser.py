@@ -33,18 +33,18 @@ MICROPY_ENABLE_DOC_STRING = True
 
 # Set lexer to verbose
 if LEXER_VERBOSE:
-	import __test_micropython_lexer
-	__test_micropython_lexer.MP_LEXER_VERBOSE = True
+	import micropython_lexer
+	micropython_lexer.MP_LEXER_VERBOSE = True
 
 
 # When running as library:
-if __name__ == 'haul.langs.py.__test_micropython_parser':
-	from haul.langs.py.__test_micropython_lexer import *
-	from haul.langs.py.__test_micropython_grammar import *
+if __name__ == 'haul.langs.py.micropython_parser':
+	from haul.langs.py.micropython_lexer import *
+	from haul.langs.py.micropython_grammar import *
 else:
 	# When running stand-alone:
-	from __test_micropython_lexer import *
-	from __test_micropython_grammar import *
+	from micropython_lexer import *
+	from micropython_grammar import *
 
 
 def put(t:str):
@@ -1550,7 +1550,8 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 
 if __name__ == '__main__':
 	#filename = '__test_micropython_lexer.py'
-	filename = '__test_micropython_parser.py'
+	#filename = '__test_micropython_parser.py'
+	filename = 'micropython_parser.py'
 	#filename = 'micropython_minimal/test.py'
 	
 	put('Loading "%s"...' % filename)

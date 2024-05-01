@@ -35,6 +35,16 @@ class HAULTranslator:
 		self.dialect = dialect
 		self.libs = []
 		
+		# Determine output extension
+		#@var stream_out HAULStream
+		stream_out = StringWriter()
+		#@var writer HAULWriter
+		if (self.dialect == None):
+			writer = self.WriterClass(stream_out)
+		else:
+			writer = self.WriterClass(stream_out, dialect=self.dialect)
+		self.dest_extension = writer.default_extension
+		
 		# For the sake of compilation we could also clone the HAUL_ROOT_NAMESPACE and write directly to it
 		#self.namespace = HAUL_ROOT_NAMESPACE.clone()
 		self.namespace = HAULNamespace(name='translator', parent=HAUL_ROOT_NAMESPACE)
@@ -83,14 +93,15 @@ class HAULTranslator:
 	
 	#@fun translate_project
 	#@arg project HAULProject
-	def translate_project(self, project, output_path=None, dest_extension=None, stream_out_single=None):
-		
+	#def translate_project(self, project, output_path=None, dest_extension=None, stream_out_single=None):
+	def translate_project(self, project, output_path=None, stream_out_single=None):
 		if (stream_out_single == None):
 			put('Checking source filenames...')
 			for s in project.sources:
 				# Each file to own output file
 				if (s.dest_filename == None):
 					# Assume default names
+					dest_extension = self.dest_extension
 					s.dest_filename = os.path.abspath(os.path.join(output_path, s.name.replace('.', '/') + '.' + dest_extension))
 					put('Assigned automatic filename "{}"'.format(s.dest_filename))
 					

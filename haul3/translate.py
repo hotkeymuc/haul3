@@ -13,6 +13,7 @@ import os	# for checking/creating the output path
 from haul.utils import *
 
 from haul.langs.py.reader_py import *
+from haul.langs.py.reader_py_micropython import *
 
 from haul.langs.asm.writer_asm import *
 from haul.langs.bas.writer_bas import *
@@ -68,11 +69,11 @@ def translate(source_filename, WriterClass, output_path=None, dialect=None, libs
 		writer = WriterClass(stream_out, dialect=dialect)
 	
 	if output_path is None:
-		output_filename = source_filename + '.' + writer.defaultExtension
+		output_filename = source_filename + '.' + writer.default_extension
 	else:
 		if not os.path.exists(output_path):
 			os.makedirs(output_path)
-		output_filename = output_path + '/' + name + '.' + writer.defaultExtension
+		output_filename = output_path + '/' + name + '.' + writer.default_extension
 	
 	put('Translating input file "' + source_filename + '"...')
 	reader.seek(0)
@@ -146,10 +147,15 @@ p.add_source('helper')	# Used to test importing in "small.py"
 p.add_source('small')
 #p.add_source('bastest')
 
+#ReaderClass = HAULReader_py
+ReaderClass = HAULReader_micropython
+WriterClass = HAULWriter_java
 
 #t = HAULTranslator(HAULReader_py, HAULWriter_js)
-t = HAULTranslator(HAULReader_py, HAULWriter_java)
-t.translate_project(p, output_path='build', dest_extension='java')
+#t = HAULTranslator(HAULReader_py, HAULWriter_java)
+t = HAULTranslator(ReaderClass, WriterClass)
+#t.translate_project(p, output_path='build', dest_extension='java')
+t.translate_project(p, output_path='build')
 
 #t = HAULTranslator(HAULReader_py, HAULWriter_bas, dialect=DIALECT_MS)
 #t.translate_project(p, output_path='build', dest_extension='bas')
