@@ -229,6 +229,7 @@ class HAULReader_micropy(HAULReader):
 	
 	def prepare_mp_parse_tree(self):
 		code = self.stream.data
+		
 		put('Setting up reader and lexer...')
 		reader = mp_reader_t(code)
 		lex = mp_lexer_new(src_name=self.filename, reader=reader)
@@ -291,24 +292,29 @@ class HAULReader_micropy(HAULReader):
 			
 		return m
 	
-	def read_function(self, pn:mp_parse_node_t, namespace:HAULNamespace) -> HAULFunction:
+	def read_function(self, pn:mp_parse_node_t, namespace:HAULNamespace, cls:HAULClass=None) -> HAULFunction:
 		f:HAULFunction = HAULFunction()
 		f.origin = pn.source_line	#self.loc()
 		name = str(pn.nodes[0].id_value)
+		
 		f.id = namespace.add_id(name=name, kind=K_FUNCTION, data_type=T_UNKNOWN, origin=f.origin)
 		
 		if name == '__init__':
-			# __init__ must be able to write to class namespace
+			# __init__ must be able to write to the class namespace (parent)
 			ns = namespace
 		else:
 			ns = namespace.get_or_create_namespace(name)
 		f.namespace = ns
 		
 		# Args
+		
+		#@TODO: If inside a class: Declare "self" to point to the namespace of the class cls!
+		
 		#put('args=' + str(self.dump(pn.nodes[1])))
 		if MP_PARSE_NODE_IS_ID(pn.nodes[1]):
 			# Single argument, e.g. "def foo(bar)"
-			i = ns.add_id(name=str(pn.nodes[1].id_value), kind=K_VARIABLE, data_type=T_UNKNOWN, origin=f.origin)
+			typ = T_UNKNOWN	#@TODO
+			i = ns.add_id(name=str(pn.nodes[1].id_value), kind=K_VARIABLE, data_type=typ, origin=f.origin)
 			f.add_arg( i )
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_typedargslist_name):
 			put('! RULE_typedargslist_name=' + str(self.dump(pn.nodes[1])))
@@ -317,6 +323,7 @@ class HAULReader_micropy(HAULReader):
 			#@TODO: def_value = str(pn.nodes[1].nodes[2])
 			i = ns.add_id(name=str(pn.nodes[1].nodes[0].id_value), kind=K_VARIABLE, data_type=typ, origin=f.origin)
 			f.add_arg( i )
+		
 		elif MP_PARSE_NODE_IS_STRUCT_KIND(pn.nodes[1], RULE_typedargslist):
 			# Multiple arguments, e.g. "def someMethod(self, a,b,c):"
 			# typedargslist_name, typedargslist_name, ...
@@ -324,7 +331,8 @@ class HAULReader_micropy(HAULReader):
 			for pnn in pn.nodes[1].nodes:
 				#put('arg=' + str(self.dump(pnn)))
 				if MP_PARSE_NODE_IS_ID(pnn):
-					i = ns.add_id(name=str(pnn.id_value), kind=K_VARIABLE, data_type=T_UNKNOWN, origin=f.origin)
+					typ = T_UNKNOWN	#@TODO
+					i = ns.add_id(name=str(pnn.id_value), kind=K_VARIABLE, data_type=typ, origin=f.origin)
 				elif MP_PARSE_NODE_IS_STRUCT_KIND(pnn, RULE_typedargslist_name):
 					typ = T_UNKNOWN	#@TODO: pnn.nodes[1].id_value !
 					#@TODO: def_value = str(pnn.nodes[2])
@@ -337,8 +345,9 @@ class HAULReader_micropy(HAULReader):
 		
 		# Return type
 		if not MP_PARSE_NODE_IS_NULL(pn.nodes[2]):
-			#put('UNHANDLED function return type: ' + str(pn.nodes[2]))
+			put('not implemented: function return type: ' + str(pn.nodes[2]))
 			#@TODO: Set return type: f.returnType = self.parse_type( pn.nodes[2] )
+			#f.id.data_type = 
 			pass
 		
 		f.block = self.read_block(pn.nodes[3], ns)
@@ -352,6 +361,8 @@ class HAULReader_micropy(HAULReader):
 		c.id = namespace.add_id(name=name, kind=K_CLASS, data_type=T_CLASS, origin=c.origin)
 		
 		ns = namespace.get_or_create_namespace(name)
+		# Add "self" to namespace, so functions can access it
+		#ns.add_id(name='self', kind=K_VARIABLE, data_type=name, origin=c.origin)
 		
 		#@TODO: Read inheritance
 		pn_inherit = pn.nodes[1]

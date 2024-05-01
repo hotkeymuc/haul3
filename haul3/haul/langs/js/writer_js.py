@@ -106,8 +106,9 @@ class HAULWriter_js(HAULWriter):
 		f.destination = self.stream_out.ofs	# Record offset in output stream
 		
 		# No need to declare arguments
-		#self.write_namespace(f.namespace, indent)	# Namespace outside function
-		self.write_comment('Namespace skipped (function args)')
+		self.write_comment('Namespace of function "' + str(f.id.name) + '":')
+		self.write_namespace(f.namespace, indent)	# Namespace outside function
+		#self.write_comment('Namespace skipped (function args)')
 		
 		self.write_indent(indent)
 		

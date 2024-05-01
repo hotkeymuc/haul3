@@ -184,7 +184,7 @@ class HAULNamespace:
 			if (overwrite == False):
 				#raise Exception('HAULNamespaceError: "' + (name) + '" is already present in current namespace!')
 				put('"' + (name) + '" is already present in namespace ' + str(self) + ' at ' + str(i.origin) + ', not overwriting!')
-				raise Exception(name + ' is already present')
+				raise Exception(name + ' is already present: ' + str(self.dump()))
 				return i
 			
 			# Overwrite
