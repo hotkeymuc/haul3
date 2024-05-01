@@ -1545,6 +1545,9 @@ def mp_parse_tree_clear(tree:mp_parse_tree_t):
 	tree.chunk = None
 #
 
+### For testing
+
+
 if __name__ == '__main__':
 	#filename = '__test_micropython_lexer.py'
 	filename = '__test_micropython_parser.py'

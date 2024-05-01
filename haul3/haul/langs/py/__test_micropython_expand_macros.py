@@ -32,7 +32,7 @@ def put(t):
 # Specify file mapping for "#include" statement. All files which are not found are just ignored.
 PATH_TRANSLATE = {
 	#'py/': ''
-	'py/grammar.h': './__test_micropython.git/grammar.h'
+	'py/grammar.h': './micropython.git/grammar.h'
 }
 def translate_path(p):
 	for s,t in PATH_TRANSLATE.items():
